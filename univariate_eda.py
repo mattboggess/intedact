@@ -240,7 +240,7 @@ def categorical_univariate_eda(data, column, fig_height=6, fig_width=12,
             percent=(column, lambda x: 100 * x.size / data.shape[0])
         ) \
         .reset_index()
-    table[column].astype('category').cat.set_categories(order, inplace=True, ordered=True)
+    table[column] = table[column].astype('category').cat.set_categories(order, ordered=True)
     table = table \
         .sort_values(column) \
         .head(top_n)
