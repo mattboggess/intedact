@@ -10,7 +10,7 @@ from plotnine import *
 from matplotlib import gridspec
 import warnings
 from numpy.linalg import norm
-from utils import order_categorical, categorize_column_type
+from .utils import order_categorical, categorize_column_type
 
 DESCRIPTIONS = {
     'column1': "column_1: Column to be plotted as independent variable",
