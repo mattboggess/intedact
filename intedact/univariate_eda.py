@@ -6,8 +6,11 @@ from ipywidgets import interactive, fixed, Layout
 from collections import Counter
 from itertools import combinations
 import matplotlib.ticker as mtick 
+from plotnine import *
+from matplotlib import gridspec
+import warnings
 
-def eda_countplot(data, column, flip_axis=False, order=None, ax=None, percent=True):
+def _eda_countplot(data, column, fig, ax, flip_axis=False, percent=True, label_counts=True):
     """ 
     Creates a countplot for a categorical variable column. 
     
@@ -17,40 +20,75 @@ def eda_countplot(data, column, flip_axis=False, order=None, ax=None, percent=Tr
         Dataset to perform EDA on 
     column: str
         A string matching a column in the data 
+    fig: plotnine ggplot
+        plotnine ggplot figure object that plot is being drawn onto
+    ax: matplotlib Axes
+        Axes object to draw the plot onto. 
     flip_axis: bool, optional
         Whether to flip the countplot so labels are on y axis. Useful for long level names
         or lots of levels.
-    order: list, optional
-        List of level values denoting the order the levels should be plotted in
-    ax: matplotlib Axes, optional
-        Axes object to draw the plot onto, otherwise uses the current Axes. 
+    percent: bool, optional
+        Whether to include a twin axis denoting the relative percentages in addition to counts
         
     Returns 
     -------
     matplotlib Axes 
         Returns the Axes object with the plot drawn onto it. 
     """
+    def combine(counts, percentages):
+        fmt = '{} ({:.1f}%)'.format
+        return [fmt(c, p) for c, p in zip(counts, percentages)]
+    
+    p1 = (
+      ggplot(data, aes(x = column)) +
+      geom_bar(fill='steelblue', color='black')
+    )
+    
     if flip_axis:
-        sns.countplot(y=column, data=data, ax=ax, order=order);
-        if percent:
+        p1 += coord_flip()
+        va = 'center'
+        ha = 'right'
+    else:
+        va = 'bottom'
+        ha = 'center'
+    
+    if data[column].nunique() > 10:
+        size = 8
+    else:
+        size = 11
+    
+    if label_counts:
+      p1 += geom_text(
+        aes(label='stat(combine(count, 100*prop))', group=1),
+        stat='count',
+        va=va,
+        ha=ha,
+        color='black',
+        size=size
+      )
+        
+    _ = p1._draw_using_figure(fig, [ax])
+            
+    if percent:
+        if flip_axis:
             ax_perc = ax.twiny()
             ax_perc.set_xticks(100 * ax.get_xticks() / len(data[column]))
-            ax_perc.set_xlim((0, 100.0 * (float(ax.get_xlim()[1]) / len(data[column]))))
+            ax_perc.set_xlim((100.0 * (float(ax.get_xlim()[0]) / len(data[column])),
+                              100.0 * (float(ax.get_xlim()[1]) / len(data[column]))))
             ax_perc.xaxis.set_major_formatter(mtick.PercentFormatter())
             ax_perc.grid(None)
-    else:
-        sns.countplot(x=column, data=data, ax=ax, order=order);
-        if percent:
+        else:
             ax_perc = ax.twinx()
             ax_perc.set_yticks(100 * ax.get_yticks() / len(data[column]))
-            ax_perc.set_ylim((0, 100.0 * (float(ax.get_ylim()[1]) / len(data[column]))))
+            ax_perc.set_ylim((100.0 * (float(ax.get_ylim()[0]) / len(data[column])),
+                              100.0 * (float(ax.get_ylim()[1]) / len(data[column]))))
             ax_perc.yaxis.set_major_formatter(mtick.PercentFormatter())
             ax_perc.grid(None)
         
     return ax
 
-def eda_histogram(data, column, hist_bins=None, kde=False, transform='identity', lower_cutoff=0,
-                  upper_cutoff=1, ax=None):
+def _eda_histogram(data, column, fig, ax, hist_bins=None, kde=False, transform='identity', 
+                   lower_cutoff=0, upper_cutoff=1):
     """ 
     Creates a histogram for a numeric variable column. 
     
@@ -86,17 +124,33 @@ def eda_histogram(data, column, hist_bins=None, kde=False, transform='identity',
     hq = data[column].quantile(upper_cutoff)
     data = data.query(f"{column} >= {lq} and {column} <= {hq}")
     
-    col_data = _transform_data(data[column], transform)
+    # modify data for transforms 
+    if transform == 'log_exclude0':
+        data = data[data[column] > 0]
+    elif transform == 'log':
+        data[column] = data[column] + 1e-6
     
-    sns.distplot(col_data, kde=kde, ax=ax, bins=hist_bins, 
-                 hist_kws={'edgecolor': 'k', 'linewidth': 1})
+    if kde:
+        p1 = (
+         ggplot(data, aes(x=column, y='..density..')) +
+         geom_histogram(bins=hist_bins, color='black', fill='steelblue') + 
+         geom_density()
+        )
+    else:
+        p1 = (
+         ggplot(data, aes(x=column)) +
+         geom_histogram(bins=hist_bins, color='black', fill='steelblue')
+        ) 
+    
     if transform in ['log', 'log_exclude0']:
-        ax.set_xticklabels([f'$10^{{{x:.1f}}}$'.replace('.0', '') for x in ax.get_xticks()])
+        p1 += scale_x_log10()
         
+    _ = p1._draw_using_figure(fig, [ax])
+    
     return ax
 
-def eda_boxplot(data, column, flip_axis=True, transform='identity', lower_cutoff=0, upper_cutoff=1,
-                ax=None):
+def _eda_boxplot(data, column, fig, ax, flip_axis=True, transform='identity', lower_cutoff=0, 
+                 upper_cutoff=1):
     """ 
     Creates a boxplot for a numeric variable.
     
@@ -130,42 +184,42 @@ def eda_boxplot(data, column, flip_axis=True, transform='identity', lower_cutoff
     hq = data[column].quantile(upper_cutoff)
     data = data.query(f"{column} >= {lq} and {column} <= {hq}")
     
-    col_data = _transform_data(data[column], transform)
+    # modify data for transforms 
+    if transform == 'log_exclude0':
+        data = data[data[column] > 0]
+    elif transform == 'log':
+        data[column] = data[column] + 1e-6
     
-    if flip_axis:
-        sns.boxplot(x=col_data, data=data, ax=ax)
-        if transform in ['log', 'log_exclude0']:
-            ax.set_xticklabels([f'$10^{{{x:.1f}}}$'.replace('.0', '') for x in ax.get_xticks()])
-    else:
-        sns.boxplot(y=col_data, data=data, ax=ax)
-        if transform in ['log', 'log_exclude0']:
-            ax.set_yticklabels([f'$10^{{{x:.1f}}}$'.replace('.0', '') for x in ax.get_yticks()])
+    p1 = (
+     ggplot(data, aes(x=[''], y=column)) +
+     geom_boxplot(fill='steelblue')
+    )
+    
+    if transform in ['log', 'log_exclude0']:
+        if flip_axis:
+            p1 += scale_y_log10()
+        else:
+            p1 += scale_x_log10()
         
-    
+    if flip_axis:
+        p1 += coord_flip()
+        
+    _ = p1._draw_using_figure(fig, [ax])
+        
     return ax
 
-def _transform_data(col_data, transform):
-    if transform == 'log':
-        return np.log10(col_data + 1e-6)
-    elif transform == 'log_exclude0':
-        return np.log10(col_data[col_data > 0])
-    elif transform == 'identity':
-        return col_data
-    else:
-        raise ValueError(f"Unsupported transform: {transform}")
-
-def categorical_univariate_eda(data, column, fig_height=6, fig_width=12, 
-                            flip_axis=False, level_order='Default', top_n=30):
+def categorical_univariate_eda(data, column, fig_height=6, fig_width=12, label_counts=True,
+                               flip_axis=False, level_order='Default', top_n=30):
     """ 
     Creates a univariate EDA summary for a provided categorical/low dimensional column in a 
     pandas DataFrame.
         
     For the provided column produces: 
-     - a countplot with twin axis for percentage 
+     - a countplot with optional twin axis for percentage 
      - frequency table with count and percentage
     
     The provided column should be a category type or a discrete variable that only takes on a small 
-    number of values. Missing values are ignored.
+    number of values. 
     
     Parameters
     ----------
@@ -189,14 +243,20 @@ def categorical_univariate_eda(data, column, fig_height=6, fig_width=12,
          - 'Sorted' sorts according to sorted order of the levels themselves.
          - 'Random' produces a random order. Useful if there are too many levels for one plot. 
     top_n: int, optional 
-        Maximum number of levels to attempt to plot on a single plot. If exceeded, only the top_n
-        levels will be plotted and included in table according to the level_order.
+        Maximum number of levels to attempt to plot on a single plot. If exceeded, only the 
+        top_n - 1 levels will be plotted individually and the remainder will be grouped into an 
+        'Other' category. 
 
     Returns 
     -------
     None
         No return value. Directly displays the resulting matplotlib figure and table.
     """
+    data = data.copy()
+    
+    # handle missing data
+    num_missing = data[column].isnull().sum()
+    perc_missing = num_missing / data.shape[0]
     data.dropna(subset=[column], inplace=True)
     
     # determine order to plot levels
@@ -219,32 +279,41 @@ def categorical_univariate_eda(data, column, fig_height=6, fig_width=12,
         order = list(value_counts.sample(frac=1).index)
     else:
         raise ValueError(f"Unknown level order specification: {level_order}")
-    
-    # restrict to maximum number of levels for plot
+        
+    # restrict to top_n levels (condense rest into Other)
     num_levels = len(data[column].unique())
     if num_levels > top_n:
-        print(f"Removed {num_levels - top_n} levels from plot")
-        order = order[:top_n]
-        
-    # make countplot of data
-    f, ax_count = plt.subplots(1, 1, figsize=(fig_width, fig_height))
-    eda_countplot(data, column, ax=ax_count, order=order, flip_axis=flip_axis)
-    ax_count.set_title(f"{data[column].size} observations over {num_levels} levels")
-    plt.show()
+        print()
+        print(f"{num_levels - top_n} levels condensed into 'Other'")
+        other_levels = order[top_n:]
+        order = order[:top_n] + ['Other']
+        if data[column].dtype.name == 'category':
+            data[column].cat.add_categories(['Other'], inplace=True)
+        data.loc[data[column].isin(other_levels), column] = 'Other'
     
-    # display frequency table 
-    table = data \
-        .groupby(column) \
-        .agg(
-            count=(column, 'size'),
-            percent=(column, lambda x: 100 * x.size / data.shape[0])
-        ) \
-        .reset_index()
-    table[column] = table[column].astype('category').cat.set_categories(order, ordered=True)
-    table = table \
-        .sort_values(column) \
-        .head(top_n)
-    display(table)
+    # convert to ordered categorical variable
+    data[column] = pd.Categorical(data[column], categories=order)
+        
+    # reverse order when flipping axis so order is as expected
+    if flip_axis:
+        order = order[::-1]
+        data[column] = pd.Categorical(data[column], categories=order)
+        
+    # make countplot of data (empty figure hack for plotting with subplots)
+    # https://github.com/has2k1/plotnine/issues/373
+    fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
+    fig.set_size_inches(fig_width, fig_height)
+    gs = gridspec.GridSpec(1, 1)
+    ax = fig.add_subplot(gs[0])
+    
+    _eda_countplot(data, column, fig=fig, ax=ax, flip_axis=flip_axis, label_counts=label_counts,
+                   percent=True)
+    
+    ax.set_title((f"{data[column].size} observations over {num_levels} levels\n"
+                  f"{num_missing} missing observations ({perc_missing}%)"))
+    
+    # show the output
+    plt.show()
 
 def numeric_univariate_eda(data, column, fig_height=6, fig_width=12, hist_bins=0, 
                            kde=False, transform='identity', lower_cutoff=0, upper_cutoff=1):
@@ -288,22 +357,36 @@ def numeric_univariate_eda(data, column, fig_height=6, fig_width=12, hist_bins=0
     None
         No return value. Directly displays the resulting matplotlib figure and table.
     """
+    table = data[column].describe()
+    display(pd.DataFrame(table).T)
+    
+    # handle missing data
+    num_missing = data[column].isnull().sum()
+    perc_missing = num_missing / data.shape[0]
     data.dropna(subset=[column], inplace=True)
+    
     if hist_bins == 0:
         hist_bins = None
         
-    # histogram and boxplot
-    f, axs = plt.subplots(2, 1, figsize=(fig_width, fig_height * 2))
-    eda_histogram(data, column, ax=axs[0], kde=kde, hist_bins=hist_bins, lower_cutoff=lower_cutoff,
-                  upper_cutoff=upper_cutoff, transform=transform)
-    eda_boxplot(data, column, ax=axs[1], lower_cutoff=lower_cutoff, upper_cutoff=upper_cutoff, 
-                transform=transform)
-    axs[0].set_title(f"{data[column].size} observations ranging from {data[column].min()} to {data[column].max()}")
-    plt.show()
     
-    # summary statistics
-    table = data[column].describe()
-    display(pd.DataFrame(table))
+        
+    # make histogram and boxplot figure (empty figure hack for plotting with subplots)
+    # https://github.com/has2k1/plotnine/issues/373
+    fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
+    fig.set_size_inches(fig_width, fig_height * 2)
+    gs = gridspec.GridSpec(2, 1)
+    ax_hist = fig.add_subplot(gs[0])
+    ax_box = fig.add_subplot(gs[1])
+    
+    _eda_histogram(data, column, fig=fig, ax=ax_hist, kde=kde, hist_bins=hist_bins, 
+                   transform=transform)
+    _eda_boxplot(data, column, fig=fig, ax=ax_box, transform=transform)
+    
+    ax_hist.set_title(
+        (f"{data[column].size} observations ranging from {data[column].min()} to {data[column].max()}\n"
+         f"{num_missing} missing observations ({perc_missing}%)"))
+    
+    plt.show()
     
 def datetime_univariate_eda(data, column, fig_height=6, fig_width=12, ts_freq='1M', delta_freq='1D',
                             hist_bins=0, kde=False, transform='identity', lower_cutoff=0, 
@@ -361,11 +444,20 @@ def datetime_univariate_eda(data, column, fig_height=6, fig_width=12, ts_freq='1
     None
         No return value. Directly displays the resulting matplotlib figure and table.
     """
-    data = data.copy().dropna(subset=[column])
+    data = data.copy()
+    
+    # handle missing data
+    num_missing = data[column].isnull().sum()
+    perc_missing = num_missing / data.shape[0]
+    data.dropna(subset=[column], inplace=True)
+    
     if hist_bins == 0:
         hist_bins = None
     
-    fig = plt.figure(figsize=(fig_width, fig_height * 6)) 
+    # make histogram and boxplot figure (empty figure hack for plotting with subplots)
+    # https://github.com/has2k1/plotnine/issues/373
+    fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
+    fig.set_size_inches(fig_width, fig_height * 6)
     grid = fig.add_gridspec(6, 2)
     
     # compute extra columns with datetime attributes
@@ -397,56 +489,61 @@ def datetime_univariate_eda(data, column, fig_height=6, fig_width=12, ts_freq='1
     ax_perc.grid(None)
     ax.set_xlabel(f"Time series of observation counts resampled at {ts_freq}")
     ax.set_ylabel('count')
-    plt.title(f"{data[column].size} observations ranging from {data[column].min()} to {data[column].max()}")
+    plt.title((
+        f"{data[column].size} observations ranging from {data[column].min()} to {data[column].max()}\n"
+        f"{num_missing} missing observations ({perc_missing}%)"))
     
     # histogram and boxplot of time deltas
-    ax_hist = eda_histogram(data, 'deltas', ax=fig.add_subplot(grid[1, 0]), kde=kde, 
-                            hist_bins=hist_bins, lower_cutoff=lower_cutoff, 
-                            upper_cutoff=upper_cutoff, transform=transform)
+    ax_hist = _eda_histogram(data, 'deltas', fig=fig, ax=fig.add_subplot(grid[1, 0]), kde=kde, 
+                            hist_bins=hist_bins, transform=transform, lower_cutoff=lower_cutoff,
+                            upper_cutoff=upper_cutoff)
     ax_hist.set_xlabel(f"Time deltas between observations in units of {delta_freq}")
-    ax_box = eda_boxplot(data, 'deltas', ax=fig.add_subplot(grid[1, 1]), flip_axis=True, 
+    ax_box = _eda_boxplot(data, 'deltas', fig=fig, ax=fig.add_subplot(grid[1, 1]), flip_axis=True, 
                          lower_cutoff=lower_cutoff, upper_cutoff=upper_cutoff, transform=transform)
     ax_box.set_xlabel(f"Time deltas between observations in units of {delta_freq}")
     
     # plot countplot by year 
-    year_order = np.arange(data['year'].min(), data['year'].max(), 1)
-    ax = eda_countplot(data, 'year', order=year_order, flip_axis=False, 
+    year_order = np.arange(data['year'].min(), data['year'].max() + 1, 1)
+    data['year'] = pd.Categorical(data['year'], categories=year_order)
+    ax = _eda_countplot(data, 'year', fig=fig, flip_axis=False, 
                        ax=fig.add_subplot(grid[2, :]))
     for tick in ax.get_xticklabels():
         tick.set_rotation(60)
     
     # plot countplot by month
-    month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'September', 
-                   'October', 'November', 'December']
-    eda_countplot(data, 'month', order=month_order, flip_axis=True, ax=fig.add_subplot(grid[3, 0]))
+    month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+                   'September', 'October', 'November', 'December'][::-1]
+    data['month'] = pd.Categorical(data['month'], categories=month_order)
+    _eda_countplot(data, 'month', fig=fig, flip_axis=True, ax=fig.add_subplot(grid[3, 0]))
     
     # plot countplot by day of month
-    day_month_order = np.arange(1, 32)
+    day_month_order = np.arange(1, 32)[::-1]
     ax=fig.add_subplot(grid[3, 1])
-    eda_countplot(data, 'day of month', order=day_month_order, flip_axis=True, ax=ax) 
+    data['day of month'] = pd.Categorical(data['day of month'], categories=day_month_order)
+    _eda_countplot(data, 'day of month', fig=fig, flip_axis=True, ax=ax) 
     
     # plot countplot by day of week
     day_week_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    eda_countplot(data, 'day of week', order=day_week_order, flip_axis=True, 
-                  ax=fig.add_subplot(grid[4, 0]))
+    data['day of week'] = pd.Categorical(data['day of week'], categories=day_week_order)
+    eda_countplot(data, 'day of week', fig=fig, flip_axis=True, ax=fig.add_subplot(grid[4, 0]))
     
-    # plot countplot by minute of hour 
-    minute_order = np.arange(0, 60)
-    ax = eda_countplot(data, 'minute', order=minute_order, flip_axis=True, 
-                       ax=fig.add_subplot(grid[4, 1]), percent=False)
-    ax.set_yticks(np.arange(0, 65, 5))
-    ax.set_yticklabels(np.arange(0, 65, 5))
-    
-    # plot countplot by hour of day
-    hour_order = np.arange(0, 24)
-    eda_countplot(data, 'hour',  order=hour_order, flip_axis=True, ax=fig.add_subplot(grid[5, 0]))
-    
-    # plot countplot by second of hour 
-    second_order = np.arange(0, 60)
-    ax = eda_countplot(data, 'second', order=second_order, flip_axis=True, 
-                       ax=fig.add_subplot(grid[5, 1]), percent=False)
-    ax.set_yticks(np.arange(0, 65, 5))
-    ax.set_yticklabels(np.arange(0, 65, 5))
+    ## plot countplot by minute of hour 
+    #minute_order = np.arange(0, 60)
+    #ax = eda_countplot(data, 'minute', order=minute_order, flip_axis=True, 
+    #                   ax=fig.add_subplot(grid[4, 1]), percent=False)
+    #ax.set_yticks(np.arange(0, 65, 5))
+    #ax.set_yticklabels(np.arange(0, 65, 5))
+    #
+    ## plot countplot by hour of day
+    #hour_order = np.arange(0, 24)
+    #eda_countplot(data, 'hour',  order=hour_order, flip_axis=True, ax=fig.add_subplot(grid[5, 0]))
+    #
+    ## plot countplot by second of hour 
+    #second_order = np.arange(0, 60)
+    #ax = eda_countplot(data, 'second', order=second_order, flip_axis=True, 
+    #                   ax=fig.add_subplot(grid[5, 1]), percent=False)
+    #ax.set_yticks(np.arange(0, 65, 5))
+    #ax.set_yticklabels(np.arange(0, 65, 5))
         
     
     plt.show()
@@ -625,6 +722,8 @@ def sequence_univariate_eda(data, column, fig_height=6, fig_width=12, top_n=10):
 
 def univariate_eda_interact(data):
     sns.set_style('whitegrid')
+    theme_set(theme_bw())
+    warnings.simplefilter("ignore")
     
     widget = interactive(
         column_univariate_eda_interact, 
