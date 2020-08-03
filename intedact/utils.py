@@ -153,10 +153,10 @@ def order_categorical(data, column1, column2=None, level_order='auto', top_n=20,
     num_levels = len(data[column1].unique())
     if num_levels > top_n:
         other_levels = order[top_n - 1:]
-        order = order[:top_n] + ['Other']
+        order = order[:top_n - 1] + ['__OTHER__']
         if data[column1].dtype.name == 'category':
-            data[column1].cat.add_categories(['Other'], inplace=True)
-        data[column1][data[column1].isin(other_levels)] = 'Other'
+            data[column1].cat.add_categories(['__OTHER__'], inplace=True)
+        data[column1][data[column1].isin(other_levels)] = '__OTHER__'
         
     if flip_axis:
         order = order[::-1]

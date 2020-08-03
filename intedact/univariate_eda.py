@@ -61,6 +61,7 @@ def discrete_univariate_eda(data, column, fig_height=4, fig_width=8, level_order
     num_missing = data[column].isnull().sum()
     perc_missing = num_missing / data.shape[0]
     data.dropna(subset=[column], inplace=True)
+    num_levels = data[column].nunique()
 
     # reorder column level
     data[column] = order_categorical(data, column, None, level_order=level_order, top_n=top_n,
@@ -120,9 +121,8 @@ def discrete_univariate_eda(data, column, fig_height=4, fig_width=8, level_order
     add_percent_axis(ax, len(data[column]), flip_axis=flip_axis)
 
     # warn user about 'Other' condensing and add info to title
-    num_levels = data[column].nunique()
     if num_levels > top_n:
-        addition = f" ({num_levels - top_n} levels condensed into 'OTHER')"
+        addition = f" ({num_levels - top_n} levels condensed into '__OTHER__')"
     else:
         addition = ""
     title = (f"{data[column].size} observations over {num_levels} levels{addition}\n"
@@ -743,24 +743,16 @@ def univariate_eda_interact(data):
 
 def column_univariate_eda_interact(data, column, discrete_limit=50):
     from pandas.api.types import is_numeric_dtype
-    from pandas.api.types import is_datetime64_any_dtype
 
     col_type = categorize_column_type(data[column], discrete_limit)
     type_message = f"Detected Column Type: {col_type}"
 
-    # ranges for widgets
-    fig_height_range = (1, 30, 1)
-    fig_width_range = (1, 30, 1)
-    hist_bin_range = (0, 50, 1)
-    cutoff_range = (0, 1, .01)
-    level_orders = ['auto', 'ascending', 'descending', 'sorted', 'random']
-    kde_default = False
-    flip_axis_default = False
-    transforms = ['identity', 'log', 'log_exclude0']
-    top_n_range = (5, 100, 1)
-
     if col_type in DISCRETE_TYPES:
         print(type_message + ", Calling discrete_univariate_eda function")
+        if data[column].nunique() > 10 and not is_numeric_dtype(data[column]):
+            flip_axis_default = True
+        else:
+            flip_axis_default = False
         widget = interactive(
             discrete_univariate_eda,
             data=fixed(data),
@@ -768,7 +760,8 @@ def column_univariate_eda_interact(data, column, discrete_limit=50):
             fig_height=WIDGET_VALUES['fig_height']['widget_options'],
             fig_width=WIDGET_VALUES['fig_width']['widget_options'],
             level_order=WIDGET_VALUES['level_order']['widget_options'],
-            top_n=WIDGET_VALUES['top_n']['widget_options']
+            top_n=WIDGET_VALUES['top_n']['widget_options'],
+            flip_axis=flip_axis_default
         )
     elif col_type == 'continuous_numeric':
         print(type_message + ", Calling continuous_univariate_eda function")
