@@ -2,110 +2,124 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
-from ipywidgets import interactive, fixed, Layout
+from ipywidgets import interactive, fixed, Layout, Button, Output
 from collections import Counter
 from itertools import combinations
 import matplotlib.ticker as mtick 
 from plotnine import *
 from matplotlib import gridspec
 import warnings
-from numpy.linalg import norm
-from .utils import order_categorical, categorize_column_type
+from utils import order_categorical, categorize_column_type, preprocess_numeric_variables
 
 DESCRIPTIONS = {
-    'column1': "column_1: Column to be plotted as independent variable",
-    'column2': "column_2: Column to be plotted as dependent variable",
-    'discrete_limit': "discrete_limit: # of unique values a variable must have before it is considered continuous/text rather than discrete/categorical",
-    'fig_width': "fig_width: width of figure in inches",
-    'fig_height': "fig_height: height of figure in inches (multiplied if multiple subplots)",
-    'plot': "plot_type: type of plot to display (see docs for details)", 
-    'level1_order': "level1_order: Order for arranging column1 levels on plot",
-    'level2_order': "level2_order: Order for arranging column2 levels on plot",
-    'normalize': "normalize: Whether to normalize counts to relative proportions (normalization varies by plot type)",
-    'flip_axis': "flip_axis: Whether to flip y and x axes for horizontal display",
-    'top_n': "top_n: Maximum number of levels to display before condensing remaining into 'Other'" 
+    'column1': ("column1: Column to be plotted as independent variable", '23%'),
+    'column2': ("column2: Column to be plotted as dependent variable", '24%'),
+    'discrete_limit': (("discrete_limit: # of unique values a variable must have before it is considered "
+                        "continuous rather than discrete"), '35%'),
+    'fig_width': ("fig_width: width of figure in inches", '25%'),
+    'fig_height': ("fig_height: height of figure in inches (multiplied if multiple subplots)", '26%'),
+    'plot_type': ("plot_type: type of plot to display (see docs for details)", '25%')
+    #'level1_order': "level1_order: Order for arranging column1 levels on plot",
+    #'level2_order': "level2_order: Order for arranging column2 levels on plot",
+    #'normalize': "normalize: Whether to normalize counts to relative proportions (normalization varies by plot type)",
+    #'flip_axis': "flip_axis: Whether to flip y and x axes for horizontal display",
+    #'top_n': "top_n: Maximum number of levels to display before condensing remaining into 'Other'"
 }
 
-def numeric_numeric_bivariate_eda(data, column1, column2, fig_width=6, fig_height=6, aspect_ratio='manual',
-                                  trend_line='auto', geom='point', ref_line=False, alpha=1,
-                                  lower_cutoff1=0, upper_cutoff1=1, lower_cutoff2=0, upper_cutoff2=1, 
-                                  transform1='identity', transform2='identity', match_axes=False):
-    """
-    Geom options:
-      - point (default)
-        - alpha
-      - hex
-      - boxplot
-        - width
-        - varwidth
-      - count
-      - density2d
+
+def continuous_continuous_bivariate_eda(
+    data, column1, column2, fig_width=6, fig_height=6, plot_type='auto', trend_line='auto', 
+    aspect_ratio='manual',  reference_line=False, plot_density=False, alpha=1,
+    lower_cutoff1=0, upper_cutoff1=1, lower_cutoff2=0, upper_cutoff2=1, 
+    transform1='identity', transform2='identity'):
+    """ 
+    Creates an EDA plot for two continuous variables.
     
-    - Add reference line
-    - Add smooth line
-    - transformations
-    - aspect ratios
-    - outliers?
+    Parameters
+    ----------
+    data: pandas.DataFrame
+        Dataset to perform EDA on 
+    column1: str
+        A string matching a column in the data to be used as the independent variable
+    column2: str
+        A string matching a column in the data to be used as the dependent variable
+    fig_width: int
+        Width of figure in inches
+    fig_height: int
+        Height of figure in inches
+    plot_type: ['auto', 'scatter', 'bin2d', 'boxplot']
+        Type of plot to show. 
+        - 'auto':  
+        - 'scatter': 
+        - 'bin2d':
+        - 'boxplot':
+    trend_line: ['auto', 'none', 'loess', 'lm']
+        Trend line to plot over data. 'none' will plot no trend line. Other options are passed
+        to plotnine's geom_smooth.
+    aspect_ratio: ['manual', 'equal_axes', 'bank_to_45']
+    reference_line: bool
+    plot_density: bool
+        Whether to overlay a 2d density on the given plot
+        
+    Returns 
+    -------
+    None
+       Draws the plot to the current matplotlib figure
     """
-    # cut out upper and lower percentiles in case of outliers
-    lq1 = data[column1].quantile(lower_cutoff1)
-    hq1 = data[column1].quantile(upper_cutoff1)
-    lq2 = data[column2].quantile(lower_cutoff2)
-    hq2 = data[column2].quantile(upper_cutoff2)
-    data = data.query(f"{column1} >= {lq1} and {column1} <= {hq1} and {column2} >= {lq2} and {column2} <= {hq2}")
     
-    # make histogram and boxplot figure (empty figure hack for plotting with subplots)
-    # https://github.com/has2k1/plotnine/issues/373
+    data = preprocess_numeric_variables(data, column1, column2, lq1=lower_cutoff1, hq1=upper_cutoff1,
+                                        lq2=lower_cutoff2, hq2=upper_cutoff2, transform1=transform1,
+                                        transform2=transform2)
+    
+    # make histogram and boxplot figure (empty figure hack for plotting with subplots/getting ax
+    # handle): https://github.com/has2k1/plotnine/issues/373
     fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
     gs = gridspec.GridSpec(1, 1)
     ax = fig.add_subplot(gs[0])
     
-    # modify data for transforms 
-    if transform1 == 'log_exclude0':
-        data = data[data[column1] > 0]
-    elif transform1 == 'log':
-        data[column1] = data[column1] + 1e-6
-        
-    if transform2 == 'log_exclude0':
-        data = data[data[column2] > 0]
-    elif transform2 == 'log':
-        data[column2] = data[column2] + 1e-6
+    if plot_type == 'auto':
+        plot_type = 'scatter'
     
-    p1 = ggplot(data, aes(x=column1, y=column2))
-    if geom == 'point':
-        p1 += geom_point(alpha=alpha)
-    elif geom == 'bin2d':
-        p1 += geom_bin2d()
-    elif geom == 'count':
-        p1 += geom_count(alpha=alpha)
-    elif geom == 'density2d':
-        p1 += geom_density_2d()
-    elif geom == 'boxplot':
-        p1 += geom_hex(alpha=alpha)
+    gg = ggplot(data, aes(x=column1, y=column2))
+    if plot_type == 'scatter':
+        gg += geom_point(alpha=alpha)
+    elif plot_type == 'bin2d':
+        gg += geom_bin2d()
+    elif plot_type == 'count':
+        gg += geom_count()
     else:
-        raise ValueError(f"Unsupported geom type {geom}")
+        raise ValueError(f"Unsupported plot type {plot_type}")
+    
+    # overlay density
+    if plot_density:
+        gg += geom_density_2d()
     
     # add reference line 
-    if ref_line:
-        p1 += geom_abline(color='black')
+    if reference_line:
+        gg += geom_abline(color='black')
         
     # add trend line
     if trend_line != 'none':
-        p1 += geom_smooth(method=trend_line, color='red')
+        gg += geom_smooth(method=trend_line, color='red')
         
+    # handle transforms
     if transform1 in ['log', 'log_exclude0']:
-        p1 += scale_x_log10()
-    if transform2 in ['log', 'log_exclude0']:
-        p1 += scale_y_log10()
+        gg += scale_x_log10()
+    elif transform1 == 'sqrt':
+        gg += scale_x_sqrt()
         
-    p1 += coord_fixed(ratio=aspect_ratio)
-    _ = p1._draw_using_figure(fig, [ax])
-    
+    if transform2 in ['log', 'log_exclude0']:
+        gg += scale_y_log10()
+    elif transform2 == 'sqrt':
+        gg += scale_x_sqrt()
+        
+    # handle aspect ratio
+    _ = gg._draw_using_figure(fig, [ax])
     if aspect_ratio == 'equal_axes':
         upper = max(ax.get_xlim()[1], ax.get_ylim()[1])
         lower = min(ax.get_xlim()[0], ax.get_ylim()[0])
-        p1 += coord_fixed(ratio=1, xlim=(lower, upper), ylim=(lower, upper))
-        _ = p1._draw_using_figure(fig, [ax])
+        gg += coord_fixed(ratio=1, xlim=(lower, upper), ylim=(lower, upper))
+        _ = gg._draw_using_figure(fig, [ax])
         fig.set_size_inches(fig_width, fig_width)
     elif aspect_ratio == 'bank_to_45':
         slope, _ = np.polyfit(data[column1], data[column2], deg=1)
@@ -426,11 +440,15 @@ def bivariate_eda_interact(data):
         column2=data.columns,
         discrete_limit=(10, 100, 1)
     ) 
+    
     widget.layout = Layout(flex_flow='row wrap')
     for ch in widget.children:
-        if hasattr(ch, 'description'):
-            ch.description = DESCRIPTIONS[ch.description]
+        if hasattr(ch, 'description') and ch.description in DESCRIPTIONS:
+            #ch.layout = Layout(description_width=DESCRIPTIONS[ch.description][1])
+            ch.style = {'description_width': DESCRIPTIONS[ch.description][1]}
+            ch.description = DESCRIPTIONS[ch.description][0]
     display(widget)
+    return widget
 
 def column_bivariate_eda_interact(data, column1, column2, discrete_limit=20):
     discrete_types = ['discrete_numeric', 'unordered_categorical', 'ordered_categorical',
@@ -444,24 +462,24 @@ def column_bivariate_eda_interact(data, column1, column2, discrete_limit=20):
     level_orders = ['auto', 'ascending', 'descending', 'sorted', 'random']
     kde_default = False
     flip_axis_default = False
-    transforms = ['identity', 'log', 'log_exclude0']
+    transforms = ['identity', 'log', 'log_exclude0', 'sqrt']
     top_n_range = (5, 100, 1)
     num_outliers = (0, data.shape[0], 1)
     
     col1_type = categorize_column_type(data[column1], discrete_limit)
     col2_type = categorize_column_type(data[column2], discrete_limit)
-    print()
-    print(f"Detected Column1 Type: {col1_type}, Detected Column2 Type: {col2_type}")
-    print()
+    print(f"Detected Column1 Type: {col1_type}")
+    print(f"Detected Column2 Type: {col2_type}")
     
     # continuous-continuous
     if col1_type == 'continuous_numeric' and col2_type == 'continuous_numeric':
+        print("Calling continuous_continuous_bivariate_eda:")
         widget = interactive(
-            numeric_numeric_bivariate_eda,
+            continuous_continuous_bivariate_eda,
             data=fixed(data),
             column1=fixed(column1),
             column2=fixed(column2),
-            geom=['point', 'bin2d', 'count', 'boxplot', 'density2d'],
+            plot_type=['auto', 'scatter', 'bin2d', 'count'],
             trend_line=['auto', 'none', 'loess', 'lowess', 'glm', 'lm'],
             alpha=(0, 1, .05),
             transform1=transforms,
@@ -512,8 +530,6 @@ def column_bivariate_eda_interact(data, column1, column2, discrete_limit=20):
             level_order2=level_orders,
             top_n=top_n_range
         )
-            
-    
     else:
         print("No EDA support for these variable types")
         return 
@@ -521,7 +537,8 @@ def column_bivariate_eda_interact(data, column1, column2, discrete_limit=20):
     widget.layout = Layout(flex_flow='row wrap')
     for ch in widget.children:
         if hasattr(ch, 'description') and ch.description in DESCRIPTIONS:
-            ch.description = DESCRIPTIONS[ch.description]
+            ch.style = {'description_width': DESCRIPTIONS[ch.description][1]}
+            ch.description = DESCRIPTIONS[ch.description][0]
     display(widget)
     return widget
     
