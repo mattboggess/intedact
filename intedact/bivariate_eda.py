@@ -9,7 +9,7 @@ import matplotlib.ticker as mtick
 from plotnine import *
 from matplotlib import gridspec
 import warnings
-from utils import order_categorical, categorize_column_type, preprocess_numeric_variables
+from .utils import order_categorical, categorize_column_type, preprocess_numeric_variables
 
 DESCRIPTIONS = {
     'column1': ("column1: Column to be plotted as independent variable", '23%'),

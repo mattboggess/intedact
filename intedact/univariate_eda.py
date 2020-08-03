@@ -7,8 +7,8 @@ from itertools import combinations
 from plotnine import *
 from matplotlib import gridspec
 import warnings
-from utils import order_categorical, preprocess_numeric_variables, add_percent_axis, categorize_column_type, fmt_counts, freedman_diaconis_bins
-from config import *
+from .utils import *
+from .config import *
 
 
 def discrete_univariate_eda(data, column, fig_height=4, fig_width=8, level_order='auto', top_n=30,
