@@ -6,7 +6,7 @@ Easy, interactive univariate and bivariate EDA for pandas DataFrames.
 
 Development version:
 
-    pip install --upgrade git+git://github.com/mattboggess/intedact.git
+    pip install --upgrade git+git://github.com/mattboggess/intedact.git#egg=intedact
 
 # Getting Started
 
