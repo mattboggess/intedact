@@ -1,6 +1,6 @@
 # intedact
 
-Easy, interactive univariate and bivariate EDA for pandas DataFrames.
+Interactive univariate and bivariate EDA for pandas DataFrames right in your Jupyer notebook.
 
 # Installation
 
