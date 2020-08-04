@@ -819,14 +819,12 @@ def column_univariate_eda_interact(data, column, discrete_limit=50):
         print("No EDA support for this variable type")
         return
 
-    print()
-    print("Plot Controls:")
     for ch in widget.children[:-1]:
         if hasattr(ch, 'description') and ch.description in WIDGET_VALUES:
             ch.style = {'description_width': WIDGET_VALUES[ch.description]['width']}
             ch.description = WIDGET_VALUES[ch.description]['description']
     widget.update()
-    controls = VBox(widget.children[:-1], layout=Layout(flex_flow='col wrap'))
+    controls = HBox(widget.children[:-1], layout=Layout(flex_flow='row wrap'))
     output = widget.children[-1]
-    display(HBox([controls, output]))
+    display(VBox([controls, output]))
 
