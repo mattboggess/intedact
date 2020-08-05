@@ -26,6 +26,51 @@ WIDGET_VALUES = {
         'width': '24%',
         'widget_options': 'N/A'
     },
+    'col_type': {
+        'description': ("column type: Column type that determines which univariate summary will be displayed."
+                        " Type is automatically inferred by default, but you can manually change the type to"
+                        " try to produce a different summary if the column data is compatible."
+                        " It is recommended you preprocess the columns to have the desired type prior to"
+                        " running this function for greatest accuracy of automatic type inference.\n\n"
+                        " The following types are available:\n"
+                        "  - 'discrete': categorical or low dimensional numeric variables\n"
+                        "  - 'continuous': high dimensional numeric variables \n"
+                        "  - 'datetime': datetime columns (should be coerceable to datetime type) \n"
+                        "  - 'text': column with strings that represent longer freeform text \n"
+                        "  - 'list': column with variable length lists of items, should be pre-coerced such that elements are python lists/tuples/sets\n"),
+        'width': '33%',
+        'widget_options': ['discrete', 'continuous', 'datetime', 'text', 'list']
+    },
+    'col_type1': {
+        'description': ("column type: Column type for column1 that determines which bivariate summary will be displayed with col_type2."
+                        " Type is automatically inferred by default, but you can manually change the type to"
+                        " try to produce a different summary if the column data is compatible."
+                        " It is recommended you preprocess the columns to have the desired type prior to"
+                        " running this function for greatest accuracy of automatic type inference.\n\n"
+                        " The following types are available:\n"
+                        "  - 'discrete': categorical or low dimensional numeric variables\n"
+                        "  - 'continuous': high dimensional numeric variables \n"
+                        "  - 'datetime': datetime columns (should be coerceable to datetime type) \n"
+                        "  - 'text': columns with strings that represent longer freeform text \n"
+                        "  - 'list': columns with variable length lists of items, should be preprocessed such that elements are python lists/tuples/set objects\n"),
+        'width': '35%',
+        'widget_options': ['discrete', 'continuous', 'datetime', 'text', 'list']
+    },
+    'col_type2': {
+        'description': ("column type: Column type for column2 that determines which bivariate summary will be displayed with col_type1."
+                        " Type is automatically inferred by default, but you can manually change the type to"
+                        " try to produce a different summary if the column data is compatible." 
+                        " It is recommended you preprocess the columns to have the desired type prior to"
+                        " running this function for greatest accuracy of automatic type inference.\n\n"
+                        " The following types are available:\n"
+                        "  - 'discrete': categorical or low dimensional numeric variables\n"
+                        "  - 'continuous': high dimensional numeric variables \n"
+                        "  - 'datetime': datetime columns (should be coerceable to datetime type) \n"
+                        "  - 'text': column with strings that represent longer freeform text, not categorical data \n"
+                        "  - 'list': column with variable length lists of items, should be pre-coerced such that elements are python lists/tuples/sets\n"),
+        'width': '35%',
+        'widget_options': ['discrete', 'continuous', 'datetime', 'text', 'list']
+    },
     'discrete_limit': {
         'description': ("discrete limit: # of unique values a variable must have before it is considered "
                         "continuous rather than discrete"),
@@ -81,6 +126,11 @@ WIDGET_VALUES = {
     'top_n': {
         'description': "top n: Maximum number of levels to display before condensing remaining into 'Other'",
         'width': '20%',
+        'widget_options': (1, 100, 1)
+    },
+    'top_entries': {
+        'description': "top entries: Maximum number of most common entries/entry pairs to display in plots.",
+        'width': '30%',
         'widget_options': (1, 100, 1)
     },
     'flip_axis': {
@@ -200,10 +250,40 @@ WIDGET_VALUES = {
         'width': '0%',
         'widget_options': 'N/A'
     },
-    'top_entries': {
-        'description': "top entries: Maximum number of entries to plot for the top most frequent single entries and pairs.",
+    'plot_type_cc': {
+        'description': ("plot type: Type of plot to show\n"
+            "  - 'auto': Defaults to scatter plot\n"
+            "  - 'scatter': Draw a scatter plot using geom_scatter\n"
+            "  - 'bin2d': Draw a 2d histogram using geom_bin2d\n"
+            "  - 'count': Draw a 2d count plot using geom_count"),
         'width': '29%',
-        'widget_options': (1, 100, 1)
+        'widget_options': ['auto', 'scatter', 'bin2d', 'count']
     },
+    'trend_line': {
+        'description': ("trend line: Trend line to plot over data. 'none' will plot no trend line." 
+                        "Other options are passed to plotnine's geom_smooth."),
+        'width': '30%',
+        'widget_options': ['auto', 'none', 'loess', 'lm']
+    },
+    'equalize_axes': {
+        'description': "Match x and y axes",
+        'width': '30%',
+        'widget_options': 'N/A'
+    },
+    'reference_line': {
+        'description': "Plot a y = x reference line",
+        'width': '0%',
+        'widget_options': 'N/A'
+    },
+    'plot_density': {
+        'description': "Overlay a bivariate KDE",
+        'width': '0%',
+        'widget_options': 'N/A'
+    },
+    'alpha': {
+        'description': "Amount of transparency to use for points/histograms ranging from 0 (fully transparent) to 1 (opaque)",
+        'width': '20%',
+        'widget_options': (0, 1, .05)
+    }
 }
 

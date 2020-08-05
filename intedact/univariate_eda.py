@@ -9,6 +9,7 @@ from matplotlib import gridspec
 import warnings
 from .utils import *
 from .config import *
+from pandas.api.types import is_numeric_dtype
 
 
 def discrete_univariate_eda(data, column, fig_height=4, fig_width=8, level_order='auto', top_n=30,
@@ -153,11 +154,12 @@ def continuous_univariate_eda(data, column, fig_height=4, fig_width=8, hist_bins
         Width of the plot 
     hist_bins: int, optional (Default is 0 which translates to automatically determined bins)
         Number of bins to use for the histogram 
-    transform: str, ['identity', 'log', 'log_exclude0']
+    transform: str, ['identity', 'log', 'log_exclude0', 'sqrt']
         Transformation to apply to the data for plotting:
           - 'identity': no transformation
           - 'log': apply a logarithmic transformation with small constant added in case of 0 
           - 'log_exclude0': apply a logarithmic transformation with zero removed
+          - 'sqrt': apply a square root transformation
     lower_quantile: float, optional [0, 1]
         Lower quantile of data to remove before plotting for ignoring outliers
     upper_quantile: float, optional [0, 1]
@@ -386,7 +388,7 @@ def datetime_univariate_eda(data, column, fig_height=4, fig_width=8, ts_freq='1M
     gg_year = (
         ggplot(data, aes(x='year')) +
         geom_bar(fill=BAR_COLOR, color='black') +
-        theme(axis_text_x=element_text(rotation=60))
+        theme(axis_text_x=element_text(rotation=90))
     )
     _ = gg_year._draw_using_figure(fig, [ax_year])
     ax_year.set_ylabel('count')
@@ -443,8 +445,8 @@ def datetime_univariate_eda(data, column, fig_height=4, fig_width=8, ts_freq='1M
     _ = gg_hour._draw_using_figure(fig, [ax_hour])
     ax_hour.set_xlabel('count')
     ax_hour.set_ylabel('hour')
-    ax_hour.set_yticks(np.arange(0, 25))
-    ax_hour.set_yticklabels(np.arange(0, 25))
+    ax_hour.set_yticks(np.arange(0, 24))
+    ax_hour.set_yticklabels(np.arange(0, 24))
     add_percent_axis(ax_hour, data.shape[0], flip_axis=True)
 
     plt.tight_layout()
@@ -731,24 +733,31 @@ def univariate_eda_interact(data):
         column_univariate_eda_interact, 
         data=fixed(data), 
         column=data.columns,
-        discrete_limit=WIDGET_VALUES['discrete_limit']['widget_options']
-    ) 
+        col_type=WIDGET_VALUES['col_type']['widget_options']
+    )
     widget.layout = Layout(flex_flow='row wrap')
     for ch in widget.children:
         if hasattr(ch, 'description') and ch.description in WIDGET_VALUES:
             ch.style = {'description_width': WIDGET_VALUES[ch.description]['width']}
             ch.description = WIDGET_VALUES[ch.description]['description']
+
+    def match_type(*args):
+        type_widget.value = detect_column_type(data[col_widget.value])
+    col_widget = widget.children[0]
+    type_widget = widget.children[1]
+    col_widget.observe(match_type, 'value')
+    type_widget.value = detect_column_type(data[data.columns[0]])
+
     display(widget)
 
 
-def column_univariate_eda_interact(data, column, discrete_limit=50):
-    from pandas.api.types import is_numeric_dtype
+def column_univariate_eda_interact(data, column, col_type='discrete'):
+    data = data.copy()
 
-    col_type = categorize_column_type(data[column], discrete_limit)
-    type_message = f"Detected Column Type: {col_type}"
+    data[column] = coerce_column_type(data[column], col_type)
+    print('Plot Controls:')
 
-    if col_type in DISCRETE_TYPES:
-        print(type_message + ", Calling discrete_univariate_eda function")
+    if col_type == 'discrete':
         if data[column].nunique() > 10 and not is_numeric_dtype(data[column]):
             flip_axis_default = True
         else:
@@ -763,8 +772,7 @@ def column_univariate_eda_interact(data, column, discrete_limit=50):
             top_n=WIDGET_VALUES['top_n']['widget_options'],
             flip_axis=flip_axis_default
         )
-    elif col_type == 'continuous_numeric':
-        print(type_message + ", Calling continuous_univariate_eda function")
+    elif col_type == 'continuous':
         widget = interactive(
             continuous_univariate_eda,
             data=fixed(data),
@@ -778,7 +786,6 @@ def column_univariate_eda_interact(data, column, discrete_limit=50):
         )
     # datetime variables
     elif col_type == 'datetime':
-        print(type_message + ", Calling datetime_univariate_eda function")
         print("See here for valid frequency strings: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects")
         widget = interactive(
             datetime_univariate_eda, 
@@ -791,8 +798,7 @@ def column_univariate_eda_interact(data, column, discrete_limit=50):
             upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options'],
             transform=WIDGET_VALUES['transform']['widget_options']
         )
-    elif col_type in ['text', 'text (inferred from object)']:
-        print(type_message + ", Calling text_univariate_eda function")
+    elif col_type == 'text':
         widget = interactive(
             text_univariate_eda,
             data=fixed(data),
@@ -806,7 +812,6 @@ def column_univariate_eda_interact(data, column, discrete_limit=50):
             top_n=WIDGET_VALUES['top_n']['widget_options']
         )
     elif col_type == 'list':
-        print(type_message + ", Calling list_univariate_eda function")
         widget = interactive(
             list_univariate_eda,
             data=fixed(data),

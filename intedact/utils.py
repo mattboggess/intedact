@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.ticker as mtick
 import numpy as np
 import scipy.stats as stats
+from pandas.api.types import is_numeric_dtype, is_datetime64_any_dtype
 
 
 def iqr(a):
@@ -92,34 +93,39 @@ def preprocess_numeric_variables(data, column1, column2=None, lq1=0, hq1=1, lq2=
     return data
     
 
-def categorize_column_type(col_data, discrete_limit):
-    from pandas.api.types import is_numeric_dtype
-    from pandas.api.types import is_datetime64_any_dtype
-    
+def detect_column_type(col_data, discrete_limit=50):
+
     if is_datetime64_any_dtype(col_data):
         return 'datetime'
     elif is_numeric_dtype(col_data):
         if len(col_data.unique()) <= discrete_limit:
-            return 'discrete_numeric'
+            return 'discrete'
         else:
-            return 'continuous_numeric'
+            return 'continuous'
     elif col_data.dtype.name == 'category':
-        if col_data.cat.ordered:
-            return 'ordered_categorical'
-        else:
-            return 'unordered_categorical'
+        return 'discrete'
     elif col_data.dtype.name == 'string':
         return 'text'
     elif col_data.dtype.name == 'object':
         test_value = col_data.dropna().iat[0]
         if isinstance(test_value, (list, tuple, set)):
             return 'list'
+        # TODO: Probably need smarter detection
         elif len(test_value.split(' ')) > 2:
-            return 'text (inferred from object)'
+            return 'text'
         else:
-            return 'unordered_categorical (inferred from object)'
+            return 'discrete'
     else:
         raise ValueError(f"Unsupported data type {col_data.dtype.name}")
+
+def coerce_column_type(col_data, col_type):
+
+    if not is_datetime64_any_dtype(col_data) and col_type == 'datetime':
+        return pd.to_datetime(col_data)
+    elif col_data.dtype.name == 'category' and col_type == 'text':
+        return col_data.astype('string')
+    else:
+        return col_data
 
 
 def order_categorical(data, column1, column2=None, level_order='auto', top_n=20, flip_axis=False):
@@ -131,13 +137,12 @@ def order_categorical(data, column1, column2=None, level_order='auto', top_n=20,
         value_counts = data[column1].value_counts()
         
     if level_order == 'auto':
-        if data[column1].dtype.name == 'category':
-            if data[column1].cat.ordered:
-                order = list(data[column1].cat.categories)
-            else:
-                order = list(value_counts.sort_values(ascending=False).index)
-        else:
+        if data[column1].dtype.name == 'category' and data[column1].cat.ordered:
+            order = list(data[column1].cat.categories)
+        elif is_numeric_dtype(data[column1]):
             order = sorted(list(value_counts.index))
+        else:
+            order = list(value_counts.sort_values(ascending=False).index)
     elif level_order == 'ascending':
         order = list(value_counts.sort_values(ascending=True).index)
     elif level_order == 'descending':
