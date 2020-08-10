@@ -71,12 +71,12 @@ def preprocess_numeric_variables(data, column1, column2=None, lq1=0, hq1=1, lq2=
     # remove upper and lower percentiles in case of outliers
     lq1 = data[column1].quantile(lq1)
     hq1 = data[column1].quantile(hq1)
-    query_str = f"{column1} >= {lq1} and {column1} <= {hq1}"
+    query = (data[column1] >= lq1) & (data[column1] <= hq1)
     if column2:
         lq2 = data[column2].quantile(lq2)
         hq2 = data[column2].quantile(hq2)
-        query_str += f" and {column2} >= {lq2} and {column2} <= {hq2}"
-    data = data.query(query_str)
+        query = query & (data[column2] >= lq2) & (data[column2] <= hq2)
+    data = data[query]
     
     # modify data for transforms 
     if transform1 == 'log_exclude0':

@@ -41,8 +41,8 @@ WIDGET_VALUES = {
         'width': '33%',
         'widget_options': ['discrete', 'continuous', 'datetime', 'text', 'list']
     },
-    'col_type1': {
-        'description': ("column type: Column type for column1 that determines which bivariate summary will be displayed with col_type2."
+    'col1_type': {
+        'description': ("column1 type: Column type for column1 that determines which bivariate summary will be displayed with col_type2."
                         " Type is automatically inferred by default, but you can manually change the type to"
                         " try to produce a different summary if the column data is compatible."
                         " It is recommended you preprocess the columns to have the desired type prior to"
@@ -56,8 +56,8 @@ WIDGET_VALUES = {
         'width': '35%',
         'widget_options': ['discrete', 'continuous', 'datetime', 'text', 'list']
     },
-    'col_type2': {
-        'description': ("column type: Column type for column2 that determines which bivariate summary will be displayed with col_type1."
+    'col2_type': {
+        'description': ("column2 type: Column type for column2 that determines which bivariate summary will be displayed with col_type1."
                         " Type is automatically inferred by default, but you can manually change the type to"
                         " try to produce a different summary if the column data is compatible." 
                         " It is recommended you preprocess the columns to have the desired type prior to"
@@ -170,7 +170,7 @@ WIDGET_VALUES = {
     },
     'transform1': {
         'description':
-            ("transform: Transformation to apply to column1 for plotting \n"
+            ("transform1: Transformation to apply to column1 for plotting \n"
              "  - identity: No transformation\n"
              "  - log: Log transform (add a small constant in case of 0's)\n"
              "  - log_exclude0: Log transform with 0's filtered out\n"
@@ -180,12 +180,12 @@ WIDGET_VALUES = {
     },
     'transform2': {
         'description':
-            ("transform: Transformation to apply to column2 for plotting \n"
+            ("transform2: Transformation to apply to column2 for plotting \n"
              "  - identity: No transformation\n"
              "  - log: Log transform (add a small constant in case of 0's)\n"
              "  - log_exclude0: Log transform with 0's filtered out\n"
              "  - sqrt: Square root transform"),
-        'width': '28%',
+        'width': '29%',
         'widget_options': ['identity', 'log', 'log_exclude0', 'sqrt']
     },
     'lower_quantile': {
@@ -256,13 +256,40 @@ WIDGET_VALUES = {
             "  - 'scatter': Draw a scatter plot using geom_scatter\n"
             "  - 'bin2d': Draw a 2d histogram using geom_bin2d\n"
             "  - 'count': Draw a 2d count plot using geom_count"),
-        'width': '29%',
+        'width': '25%',
         'widget_options': ['auto', 'scatter', 'bin2d', 'count']
+    },
+    'plot_type_dc1': {
+        'description': ("plot type: Type of plot to show\n"
+                        "  - 'auto': Defaults to bar plot\n"
+                        "  - 'bar': Draw a bar plot\n"
+                        "  - 'point': Draw a point plot\n"),
+        'width': '25%',
+        'widget_options': ['auto', 'bar', 'point']
+    },
+    'plot_type_dc2': {
+        'description': ("plot type: Type of plot to show\n"
+                        "  - 'auto': Defaults to overlapping histograms \n"
+                        "  - 'histogram': Draw overlapping histograms \n"
+                        "  - 'density': Draw overlapping KDEs \n"),
+        'width': '25%',
+        'widget_options': ['auto', 'histogram', 'density']
+    },
+    'plot_type_dcn': {
+        'description': ("plot type: Type of plot to show\n"
+                        "  - 'auto': Defaults to boxplot \n"
+                        "  - 'freqpoly': Draw overlapping densities/histograms as colored lines with geom_freqpoly \n"
+                        "  - 'boxplot': Draw boxplot per level of discrete variable \n"
+                        "  - 'violinplot': Draw violin per level of discrete variable \n"
+                        "  - 'facted_histogram': Draw faceted histograms stacked vertically in facets by level \n"
+                        "  - 'facted_density': Draw faceted densities stacked vertically in facets by level \n"),
+        'width': '25%',
+        'widget_options': ['auto', 'freqpoly', 'boxplot', 'violin', 'faceted_histogram', 'faceted_density']
     },
     'trend_line': {
         'description': ("trend line: Trend line to plot over data. 'none' will plot no trend line." 
                         "Other options are passed to plotnine's geom_smooth."),
-        'width': '30%',
+        'width': '27%',
         'widget_options': ['auto', 'none', 'loess', 'lm']
     },
     'equalize_axes': {
@@ -281,8 +308,8 @@ WIDGET_VALUES = {
         'widget_options': 'N/A'
     },
     'alpha': {
-        'description': "Amount of transparency to use for points/histograms ranging from 0 (fully transparent) to 1 (opaque)",
-        'width': '20%',
+        'description': "alpha: Amount of transparency to use for points/histograms ranging from 0 (fully transparent) to 1 (opaque)",
+        'width': '18%',
         'widget_options': (0, 1, .05)
     }
 }

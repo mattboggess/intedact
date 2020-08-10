@@ -85,7 +85,7 @@ def discrete_univariate_eda(data, column, fig_height=4, fig_width=8, level_order
     # flip axis/rotate labels
     value_counts = count_data['count']
     nudge = value_counts.max() / 100
-    mid = value_counts.max() / 2
+    mid = value_counts.max() / 5 * 4
     if flip_axis:
         gg += coord_flip()
         va = ['center'] * len(value_counts)
