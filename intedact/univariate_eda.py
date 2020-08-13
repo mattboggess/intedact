@@ -177,12 +177,12 @@ def continuous_univariate_eda(data, column, fig_height=4, fig_width=8, hist_bins
     perc_missing = num_missing / data.shape[0]
     data.dropna(subset=[column], inplace=True)
 
-    if hist_bins == 0:
-        hist_bins = freedman_diaconis_bins(data[column], transform)
-
     # preprocess column for transforms and remove outlier quantiles
     data = preprocess_numeric_variables(data, column, lq1=lower_quantile, hq1=upper_quantile,
                                         transform1=transform)
+
+    if hist_bins == 0:
+        hist_bins = freedman_diaconis_bins(data[column], transform)
 
     # compute and display summary statistics
     table = pd.DataFrame(data[column].describe()).T
