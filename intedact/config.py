@@ -11,6 +11,16 @@ DISCRETE_TYPES = [
 
 # Widget control values
 WIDGET_VALUES = {
+    'manual_update': {
+        'description': "Update plots manually",
+        'width': '0%',
+        'widget_options': 'N/A'
+    },
+    'Run Interact': {
+        'description': "Update Plot",
+        'width': '0%',
+        'widget_options': 'N/A'
+    },
     'column': {
         'description': "column: Column to be plotted",
         'width': '22%',

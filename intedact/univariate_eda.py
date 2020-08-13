@@ -177,18 +177,19 @@ def continuous_univariate_eda(data, column, fig_height=4, fig_width=8, hist_bins
     perc_missing = num_missing / data.shape[0]
     data.dropna(subset=[column], inplace=True)
 
+    if hist_bins == 0:
+        hist_bins = freedman_diaconis_bins(data[column], transform)
+
+    # preprocess column for transforms and remove outlier quantiles
+    data = preprocess_numeric_variables(data, column, lq1=lower_quantile, hq1=upper_quantile,
+                                        transform1=transform)
+
     # compute and display summary statistics
     table = pd.DataFrame(data[column].describe()).T
     table['iqr'] = data[column].quantile(.75) - data[column].quantile(.25)
     table['missing_count'] = num_missing
     table['missing_percent'] = perc_missing
     display(pd.DataFrame(table))
-
-    # preprocess column for transforms and remove outlier quantiles
-    data = preprocess_numeric_variables(data, column, lq1=lower_quantile, hq1=upper_quantile,
-                                        transform1=transform)
-    if hist_bins == 0:
-        hist_bins = freedman_diaconis_bins(data[column], transform)
 
     # make histogram and boxplot figure (empty figure hack for plotting with subplots)
     # https://github.com/has2k1/plotnine/issues/373
@@ -751,7 +752,7 @@ def univariate_eda_interact(data):
     display(widget)
 
 
-def column_univariate_eda_interact(data, column, col_type='discrete'):
+def column_univariate_eda_interact(data, column, col_type='discrete', manual_update=False):
     data = data.copy()
 
     data[column] = coerce_column_type(data[column], col_type)
@@ -764,6 +765,7 @@ def column_univariate_eda_interact(data, column, col_type='discrete'):
             flip_axis_default = False
         widget = interactive(
             discrete_univariate_eda,
+            {'manual': manual_update},
             data=fixed(data),
             column=fixed(column),
             fig_height=WIDGET_VALUES['fig_height']['widget_options'],
@@ -775,6 +777,7 @@ def column_univariate_eda_interact(data, column, col_type='discrete'):
     elif col_type == 'continuous':
         widget = interactive(
             continuous_univariate_eda,
+            {'manual': manual_update},
             data=fixed(data),
             column=fixed(column),
             fig_height=WIDGET_VALUES['fig_height']['widget_options'],
@@ -788,8 +791,9 @@ def column_univariate_eda_interact(data, column, col_type='discrete'):
     elif col_type == 'datetime':
         print("See here for valid frequency strings: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects")
         widget = interactive(
-            datetime_univariate_eda, 
-            data=fixed(data), 
+            datetime_univariate_eda,
+            {'manual': manual_update},
+            data=fixed(data),
             column=fixed(column),
             fig_height=WIDGET_VALUES['fig_height']['widget_options'],
             fig_width=WIDGET_VALUES['fig_width']['widget_options'],
@@ -801,6 +805,7 @@ def column_univariate_eda_interact(data, column, col_type='discrete'):
     elif col_type == 'text':
         widget = interactive(
             text_univariate_eda,
+            {'manual': manual_update},
             data=fixed(data),
             column=fixed(column),
             fig_height=WIDGET_VALUES['fig_height']['widget_options'],
@@ -814,6 +819,7 @@ def column_univariate_eda_interact(data, column, col_type='discrete'):
     elif col_type == 'list':
         widget = interactive(
             list_univariate_eda,
+            {'manual': manual_update},
             data=fixed(data),
             column=fixed(column),
             fig_height=WIDGET_VALUES['fig_height']['widget_options'],
