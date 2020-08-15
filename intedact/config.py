@@ -111,30 +111,30 @@ WIDGET_VALUES = {
     },
     'level_order1': {
         'description':
-            ("level order: Order for arranging column1 levels on plot\n"
+            ("level order1: Order for arranging column1 levels on plot\n"
              "  - descending: Arrange levels from most frequent to least frequent\n"
              "  - ascending: Arrange levels from least frequent to most frequent\n"
              "  - sorted: Arrange levels in sorted order of the level values themselves\n"
              "  - random: Randomly arrange levels\n"
              "  - auto: order based on variable type (sorted for numeric variables, provided level order for"
              " ordinal variables, descending for unordered categorical variables"),
-        'width': '25%',
+        'width': '30%',
         'widget_options': ['auto', 'descending', 'ascending', 'sorted', 'random']
     },
     'level_order2': {
         'description':
-            ("level order: Order for arranging column1 levels on plot\n"
+            ("level order2: Order for arranging column1 levels on plot\n"
              "  - descending: Arrange levels from most frequent to least frequent\n"
              "  - ascending: Arrange levels from least frequent to most frequent\n"
              "  - sorted: Arrange levels in sorted order of the level values themselves\n"
              "  - random: Randomly arrange levels\n"
              "  - auto: order based on variable type (sorted for numeric variables, provided level order for"
              " ordinal variables, descending for unordered categorical variables"),
-        'width': '25%',
+        'width': '30%',
         'widget_options': ['auto', 'descending', 'ascending', 'sorted', 'random']
     },
     'top_n': {
-        'description': "top n: Maximum number of levels to display before condensing remaining into 'Other'",
+        'description': "top n: Maximum number of levels to display before condensing remaining into '__OTHER__'",
         'width': '20%',
         'widget_options': (1, 100, 1)
     },
@@ -321,6 +321,11 @@ WIDGET_VALUES = {
         'description': "alpha: Amount of transparency to use for points/histograms ranging from 0 (fully transparent) to 1 (opaque)",
         'width': '18%',
         'widget_options': (0, 1, .05)
+    },
+    'normalize': {
+        'description': "Normalize counts to percentages",
+        'width': '0%',
+        'widget_options': 'N/A'
     }
 }
 

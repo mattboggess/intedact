@@ -14,8 +14,8 @@ from .config import *
 
 
 def continuous_continuous_bivariate_eda(
-    data, column1, column2, fig_width=6, fig_height=6, plot_type='auto', trend_line='auto', 
-    lower_quantile1=0, upper_quantile1=1, lower_quantile2=0, upper_quantile2=1, alpha=1,
+    data, column1, column2, fig_width=6, fig_height=6, trend_line='auto', alpha=1,
+    lower_quantile1=0, upper_quantile1=1, lower_quantile2=0, upper_quantile2=1,
     transform1='identity', transform2='identity', equalize_axes=False,  reference_line=False,
     plot_density=False):
     """
@@ -80,63 +80,65 @@ def continuous_continuous_bivariate_eda(
     # make histogram and boxplot figure (empty figure hack for plotting with subplots/getting ax
     # handle): https://github.com/has2k1/plotnine/issues/373
     fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
-    gs = gridspec.GridSpec(1, 1)
-    ax = fig.add_subplot(gs[0])
-    
-    if plot_type == 'auto':
-        plot_type = 'scatter'
-    
-    gg = ggplot(data, aes(x=column1, y=column2))
-    if plot_type == 'scatter':
-        gg += geom_point(alpha=alpha)
-    elif plot_type == 'bin2d':
-        gg += geom_bin2d()
-    elif plot_type == 'count':
-        gg += geom_count()
-    else:
-        raise ValueError(f"Unsupported plot type {plot_type}")
-    
+    gs = gridspec.GridSpec(1, 2)
+
+    ax_scatter = fig.add_subplot(gs[0])
+    gg_scatter = ggplot(data, aes(x=column1, y=column2)) + geom_point(alpha=alpha)
+    ax_hist = fig.add_subplot(gs[1])
+    gg_hist = ggplot(data, aes(x=column1, y=column2)) + geom_bin2d()
+
     # overlay density
     if plot_density:
-        gg += geom_density_2d()
-    
+        gg_scatter += geom_density_2d()
+        gg_hist += geom_density_2d()
+
     # add reference line 
     if reference_line:
-        gg += geom_abline(color='black')
-        
+        gg_scatter += geom_abline(color='black')
+        gg_hist += geom_abline(color='black')
+
     # add trend line
     if trend_line != 'none':
-        gg += geom_smooth(method=trend_line, color='red')
-        
+        gg_scatter += geom_smooth(method=trend_line, color='red')
+        gg_hist += geom_smooth(method=trend_line, color='red')
+
     # handle transforms
     if transform1 in ['log', 'log_exclude0']:
-        gg += scale_x_log10()
+        gg_scatter += scale_x_log10()
+        gg_hist += scale_x_log10()
     elif transform1 == 'sqrt':
-        gg += scale_x_sqrt()
+        gg_scatter += scale_x_sqrt()
+        gg_hist += scale_x_sqrt()
     if transform2 in ['log', 'log_exclude0']:
-        gg += scale_y_log10()
+        gg_scatter += scale_y_log10()
+        gg_hist += scale_y_log10()
     elif transform2 == 'sqrt':
-        gg += scale_x_sqrt()
-        
+        gg_scatter += scale_y_sqrt()
+        gg_hist += scale_y_sqrt()
+
     # handle aspect ratio
-    _ = gg._draw_using_figure(fig, [ax])
+    _ = gg_scatter._draw_using_figure(fig, [ax_scatter])
+    _ = gg_hist._draw_using_figure(fig, [ax_hist])
     if equalize_axes:
-        upper = max(ax.get_xlim()[1], ax.get_ylim()[1])
-        lower = min(ax.get_xlim()[0], ax.get_ylim()[0])
-        gg += coord_fixed(ratio=1, xlim=(lower, upper), ylim=(lower, upper))
-        _ = gg._draw_using_figure(fig, [ax])
-        fig.set_size_inches(fig_width, fig_width)
+        upper = max(ax_scatter.get_xlim()[1], ax_scatter.get_ylim()[1])
+        lower = min(ax_scatter.get_xlim()[0], ax_scatter.get_ylim()[0])
+        gg_scatter += coord_fixed(ratio=1, xlim=(lower, upper), ylim=(lower, upper))
+        gg_hist += coord_fixed(ratio=1, xlim=(lower, upper), ylim=(lower, upper))
+        _ = gg_scatter._draw_using_figure(fig, [ax_scatter])
+        _ = gg_hist._draw_using_figure(fig, [ax_hist])
+        fig.set_size_inches(fig_width * 2, fig_width)
     else:
-        fig.set_size_inches(fig_width, fig_height)
-        
-    ax.set_xlabel(column1)
-    ax.set_ylabel(column2)
-    
+        fig.set_size_inches(fig_width * 2, fig_height)
+
+    ax_scatter.set_xlabel(column1)
+    ax_scatter.set_ylabel(column2)
+    ax_hist.set_xlabel(column1)
+
     plt.show()
 
-def discrete_discrete_bivariate_eda(data, column1, column2, fig_width=12, fig_height=6, plot_type='auto',
-                                    rotate_labels=False, level_order1='auto', level_order2='auto', 
-                                    top_n=20, normalize=False, flip_axis=False):
+
+def discrete_discrete_bivariate_eda(data, column1, column2, fig_width=10, fig_height=6, level_order1='auto',
+                                    level_order2='auto', top_n=20, normalize=False, rotate_labels=False):
     """ 
     Creates an EDA plot for two discrete variables.
     
@@ -193,133 +195,105 @@ def discrete_discrete_bivariate_eda(data, column1, column2, fig_width=12, fig_he
     """
     data = data.copy().dropna(subset=[column1, column2])
     
-    if plot_type == 'auto':
-        plot = 'clustered_bar'
-        
-    if plot_type in ['faceted_bar', 'freqpoly']:
-        flip_axis = False
-        
-    data[column1] = order_categorical(data, column1, None, level_order1, top_n, flip_axis)
-    data[column2] = order_categorical(data, column2, None, level_order2, top_n, flip_axis)
-        
-    if plot_type == 'clustered_bar':
-        if normalize:
-            data = (
-              data
-              .groupby([column1, column2])
-              .size()
-              .groupby(level=[0])
-              .apply(lambda x: 100 * x / x.sum())
-              .reset_index()
-              .rename({0: 'percent'}, axis='columns')
-            )
-            gg = (
-              ggplot(data, aes(x=column1, y='percent', fill=column2)) + 
-              geom_col(position='dodge') + 
-              scale_y_continuous(labels=lambda l: ["%d%%" % (v) for v in l]) +
-              labs(y=f"Percent (normalized within {column1} levels)")
-            )
-        else:
-            gg = (
-              ggplot(data, aes(x=column1, fill=column2)) + 
-              geom_bar(position='dodge')
-            )
-            
-    elif plot_type == 'faceted_bar':
-        if normalize:
-            data = (
-              data
-              .groupby([column2, column1])
-              .size()
-              .groupby(level=[0])
-              .apply(lambda x: 100 * x / x.sum())
-              .reset_index()
-              .rename({0: 'percent'}, axis='columns')
-            )
-            gg = (
-              ggplot(data, aes(x=column1, y='percent')) + 
-              geom_col(position='dodge', fill='steelblue', color='black') +
-              facet_grid(f"{column2} ~ .") +
-              scale_y_continuous(labels=lambda l: ["%d%%" % (v) for v in l]) +
-              labs(y=f"Percent (normalized within {column2} levels)")
-            )
-        else:
-            gg = (
-              ggplot(data, aes(x=column1)) + 
-              geom_bar(position='dodge') + 
-              facet_grid(f"{column2} ~ .")
-            )
-            
-    elif plot == 'freqpoly':
-        if normalize:
-            data = (
-              data
-              .groupby([column2, column1])
-              .size()
-              .groupby(level=[0])
-              .apply(lambda x: 100 * x / x.sum())
-              .reset_index()
-              .rename({0: 'percent'}, axis='columns')
-            )
-            gg = (
-              ggplot(data, aes(x=column1, y='percent', color=column2, group=column2)) + 
-              geom_line() +
-              geom_point() +
-              scale_y_continuous(labels=lambda l: ["%d%%" % (v) for v in l]) +
-              labs(y = f"Percent (normalized within {column2} levels)")
-            )
-        else:
-            data = (
-              data
-              .groupby([column2, column1])
-              .size()
-              .reset_index()
-              .rename({0: 'count'}, axis='columns')
-            )
-            gg = (
-              ggplot(data, aes(x=column1, y='count', color=column2, group=column2)) + 
-              geom_line() + 
-              geom_point()
-            )
-            
-    elif plot == 'count':
-        gg = (
-          ggplot(data, aes(x=column1, y=column2)) + 
-          geom_count()
+    data[column1] = order_categorical(data, column1, None, level_order1, top_n)
+    data[column2] = order_categorical(data, column2, None, level_order2, top_n)
+
+    # draw heatmap of frequency table
+    data_heat = (
+        data
+            .groupby([column1, column2])
+            .size()
+            .reset_index()
+            .rename({0: 'count'}, axis='columns')
+            .assign(percent=lambda x: 100 * (x['count'] / x['count'].sum()))
+            .assign(percent_label=lambda x: [f"{v:.1f}%" for v in x['percent']])
+    )
+    if normalize:
+        gg_heat = (
+                ggplot(data_heat, aes(x=column1, y=column2, fill='percent')) +
+                geom_tile() +
+                geom_text(aes(label='percent_label'))
         )
-    elif plot == 'heatmap':
-        data = (
-          data
-          .groupby([column1, column2])
-          .size()
-          .reset_index()
-          .rename({0: 'count'}, axis='columns')
-          .assign(percent=lambda x: 100 * (x['count'] / x['count'].sum()))
-          .assign(percent_label=lambda x: [f"{v:.1f}%" for v in x['percent']])
-        )
-        if normalize:
-            gg = (
-              ggplot(data, aes(x=column1, y=column2, fill='percent')) + 
-              geom_tile() + 
-              geom_text(aes(label='percent_label'))
-            )
-        else:
-            gg = (
-              ggplot(data, aes(x=column1, y=column2, fill='count')) + 
-              geom_tile() + 
-              geom_text(aes(label='count'))
-            )
-            
-    if rotate_labels:
-        gg += theme(axis_text_x=element_text(rotation=90, hjust=1))
     else:
-        gg += theme(axis_text_x=element_text(rotation=0, hjust=1))
-            
-    if flip_axis and plot not in ['freqpoly', 'faceted_bar']:
-        gg += coord_flip()
-        
-    f = gg.draw()
+        gg_heat = (
+                ggplot(data_heat, aes(x=column1, y=column2, fill='count')) +
+                geom_tile() +
+                geom_text(aes(label='count'))
+        )
+    gg_heat += scale_fill_cmap('Blues')
+
+    # draw clustered bar plot
+    if normalize:
+        data_cluster = (
+            data
+                .groupby([column1, column2])
+                .size()
+                .groupby(level=[0])
+                .apply(lambda x: 100 * x / x.sum())
+                .reset_index()
+                .rename({0: 'percent'}, axis='columns')
+        )
+        gg_cluster = (
+                ggplot(data_cluster, aes(x=column1, y='percent', fill=column2)) +
+                geom_col(position='dodge') +
+                scale_y_continuous(labels=lambda l: ["%d%%" % (v) for v in l]) +
+                labs(y=f"Percent (normalized within {column1} levels)")
+        )
+    else:
+        gg_cluster = (
+                ggplot(data, aes(x=column1, fill=column2)) +
+                geom_bar(position='dodge')
+        )
+
+    # draw discrete freqpoly
+    if normalize:
+        data_poly = (
+            data
+                .groupby([column2, column1])
+                .size()
+                .groupby(level=[0])
+                .apply(lambda x: 100 * x / x.sum())
+                .reset_index()
+                .rename({0: 'percent'}, axis='columns')
+        )
+        gg_freqpoly = (
+                ggplot(data_poly, aes(x=column1, y='percent', color=column2, group=column2)) +
+                geom_line() +
+                geom_point() +
+                scale_y_continuous(labels=lambda l: ["%d%%" % (v) for v in l]) +
+                labs(y = f"Percent (normalized within {column2} levels)")
+        )
+    else:
+        data_poly = (
+            data
+                .groupby([column2, column1])
+                .size()
+                .reset_index()
+                .rename({0: 'count'}, axis='columns')
+        )
+        gg_freqpoly = (
+                ggplot(data_poly, aes(x=column1, y='count', color=column2, group=column2)) +
+                geom_line() +
+                geom_point()
+        )
+
+    if rotate_labels:
+        gg_heat += theme(axis_text_x=element_text(rotation=90, hjust=1))
+        gg_cluster += theme(axis_text_x=element_text(rotation=90, hjust=1))
+        gg_freqpoly += theme(axis_text_x=element_text(rotation=90, hjust=1))
+    else:
+        gg_heat += theme(axis_text_x=element_text(rotation=0, hjust=1))
+        gg_cluster += theme(axis_text_x=element_text(rotation=0, hjust=1))
+        gg_freqpoly += theme(axis_text_x=element_text(rotation=0, hjust=1))
+
+
+    f = gg_heat.draw()
     f.set_size_inches(fig_width, fig_height)
+    f = gg_cluster.draw()
+    f.set_size_inches(fig_width, fig_height)
+    f = gg_freqpoly.draw()
+    f.set_size_inches(fig_width, fig_height)
+
 
 
 def discrete_continuous_bivariate_eda(
@@ -524,19 +498,47 @@ def discrete_continuous_bivariate_eda(
     f.set_size_inches(fig_width, fig_height)
 
 
-def datetime_continuous_bivariate_eda(data, column1, column2, fig_width=10, fig_height=5, plot_type='auto',
-                                      alpha=1):
+def datetime_continuous_bivariate_eda(data, column1, column2, fig_width=10, fig_height=5, ts_freq='1M', delta_freq='1D'):
 
     # scatterplot (with and without trend line, alpha)
     # boxplots (needs resample frequency)
     # line plot
+    data['month'] = data[column1].dt.month_name()
+    data['day of month'] = data[column1].dt.day
+    data['year'] = data[column1].dt.year
+    data['hour'] = data[column1].dt.hour
+    data['minute'] = data[column1].dt.minute
+    data['second'] = data[column1].dt.second
+    data['day of week'] = data[column1].dt.day_name()
 
-    gg = (
+    # compute time deltas
+    dts = data[column1].sort_values(ascending=True)
+    data['deltas'] = (dts - dts.shift(1)) / pd.Timedelta(delta_freq)
+
+    # make histogram and boxplot figure (empty figure hack for plotting with subplots)
+    # https://github.com/has2k1/plotnine/issues/373
+    fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
+    fig.set_size_inches(fig_width, fig_height * 4)
+    gs = gridspec.GridSpec(4, 2)
+
+    ax_line = fig.add_subplot(gs[0, :])
+    gg_line = (
         ggplot(data, aes(x=column1, y=column2)) +
-        geom_point()
+        geom_point() +
+        geom_smooth()
     )
-    f = gg.draw()
-    f.set_size_inches(fig_width, fig_height)
+    _ = gg_line._draw_using_figure(fig, [ax_line])
+
+    data[column1] = data[column1].dt.to_period(ts_freq)
+    ax_box = fig.add_subplot(gs[1, :])
+    print(data[column1].unique())
+    gg_box = (
+            ggplot(data, aes(x=column1, y=column2, group=column1)) +
+            geom_boxplot()
+    )
+    _ = gg_box._draw_using_figure(fig, [ax_box])
+
+    plt.show()
 
 def bivariate_eda_interact(data):
     pd.set_option('precision', 2)
@@ -550,7 +552,8 @@ def bivariate_eda_interact(data):
         column1=data.columns,
         col1_type=WIDGET_VALUES['col1_type']['widget_options'],
         column2=data.columns,
-        col2_type=WIDGET_VALUES['col2_type']['widget_options']
+        col2_type=WIDGET_VALUES['col2_type']['widget_options'],
+        manual_update=False
     )
 
     # organize plot controls and adjust descriptions/widths
@@ -568,12 +571,13 @@ def bivariate_eda_interact(data):
     widget.children[0].observe(match_type1, 'value')
     widget.children[2].observe(match_type2, 'value')
     widget.children[1].value = detect_column_type(data[data.columns[0]])
-    widget.children[3].value = detect_column_type(data[data.columns[0]])
+    widget.children[2].value = data.columns[1]
+    widget.children[3].value = detect_column_type(data[data.columns[1]])
 
     display(widget)
 
 
-def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type):
+def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type, manual_update=False):
 
     # ranges for widgets
     fig_height_range = (1, 30, 1)
@@ -597,6 +601,7 @@ def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type):
         WIDGET_VALUES['plot_type'] = WIDGET_VALUES['plot_type_cc']
         widget = interactive(
             continuous_continuous_bivariate_eda,
+            {'manual': manual_update},
             data=fixed(data),
             column1=fixed(column1),
             column2=fixed(column2),
@@ -626,6 +631,7 @@ def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type):
 
         widget = interactive(
             discrete_continuous_bivariate_eda,
+            {'manual': manual_update},
             data=fixed(data),
             column1=fixed(column1),
             column2=fixed(column2),
@@ -642,12 +648,12 @@ def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type):
     elif col1_type == 'discrete' and col2_type == 'discrete':
         widget = interactive(
             discrete_discrete_bivariate_eda,
+            {'manual': manual_update},
             data=fixed(data),
             column1=fixed(column1),
             column2=fixed(column2),
             fig_width=fig_width_range,
             fig_height=fig_height_range,
-            plot=['auto', 'clustered_bar', 'faceted_bar', 'freqpoly', 'count', 'heatmap'],
             level_order1=level_orders,
             level_order2=level_orders,
             top_n=top_n_range
@@ -659,6 +665,7 @@ def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type):
             column1, column2 = column2, column1
         widget = interactive(
             datetime_continuous_bivariate_eda,
+            {'manual': manual_update},
             data=fixed(data),
             column1=fixed(column1),
             column2=fixed(column2),
