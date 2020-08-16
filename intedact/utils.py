@@ -3,6 +3,7 @@ import matplotlib.ticker as mtick
 import numpy as np
 import scipy.stats as stats
 from pandas.api.types import is_numeric_dtype, is_datetime64_any_dtype
+from plotnine import *
 
 
 def iqr(a):
@@ -61,6 +62,13 @@ def add_percent_axis(ax, data_size, flip_axis=False):
 
     return ax_perc
 
+
+def _rotate_labels(gg, rotate=True):
+    if rotate:
+        gg += theme(axis_text_x=element_text(rotation=90, hjust=1))
+    else:
+        gg += theme(axis_text_x=element_text(rotation=0, hjust=1))
+    return gg
 
 def preprocess_numeric_variables(data, column1, column2=None, lq1=0, hq1=1, lq2=0, hq2=0, 
                                  transform1='identity', transform2='identity'):

@@ -10,6 +10,7 @@ from plotnine import *
 from matplotlib import gridspec
 import warnings
 from .utils import *
+from .utils import _rotate_labels
 from .config import *
 
 
@@ -295,11 +296,99 @@ def discrete_discrete_bivariate_eda(data, column1, column2, fig_width=10, fig_he
     f.set_size_inches(fig_width, fig_height)
 
 
-
-def discrete_continuous_bivariate_eda(
-    data, column1, column2, fig_width=10, fig_height=5, plot_type='auto', level_order='auto', top_n=20,
+def binary_continuous_bivariate_eda(
+    data, column1, column2, fig_width=10, fig_height=5, level_order='auto', top_n=20,
     alpha=.6, hist_bins=0, transform='identity', lower_quantile=0, upper_quantile=1,
-    normalize_freqpoly=False, flip_axis=False, varwidth=True, ref_lines=True, rotate_labels=False):
+    ref_lines=True, normalize_dist=False):
+
+    data = data.copy().dropna(subset=[column1, column2])
+    # preprocess column for transforms and remove outlier quantiles
+    data = preprocess_numeric_variables(data, column2, lq1=lower_quantile, hq1=upper_quantile,
+                                        transform1=transform)
+    if hist_bins == 0:
+        hist_bins = freedman_diaconis_bins(data[column2], transform)
+
+    data[column1] = order_categorical(data, column1, column2, level_order, top_n, False)
+
+    summary = (
+        data
+            .groupby(column1)[column2]
+            .agg(['median', 'mean'])
+            .reset_index()
+            .melt(
+            id_vars=column1,
+            value_vars=['median', 'mean'],
+            var_name='measure',
+            value_name=column2
+        )
+    )
+    summary['measure'] = summary['measure'].astype(pd.CategoricalDtype(['median', 'mean'], ordered=True))
+
+    if normalize_dist:
+        gg_pair = (
+                ggplot(data, aes(fill=column1, x=column2)) +
+                geom_density(alpha=alpha)
+        )
+    else:
+        gg_pair = (
+                ggplot(data, aes(fill=column1, x=column2)) +
+                geom_histogram(alpha=alpha, position='identity', bins=hist_bins)
+        )
+    if ref_lines:
+        gg_pair += geom_vline(data=summary, mapping=aes(xintercept=column2, color=column1, linetype='measure'), size=1.2)
+
+    f = gg_pair.draw()
+    f.set_size_inches(fig_width, fig_height)
+
+def discrete_single_bivariate_eda(
+    data, column1, column2, fig_width=10, fig_height=5, level_order='auto', top_n=20, transform='identity',
+    lower_quantile=0, upper_quantile=1, ref_lines=True, flip_axis=False, rotate_labels=False):
+
+    data = data.copy().dropna(subset=[column1, column2])
+    # preprocess column for transforms and remove outlier quantiles
+    data = preprocess_numeric_variables(data, column2, lq1=lower_quantile, hq1=upper_quantile,
+                                        transform1=transform)
+    if hist_bins == 0:
+        hist_bins = freedman_diaconis_bins(data[column2], transform)
+
+    summary = pd.DataFrame({
+        'measure': ['median', 'mean'],
+        column2: [data[column2].median(), data[column2].mean()]})
+
+    data[column1] = order_categorical(data, column1, column2, level_order, top_n, flip_axis)
+    data = data[data[column1] != '__OTHER__']
+    if top_n < data[column1].nunique():
+        print(f"WARNING: {data[column1].nunique() - top_n} levels excluded from plot.")
+
+    gg_bar = (
+            ggplot(data, aes(x=column1, y=column2)) +
+            geom_col(fill=BAR_COLOR)
+    )
+    gg_point = (
+            ggplot(data, aes(x=column1, y=column2)) +
+            geom_point()
+    )
+    if ref_lines:
+        gg_point += geom_hline(data=summary, mapping=aes(yintercept=column2, linetype='measure'), color='red')
+        gg_bar += geom_hline(data=summary, mapping=aes(yintercept=column2, linetype='measure'), color='red')
+
+    if flip_axis:
+        gg_bar += coord_flip()
+        gg_point += coord_flip()
+
+    gg_bar = _rotate_labels(gg_bar, rotate_labels)
+    gg_point = _rotate_labels(gg_point, rotate_labels)
+
+    f = gg_bar.draw()
+    f.set_size_inches(fig_width, fig_height)
+    f = gg_point.draw()
+    f.set_size_inches(fig_width, fig_height)
+
+
+def nlevels_continuous_bivariate_eda(
+    data, column1, column2, fig_width=10, fig_height=5, level_order='auto', top_n=20,
+    hist_bins=0, transform='identity', lower_quantile=0, upper_quantile=1,
+    ref_lines=True, normalize_dist=False, varwidth=True, flip_axis=False, rotate_labels=False):
     """ 
     Creates an EDA plot for a discrete and a continuous variable.
     
@@ -370,131 +459,43 @@ def discrete_continuous_bivariate_eda(
     if hist_bins == 0:
         hist_bins = freedman_diaconis_bins(data[column2], transform)
 
-    if plot_type == 'auto':
-        if data.groupby(column1).size().max() == 1:
-            plot_type = 'bar'
-        elif len(data[column1].unique()) == 2:
-            plot_type = 'histogram'
-        else:
-            plot_type = 'boxplot'
-
-    if plot_type in ['faceted_histogram', 'faceted_density', 'freqpoly', 'histogram', 'density']:
-        flip_axis = False
-        rotate_labels = False
-
-    # TODO: Fix freqpoly ordering
-    # hand level ordering and condensing extra levels into __OTHER__
-    if level_order == 'auto' and plot_type in ['faceted_histogram', 'faceted_density'] and not is_numeric_dtype(data[column1]):
-        level_order = 'ascending'
+    # only one numeric value per level
     if top_n < data[column1].nunique():
-        ref_lines = False
-        if plot_type in ['bar', 'point']:
-            print(f"WARNING: {data[column1].nunique() - top_n} levels excluded from plot.")
-        else:
-            print(f"WARNING: {data[column1].nunique() - top_n} levels condensed into __OTHER__.")
+        print(f"WARNING: {data[column1].nunique() - top_n} levels condensed into __OTHER__.")
+
+    summary = pd.DataFrame({
+        'measure': ['median', 'mean'],
+        column2: [data[column2].median(), data[column2].mean()]})
+
     data[column1] = order_categorical(data, column1, column2, level_order, top_n, flip_axis)
-    if plot_type in ['bar', 'point']:
-        data = data[data[column1] != '__OTHER__']
-
-    # compute mean and median summaries for displaying reference lines on plots
+    gg_box = ggplot(data, aes(x=column1, y=column2))
+    gg_violin = ggplot(data, aes(x=column1, y=column2))
     if ref_lines:
-        if plot_type in ['bar', 'point', 'boxplot', 'violin']:
-            summary = pd.DataFrame({
-                'measure': ['median', 'mean'],
-                column2: [data[column2].median(), data[column2].mean()]})
-        else:
-            summary = (
-                data
-                .groupby(column1)[column2]
-                .agg(['median', 'mean'])
-                .reset_index()
-                .melt(
-                    id_vars=column1,
-                    value_vars=['median', 'mean'],
-                    var_name='measure',
-                    value_name=column2
-                )
-            )
-        summary['measure'] = summary['measure'].astype(pd.CategoricalDtype(['median', 'mean'], ordered=True))
+        gg_box += geom_hline(data=summary, mapping=aes(yintercept=column2, linetype='measure'), color='red')
+        gg_violin += geom_hline(data=summary, mapping=aes(yintercept=column2, linetype='measure'), color='red')
 
-    if plot_type == 'bar':
-        gg = (
-            ggplot(data, aes(x=column1, y=column2)) +
-            geom_col(fill=BAR_COLOR)
-        )
-        if ref_lines:
-            gg += geom_hline(data=summary, mapping=aes(yintercept=column2, linetype='measure'), color='red')
+    gg_box += geom_boxplot(fill=BAR_COLOR, varwidth=varwidth)
+    gg_violin += geom_violin(fill=BAR_COLOR, draw_quantiles=[.25, .5, .75])
 
-    if plot_type == 'point':
-        gg = (
-                ggplot(data, aes(x=column1, y=column2)) +
-                geom_point()
-        )
-        if ref_lines:
-            gg += geom_hline(data=summary, mapping=aes(yintercept=column2, linetype='measure'), color='red')
-
-    elif plot_type == 'histogram':
-        gg = (
-          ggplot(data, aes(fill=column1, x=column2)) + 
-          geom_histogram(alpha=alpha, position='identity', bins=hist_bins)
-        )
-        if ref_lines:
-            gg += geom_vline(data=summary, mapping=aes(xintercept=column2, color=column1, linetype='measure'), size=1.2)
-
-    elif plot_type == 'density':
-        gg = (
-          ggplot(data, aes(fill=column1, x=column2)) +
-          geom_density(alpha=alpha)
-        )
-        if ref_lines:
-            gg += geom_vline(data=summary, mapping=aes(xintercept=column2, color=column1, linetype='measure'), size=1.2)
-
-    elif plot_type == 'boxplot':
-        gg = ggplot(data, aes(x=column1, y=column2))
-        if ref_lines:
-            gg += geom_hline(data=summary, mapping=aes(yintercept=column2, linetype='measure'), color='red')
-        gg += geom_boxplot(fill=BAR_COLOR, varwidth=varwidth)
-
-    elif plot_type == 'violin':
-        gg = ggplot(data, aes(x=column1, y=column2))
-        if ref_lines:
-            gg += geom_hline(data=summary, mapping=aes(yintercept=column2, linetype='measure'), color='red')
-        gg += geom_violin(fill=BAR_COLOR, draw_quantiles=[.25, .5, .75])
-
-    elif plot_type == 'freqpoly':
-        gg = ggplot(data, aes(color=column1, x=column2))
-        if normalize_freqpoly:
-            gg += geom_freqpoly(aes(y='..density..'), bins=hist_bins)
-        else:
-            gg += geom_freqpoly(bins=hist_bins)
-
-    elif plot_type == 'faceted_histogram':
-        gg = (
-          ggplot(data, aes(x=column2)) +
-          geom_histogram(fill=BAR_COLOR, color='black', bins=hist_bins) +
-          facet_grid(f"{column1} ~ .")
-        )
-        if ref_lines:
-            gg += geom_vline(data=summary, mapping=aes(xintercept=column2, linetype='measure'), size=1.2, color='red')
-
-    elif plot_type == 'faceted_density':
-        gg = (
-          ggplot(data, aes(x=column2)) + 
-          geom_density(fill=BAR_COLOR) +
-          facet_grid(f"{column1} ~ .")
-        )
-        if ref_lines:
-            gg += geom_vline(data=summary, mapping=aes(xintercept=column2, linetype='measure'), size=1.2, color='red')
+    gg_box = _rotate_labels(gg_box, rotate_labels)
+    gg_violin = _rotate_labels(gg_violin, rotate_labels)
 
     if flip_axis:
-        gg += coord_flip()
+        gg_box += coord_flip()
+        gg_violin += coord_flip()
 
-    if rotate_labels:
-        gg += theme(axis_text_x=element_text(rotation=90, hjust=1))
+    data[column1] = order_categorical(data, column1, column2, level_order, top_n, False)
+    gg_freq = ggplot(data, aes(color=column1, x=column2))
+    if normalize_dist:
+        gg_freq += geom_freqpoly(aes(y='..density..'), bins=hist_bins)
     else:
-        gg += theme(axis_text_x=element_text(rotation=0))
+        gg_freq += geom_freqpoly(bins=hist_bins)
 
-    f = gg.draw()
+    f = gg_box.draw()
+    f.set_size_inches(fig_width, fig_height)
+    f = gg_violin.draw()
+    f.set_size_inches(fig_width, fig_height)
+    f = gg_freq.draw()
     f.set_size_inches(fig_width, fig_height)
 
 
@@ -579,18 +580,6 @@ def bivariate_eda_interact(data):
 
 def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type, manual_update=False):
 
-    # ranges for widgets
-    fig_height_range = (1, 30, 1)
-    fig_width_range = (1, 30, 1)
-    hist_bin_range = (0, 50, 1)
-    cutoff_range = (0, 1, .01)
-    level_orders = ['auto', 'ascending', 'descending', 'sorted', 'random']
-    kde_default = False
-    flip_axis_default = False
-    transforms = ['identity', 'log', 'log_exclude0', 'sqrt']
-    top_n_range = (5, 100, 1)
-    num_outliers = (0, data.shape[0], 1)
-
     data = data.copy()
     data[column1] = coerce_column_type(data[column1], col1_type)
     data[column2] = coerce_column_type(data[column2], col2_type)
@@ -621,29 +610,47 @@ def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type, 
         if col2_type == 'discrete':
             column1, column2 = column2, column1
 
-        print(data.groupby(column1).size().max())
         if data.groupby(column1).size().max() == 1:
-            WIDGET_VALUES['plot_type'] = WIDGET_VALUES['plot_type_dc1']
+            widget = interactive(
+                discrete_single_bivariate_eda,
+                {'manual': manual_update},
+                data=fixed(data),
+                column1=fixed(column1),
+                column2=fixed(column2),
+                level_order=WIDGET_VALUES['level_order']['widget_options'],
+                top_n=WIDGET_VALUES['top_n']['widget_options'],
+                lower_quantile=WIDGET_VALUES['lower_quantile']['widget_options'],
+                upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options'],
+                transform=WIDGET_VALUES['transform']['widget_options'],
+            )
         elif len(data[column1].unique()) == 2:
-            WIDGET_VALUES['plot_type'] = WIDGET_VALUES['plot_type_dc2']
+            widget = interactive(
+                binary_continuous_bivariate_eda,
+                {'manual': manual_update},
+                data=fixed(data),
+                column1=fixed(column1),
+                column2=fixed(column2),
+                level_order=WIDGET_VALUES['level_order']['widget_options'],
+                top_n=WIDGET_VALUES['top_n']['widget_options'],
+                lower_quantile=WIDGET_VALUES['lower_quantile']['widget_options'],
+                upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options'],
+                transform=WIDGET_VALUES['transform']['widget_options'],
+            )
         else:
-            WIDGET_VALUES['plot_type'] = WIDGET_VALUES['plot_type_dcn']
-
-        widget = interactive(
-            discrete_continuous_bivariate_eda,
-            {'manual': manual_update},
-            data=fixed(data),
-            column1=fixed(column1),
-            column2=fixed(column2),
-            plot_type=WIDGET_VALUES['plot_type']['widget_options'],
-            level_order=WIDGET_VALUES['level_order']['widget_options'],
-            top_n=WIDGET_VALUES['top_n']['widget_options'],
-            alpha=WIDGET_VALUES['alpha']['widget_options'],
-            hist_bins=WIDGET_VALUES['hist_bins']['widget_options'],
-            lower_quantile=WIDGET_VALUES['lower_quantile']['widget_options'],
-            upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options'],
-            transform=WIDGET_VALUES['transform']['widget_options'],
-        )
+            widget = interactive(
+                nlevels_continuous_bivariate_eda,
+                {'manual': manual_update},
+                data=fixed(data),
+                column1=fixed(column1),
+                column2=fixed(column2),
+                level_order=WIDGET_VALUES['level_order']['widget_options'],
+                top_n=WIDGET_VALUES['top_n']['widget_options'],
+                alpha=WIDGET_VALUES['alpha']['widget_options'],
+                hist_bins=WIDGET_VALUES['hist_bins']['widget_options'],
+                lower_quantile=WIDGET_VALUES['lower_quantile']['widget_options'],
+                upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options'],
+                transform=WIDGET_VALUES['transform']['widget_options'],
+            )
 
     elif col1_type == 'discrete' and col2_type == 'discrete':
         widget = interactive(

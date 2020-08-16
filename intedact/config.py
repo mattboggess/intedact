@@ -326,6 +326,21 @@ WIDGET_VALUES = {
         'description': "Normalize counts to percentages",
         'width': '0%',
         'widget_options': 'N/A'
+    },
+    'ref_lines': {
+        'description': "Add mean & median reference lines",
+        'width': '0%',
+        'widget_options': 'N/A'
+    },
+    'varwidth': {
+        'description': "Scale boxplot by sample size",
+        'width': '0%',
+        'widget_options': 'N/A'
+    },
+    'normalize_dist': {
+        'description': "Normalize distributions to densities",
+        'width': '0%',
+        'widget_options': 'N/A'
     }
 }
 
