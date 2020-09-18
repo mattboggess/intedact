@@ -199,32 +199,32 @@ WIDGET_VALUES = {
         'widget_options': ['identity', 'log', 'log_exclude0', 'sqrt']
     },
     'lower_quantile': {
-        'description': "lower quantile: Lower quantile of data to remove for plot (not removed for statistics).",
+        'description': "lower quantile: Lower quantile of data to remove.",
         'width': '35%',
         'widget_options': (0, 1, .01)
     },
     'upper_quantile': {
-        'description': "upper quantile: Upper quantile of data to remove for plot (not removed for statistics).",
+        'description': "upper quantile: Upper quantile of data to remove.",
         'width': '37%',
         'widget_options': (0, 1, .01)
     },
     'lower_quantile1': {
-        'description': "lower quantile1: Lower quantile of column1 data to remove for plot.",
+        'description': "lower quantile1: Lower quantile of column1 data to remove.",
         'width': '37%',
         'widget_options': (0, 1, .01)
     },
     'upper_quantile1': {
-        'description': "upper quantile1: Upper quantile of column1 data to remove for plot.",
+        'description': "upper quantile1: Upper quantile of column1 data to remove.",
         'width': '39%',
         'widget_options': (0, 1, .01)
     },
     'lower_quantile2': {
-        'description': "lower quantile2: Lower quantile of column2 data to remove for plot.",
+        'description': "lower quantile2: Lower quantile of column2 data to remove.",
         'width': '37%',
         'widget_options': (0, 1, .01)
     },
     'upper_quantile2': {
-        'description': "upper quantile2: Upper quantile of column2 data to remove for plot.",
+        'description': "upper quantile2: Upper quantile of column2 data to remove.",
         'width': '39%',
         'widget_options': (0, 1, .01)
     },

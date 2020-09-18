@@ -12,7 +12,7 @@ from .config import *
 from pandas.api.types import is_numeric_dtype
 
 
-def discrete_univariate_eda(data, column, fig_height=4, fig_width=8, level_order='auto', top_n=30,
+def discrete_univariate_eda(data, column, fig_height=5, fig_width=10, level_order='auto', top_n=30,
                             label_counts=True, flip_axis=False, rotate_labels=False):
     """ 
     Creates a univariate EDA summary for a provided discrete/categorical column in a
@@ -759,7 +759,7 @@ def column_univariate_eda_interact(data, column, col_type='discrete', manual_upd
     print('Plot Controls:')
 
     if col_type == 'discrete':
-        if data[column].nunique() > 10 and not is_numeric_dtype(data[column]):
+        if data[column].nunique() > 10:
             flip_axis_default = True
         else:
             flip_axis_default = False

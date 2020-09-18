@@ -65,9 +65,9 @@ def add_percent_axis(ax, data_size, flip_axis=False):
 
 def _rotate_labels(gg, rotate=True):
     if rotate:
-        gg += theme(axis_text_x=element_text(rotation=90, hjust=1))
+        gg += theme(axis_text_x=element_text(rotation=90))
     else:
-        gg += theme(axis_text_x=element_text(rotation=0, hjust=1))
+        gg += theme(axis_text_x=element_text(rotation=0))
     return gg
 
 def preprocess_numeric_variables(data, column1, column2=None, lq1=0, hq1=1, lq2=0, hq2=0, 
@@ -119,8 +119,15 @@ def detect_column_type(col_data, discrete_limit=50):
         if isinstance(test_value, (list, tuple, set)):
             return 'list'
         # TODO: Probably need smarter detection
-        elif len(test_value.split(' ')) > 2:
-            return 'text'
+        elif type(test_value) == str:
+            num_levels = col_data.nunique()
+            if num_levels > len(col_data) / 2:
+                if col_data.apply(lambda x: len(x.split(' '))).max() <= 3:
+                    return 'discrete'
+                else:
+                    return 'text'
+            else:
+                return 'discrete'
         else:
             return 'discrete'
     else:

@@ -5,7 +5,7 @@ import numpy as np
 from ipywidgets import interactive, fixed, Layout, Button, Output, HBox, VBox
 from collections import Counter
 from itertools import combinations
-import matplotlib.ticker as mtick 
+import matplotlib.ticker as mtick
 from plotnine import *
 from matplotlib import gridspec
 import warnings
@@ -21,11 +21,11 @@ def continuous_continuous_bivariate_eda(
     plot_density=False):
     """
     Creates an EDA plot for two continuous variables.
-    
+
     Parameters
     ----------
     data: pandas.DataFrame
-        Dataset to perform EDA on 
+        Dataset to perform EDA on
     column1: str
         A string matching a column in the data to be used as the independent variable
     column2: str
@@ -68,16 +68,16 @@ def continuous_continuous_bivariate_eda(
     upper_quantile2: float, optional [0, 1]
         Same as upper_quantile1 but for column2
 
-    Returns 
+    Returns
     -------
     None
        Draws the plot to the current matplotlib figure
     """
-    
+
     data = preprocess_numeric_variables(data, column1, column2, lq1=lower_quantile1, hq1=upper_quantile1,
                                         lq2=lower_quantile2, hq2=upper_quantile2, transform1=transform1,
                                         transform2=transform2)
-    
+
     # make histogram and boxplot figure (empty figure hack for plotting with subplots/getting ax
     # handle): https://github.com/has2k1/plotnine/issues/373
     fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
@@ -93,7 +93,7 @@ def continuous_continuous_bivariate_eda(
         gg_scatter += geom_density_2d()
         gg_hist += geom_density_2d()
 
-    # add reference line 
+    # add reference line
     if reference_line:
         gg_scatter += geom_abline(color='black')
         gg_hist += geom_abline(color='black')
@@ -140,13 +140,13 @@ def continuous_continuous_bivariate_eda(
 
 def discrete_discrete_bivariate_eda(data, column1, column2, fig_width=10, fig_height=6, level_order1='auto',
                                     level_order2='auto', top_n=20, normalize=False, rotate_labels=False):
-    """ 
+    """
     Creates an EDA plot for two discrete variables.
-    
+
     Parameters
     ----------
     data: pandas.DataFrame
-        Dataset to perform EDA on 
+        Dataset to perform EDA on
     column1: str
         A string matching a column in the data to be used as the independent variable
     column2: str
@@ -156,46 +156,46 @@ def discrete_discrete_bivariate_eda(data, column1, column2, fig_width=10, fig_he
     fig_height: int
         Height of figure in inches
     plot: ['auto', 'clustered_bar', 'faceted_bar', 'freqpoly', 'count', 'heatmap']
-        Type of plot to show. 
-        - 'auto':  
+        Type of plot to show.
+        - 'auto':
         - 'clustered_bar': Bar plot where each level of column1 is broken into multiple clustered
           bars colored by the level of column2
         - 'faceted_bar': Bar plot faceted by levels of column2
-        - 'freqpoly': Line plot with separate lines for counts in each level of column2 
+        - 'freqpoly': Line plot with separate lines for counts in each level of column2
         - 'count': 2d countplot using geom_count where counts are represented by areas of circles
         - 'heatmap': 2d heatmap where counts are represented using color in a heatmap
     rotate_labels: bool, optional
-        Whether to rotate x axis labels to prevent overlap. 
+        Whether to rotate x axis labels to prevent overlap.
     level_order1: ['auto', 'descending', 'ascending', 'sorted', 'random']
-        Order in which to order the levels for the first column. 
-         - 'auto' sorts ordinal variables by provided ordering, nominal variables by 
+        Order in which to order the levels for the first column.
+         - 'auto' sorts ordinal variables by provided ordering, nominal variables by
             descending frequency, and numeric variables in sorted order.
          - 'descending' sorts in descending frequency.
          - 'ascending' sorts in ascending frequency.
          - 'sorted' sorts according to sorted order of the levels themselves.
-         - 'random' produces a random order. Useful if there are too many levels for one plot. 
+         - 'random' produces a random order. Useful if there are too many levels for one plot.
     level_order2: ['auto', 'descending', 'ascending', 'sorted', 'random']
         Same as level_order1 but for the second column.
-    top_n: int, optional 
-        Maximum number of levels to attempt to plot on a single plot. If exceeded, only the 
-        top_n - 1 levels will be plotted individually and the remainder will be grouped into an 
-        'Other' category. 
+    top_n: int, optional
+        Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
+        top_n - 1 levels will be plotted individually and the remainder will be grouped into an
+        'Other' category.
     normalize: bool, optional
-        - 'clustered_bar': Normalizes counts within levels of column1 so that each cluster sums to 100% 
-        - 'faceted_bar': Normalizes counts within levels of column2 so that each facet sums to 100% 
-        - 'freqpoly': Normalizes counts within levels of column2 so that each line sums to 100% 
-        - 'count': No effect 
-        - 'heatmap': Replaces counts with overall percentages across both levels 
+        - 'clustered_bar': Normalizes counts within levels of column1 so that each cluster sums to 100%
+        - 'faceted_bar': Normalizes counts within levels of column2 so that each facet sums to 100%
+        - 'freqpoly': Normalizes counts within levels of column2 so that each line sums to 100%
+        - 'count': No effect
+        - 'heatmap': Replaces counts with overall percentages across both levels
     flip_axis: bool, optional
         Whether to flip axes for each plot.
-        
-    Returns 
+
+    Returns
     -------
     None
        Draws the plot to the current matplotlib figure
     """
     data = data.copy().dropna(subset=[column1, column2])
-    
+
     data[column1] = order_categorical(data, column1, None, level_order1, top_n)
     data[column2] = order_categorical(data, column2, None, level_order2, top_n)
 
@@ -297,7 +297,7 @@ def discrete_discrete_bivariate_eda(data, column1, column2, fig_width=10, fig_he
 
 
 def binary_continuous_bivariate_eda(
-    data, column1, column2, fig_width=10, fig_height=5, level_order='auto', top_n=20,
+    data, column1, column2, fig_width=10, fig_height=5, level_order='auto',
     alpha=.6, hist_bins=0, transform='identity', lower_quantile=0, upper_quantile=1,
     ref_lines=True, normalize_dist=False):
 
@@ -308,7 +308,7 @@ def binary_continuous_bivariate_eda(
     if hist_bins == 0:
         hist_bins = freedman_diaconis_bins(data[column2], transform)
 
-    data[column1] = order_categorical(data, column1, column2, level_order, top_n, False)
+    data[column1] = order_categorical(data, column1, column2, level_order)
 
     summary = (
         data
@@ -348,17 +348,15 @@ def discrete_single_bivariate_eda(
     # preprocess column for transforms and remove outlier quantiles
     data = preprocess_numeric_variables(data, column2, lq1=lower_quantile, hq1=upper_quantile,
                                         transform1=transform)
-    if hist_bins == 0:
-        hist_bins = freedman_diaconis_bins(data[column2], transform)
 
     summary = pd.DataFrame({
         'measure': ['median', 'mean'],
         column2: [data[column2].median(), data[column2].mean()]})
 
-    data[column1] = order_categorical(data, column1, column2, level_order, top_n, flip_axis)
-    data = data[data[column1] != '__OTHER__']
     if top_n < data[column1].nunique():
         print(f"WARNING: {data[column1].nunique() - top_n} levels excluded from plot.")
+    data[column1] = order_categorical(data, column1, column2, level_order, top_n, flip_axis)
+    data = data[data[column1] != '__OTHER__']
 
     gg_bar = (
             ggplot(data, aes(x=column1, y=column2)) +
@@ -389,13 +387,13 @@ def nlevels_continuous_bivariate_eda(
     data, column1, column2, fig_width=10, fig_height=5, level_order='auto', top_n=20,
     hist_bins=0, transform='identity', lower_quantile=0, upper_quantile=1,
     ref_lines=True, normalize_dist=False, varwidth=True, flip_axis=False, rotate_labels=False):
-    """ 
+    """
     Creates an EDA plot for a discrete and a continuous variable.
-    
+
     Parameters
     ----------
     data: pandas.DataFrame
-        Dataset to perform EDA on 
+        Dataset to perform EDA on
     column1: str
         A string matching a column in the data to be used as the independent variable
     column2: str
@@ -406,7 +404,7 @@ def nlevels_continuous_bivariate_eda(
         Height of figure in inches
     plot_type: ['auto', 'bar', 'point', 'histogram', 'density', 'freqpoly', 'boxplot', 'violin',
                 'faceted_histogram', 'faceted_density']
-        Type of plot to show. 
+        Type of plot to show.
         - 'auto': Defaults to bar if single column2 value per level of column1. histogram if column1 has
           2 levels. boxplot otherwise.
         - 'bar': Bar plot where each level of column1 has a single column2 value plotted as a bar
@@ -435,19 +433,19 @@ def nlevels_continuous_bivariate_eda(
     hist_bins: int
         Number of bins to use for the histograms/freqpoly (0 uses geom_histogram default bins)",
     rotate_labels: bool, optional
-        Whether to rotate x axis labels to prevent overlap. 
+        Whether to rotate x axis labels to prevent overlap.
     level_order2: ['auto', 'descending', 'ascending', 'sorted', 'random']
         Same as level_order1 but for the second column.
     normalize: bool, optional
-        - 'clustered_bar': Normalizes counts within levels of column1 so that each cluster sums to 100% 
-        - 'faceted_bar': Normalizes counts within levels of column2 so that each facet sums to 100% 
-        - 'freqpoly': Normalizes counts within levels of column2 so that each line sums to 100% 
-        - 'count': No effect 
-        - 'heatmap': Replaces counts with overall percentages across both levels 
+        - 'clustered_bar': Normalizes counts within levels of column1 so that each cluster sums to 100%
+        - 'faceted_bar': Normalizes counts within levels of column2 so that each facet sums to 100%
+        - 'freqpoly': Normalizes counts within levels of column2 so that each line sums to 100%
+        - 'count': No effect
+        - 'heatmap': Replaces counts with overall percentages across both levels
     flip_axis: bool, optional
         Whether to flip axes for each plot.
-        
-    Returns 
+
+    Returns
     -------
     None
        Draws the plot to the current matplotlib figure
@@ -499,45 +497,72 @@ def nlevels_continuous_bivariate_eda(
     f.set_size_inches(fig_width, fig_height)
 
 
-def datetime_continuous_bivariate_eda(data, column1, column2, fig_width=10, fig_height=5, ts_freq='1M', delta_freq='1D'):
+def datetime_continuous_bivariate_eda(data, column1, column2, fig_width=10, fig_height=5):
 
     # scatterplot (with and without trend line, alpha)
     # boxplots (needs resample frequency)
     # line plot
     data['month'] = data[column1].dt.month_name()
-    data['day of month'] = data[column1].dt.day
     data['year'] = data[column1].dt.year
     data['hour'] = data[column1].dt.hour
-    data['minute'] = data[column1].dt.minute
-    data['second'] = data[column1].dt.second
     data['day of week'] = data[column1].dt.day_name()
-
-    # compute time deltas
-    dts = data[column1].sort_values(ascending=True)
-    data['deltas'] = (dts - dts.shift(1)) / pd.Timedelta(delta_freq)
 
     # make histogram and boxplot figure (empty figure hack for plotting with subplots)
     # https://github.com/has2k1/plotnine/issues/373
     fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
-    fig.set_size_inches(fig_width, fig_height * 4)
-    gs = gridspec.GridSpec(4, 2)
+    fig.set_size_inches(fig_width, fig_height * 5)
+    gs = gridspec.GridSpec(5, 2)
 
+    # time series line plot
     ax_line = fig.add_subplot(gs[0, :])
     gg_line = (
         ggplot(data, aes(x=column1, y=column2)) +
-        geom_point() +
-        geom_smooth()
+        geom_line() +
+        geom_smooth(color='red')
     )
     _ = gg_line._draw_using_figure(fig, [ax_line])
 
-    data[column1] = data[column1].dt.to_period(ts_freq)
-    ax_box = fig.add_subplot(gs[1, :])
-    print(data[column1].unique())
-    gg_box = (
-            ggplot(data, aes(x=column1, y=column2, group=column1)) +
-            geom_boxplot()
+    year_order = np.arange(data['year'].min(), data['year'].max() + 1, 1)
+    data['year'] = pd.Categorical(data['year'], categories=year_order)
+    ax_year = fig.add_subplot(gs[1, :])
+    gg_year = (
+            ggplot(data, aes(x='year', y=column2)) +
+            geom_boxplot(fill=BAR_COLOR)
     )
-    _ = gg_box._draw_using_figure(fig, [ax_box])
+    _ = gg_year._draw_using_figure(fig, [ax_year])
+
+    month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+                   'September', 'October', 'November', 'December']
+    data['month'] = pd.Categorical(data['month'], categories=month_order)
+    ax_month = fig.add_subplot(gs[2, :])
+    gg_month = (
+            ggplot(data, aes(x='month', y=column2)) +
+            geom_boxplot(fill=BAR_COLOR)
+    )
+    _ = gg_month._draw_using_figure(fig, [ax_month])
+
+    day_week_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    data['day of week'] = pd.Categorical(data['day of week'], categories=day_week_order)
+    ax_day = fig.add_subplot(gs[3, :])
+    gg_day = (
+            ggplot(data, aes(x='day of week', y=column2)) +
+            geom_boxplot(fill=BAR_COLOR)
+    )
+    _ = gg_day._draw_using_figure(fig, [ax_day])
+
+    hour_order = np.arange(0, 24, 1)
+    data['hour'] = pd.Categorical(data['hour'], categories=hour_order)
+    ax_hour = fig.add_subplot(gs[4, :])
+    gg_hour = (
+            ggplot(data, aes(x='hour', y=column2)) +
+            geom_boxplot(fill=BAR_COLOR)
+    )
+    _ = gg_hour._draw_using_figure(fig, [ax_hour])
+
+    # year, month, day of week boxplots
+
+    # timedeltas scatterplot
+
 
     plt.show()
 
@@ -546,10 +571,10 @@ def bivariate_eda_interact(data):
     sns.set_style('whitegrid')
     theme_set(theme_bw())
     warnings.simplefilter("ignore")
-    
+
     widget = interactive(
-        column_bivariate_eda_interact, 
-        data=fixed(data), 
+        column_bivariate_eda_interact,
+        data=fixed(data),
         column1=data.columns,
         col1_type=WIDGET_VALUES['col1_type']['widget_options'],
         column2=data.columns,
@@ -623,7 +648,7 @@ def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type, 
                 upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options'],
                 transform=WIDGET_VALUES['transform']['widget_options'],
             )
-        elif len(data[column1].unique()) == 2:
+        elif data[column1].nunique() == 2:
             widget = interactive(
                 binary_continuous_bivariate_eda,
                 {'manual': manual_update},
@@ -631,7 +656,6 @@ def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type, 
                 column1=fixed(column1),
                 column2=fixed(column2),
                 level_order=WIDGET_VALUES['level_order']['widget_options'],
-                top_n=WIDGET_VALUES['top_n']['widget_options'],
                 lower_quantile=WIDGET_VALUES['lower_quantile']['widget_options'],
                 upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options'],
                 transform=WIDGET_VALUES['transform']['widget_options'],
@@ -659,11 +683,11 @@ def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type, 
             data=fixed(data),
             column1=fixed(column1),
             column2=fixed(column2),
-            fig_width=fig_width_range,
-            fig_height=fig_height_range,
-            level_order1=level_orders,
-            level_order2=level_orders,
-            top_n=top_n_range
+            fig_width=WIDGET_VALUES['fig_width']['widget_options'],
+            fig_height=WIDGET_VALUES['fig_height']['widget_options'],
+            level_order1=WIDGET_VALUES['level_order1']['widget_options'],
+            level_order2=WIDGET_VALUES['level_order2']['widget_options'],
+            top_n=WIDGET_VALUES['top_n']['widget_options']
         )
 
     elif (col1_type == 'datetime' and col2_type == 'continuous') or \
@@ -681,7 +705,7 @@ def column_bivariate_eda_interact(data, column1, col1_type, column2, col2_type, 
         )
     else:
         print("No EDA support for these variable types")
-        return 
+        return
 
     for ch in widget.children[:-1]:
         if hasattr(ch, 'description') and ch.description in WIDGET_VALUES:
