@@ -143,8 +143,36 @@ def coerce_column_type(col_data, col_type):
         return col_data
 
 
-def order_categorical(data, column1, column2=None, level_order='auto', top_n=20, flip_axis=False):
-    
+def order_levels(
+        data: pd.DataFrame,
+        column1: str,
+        column2: str = None,
+        level_order: str = 'auto',
+        max_levels: int = 20,
+        flip_axis: bool = False
+    ) -> pd.Series:
+    """
+    Orders the levels of a discrete data column and condenses excess levels into Other category.
+
+    Args:
+        data: pandas DataFrame with data columns
+        column1: A string matching a column whose levels we want to order
+        column2: A string matching a second optional column whose values we can use to order column1
+        level_order: Order in which to sort the levels.
+         - 'auto' sorts ordinal variables by provided ordering, nominal variables by
+            descending frequency, and numeric variables in sorted order.
+         - 'descending' sorts in descending frequency.
+         - 'ascending' sorts in ascending frequency.
+         - 'sorted' sorts according to sorted order of the levels themselves.
+         - 'random' produces a random order. Useful if there are too many levels for one plot.
+        max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
+         max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
+        flip_axis: Whether to flip the plot so labels are on y axis. Useful for long level names or lots of levels.
+
+    Returns:
+        Pandas series of column1 that has been converted into a Categorical type with the new level ordering
+    """
+
     # determine order to plot levels
     if column2:
         value_counts = data.groupby(column1)[column2].median()
@@ -171,13 +199,14 @@ def order_categorical(data, column1, column2=None, level_order='auto', top_n=20,
         
     # restrict to top_n levels (condense rest into Other)
     num_levels = len(data[column1].unique())
-    if num_levels > top_n:
-        other_levels = order[top_n - 1:]
-        order = order[:top_n - 1] + ['__OTHER__']
+    if num_levels > max_levels:
+        other_levels = order[max_levels - 1:]
+        order = order[:max_levels - 1] + ['Other']
         if data[column1].dtype.name == 'category':
-            data[column1].cat.add_categories(['__OTHER__'], inplace=True)
-        data[column1][data[column1].isin(other_levels)] = '__OTHER__'
-        
+            data[column1].cat.add_categories(['Other'], inplace=True)
+        data[column1][data[column1].isin(other_levels)] = 'Other'
+
+    # have to reverse ordering so order is expected with flipped axis
     if flip_axis:
         order = order[::-1]
     

@@ -2,58 +2,52 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import seaborn as sns
-from ipywidgets import interactive, fixed, Layout, VBox, HBox
 from itertools import combinations
 from plotnine import *
 from matplotlib import gridspec
-import warnings
 from .utils import *
 from .config import *
-from pandas.api.types import is_numeric_dtype
+
+FLIP_LEVEL_COUNT = 10
 
 
-def discrete_univariate_eda(data, column, fig_height=5, fig_width=10, level_order='auto', top_n=30,
-                            label_counts=True, flip_axis=False, rotate_labels=False):
+def discrete_univariate_eda(
+        data: pd.DataFrame,
+        column: str,
+        fig_height: int = 5,
+        fig_width: int = 10,
+        level_order: str = "auto",
+        max_levels: int = 30,
+        label_counts: bool = True,
+        flip_axis: bool = None,
+        rotate_labels: bool = False
+    ) -> None:
     """ 
-    Creates a univariate EDA summary for a provided discrete/categorical column in a
-    pandas DataFrame.
+    Creates a univariate EDA summary for a provided discrete data column in a pandas DataFrame.
 
     Summary consists of a single bar plot with twin axes for counts and percentages for each level of the
-    variable. Percentages are relative to observed data only (missing observations are ignored).
+    variable. Percentages are relative to observed data only (missing observations are ignored). A discrete data
+    column refers to any categorical data column or any low cardinality numerical column.
 
-    Parameters
-    ----------
-    data: pandas.DataFrame
-        Dataset to perform EDA on 
-    column: str
-        A string matching a column in the data 
-    fig_height: int, optional
-        Height of the plot in inches
-    fig_width: int, optional
-        Width of the plot in inches
-    level_order: str, optional ('auto', 'descending', 'ascending', 'sorted', or 'random')
-        in which to order the levels for the countplot and table. 
+    Args:
+        data: pandas DataFrame to perform EDA on
+        column: A string matching a column in the data
+        fig_height: Height of the plot in inches
+        fig_width: Width of the plot in inches
+        level_order: Order in which to sort the levels.
          - 'auto' sorts ordinal variables by provided ordering, nominal variables by
             descending frequency, and numeric variables in sorted order.
          - 'descending' sorts in descending frequency.
          - 'ascending' sorts in ascending frequency.
          - 'sorted' sorts according to sorted order of the levels themselves.
          - 'random' produces a random order. Useful if there are too many levels for one plot.
-    top_n: int, optional 
-        Maximum number of levels to attempt to plot on a single plot. If exceeded, only the 
-        top_n - 1 levels will be plotted individually and the remainder will be grouped into an 
-        'Other' category.
-    label_counts: bool, optional
-        Whether to add exact counts and percentages as text annotations on each bar in the plot.
-    flip_axis: bool, optional
-        Whether to flip the countplot so labels are on y axis. Useful for long level names
-        or lots of levels.
-    rotate_labels: bool, optional
-        Whether to rotate x axis levels 90 degrees to prevent overlapping labels.
+        max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
+         max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
+        label_counts: Whether to add exact counts and percentages as text annotations on each bar in the plot.
+        flip_axis: Whether to flip the plot so labels are on y axis. Useful for long level names or lots of levels.
+        rotate_labels: Whether to rotate x axis levels 90 degrees to prevent overlapping labels.
 
-    Returns 
-    -------
-    None
+    Returns:
         No return value. Directly displays the results.
     """
     data = data.copy()
@@ -64,9 +58,17 @@ def discrete_univariate_eda(data, column, fig_height=5, fig_width=10, level_orde
     data.dropna(subset=[column], inplace=True)
     num_levels = data[column].nunique()
 
-    # reorder column level
-    data[column] = order_categorical(data, column, None, level_order=level_order, top_n=top_n,
-                                     flip_axis=flip_axis)
+    # try to intelligently determine how to flip axis if not specified
+    if flip_axis is None:
+        if rotate_labels:
+            flip_axis = False
+        else:
+            flip_axis = num_levels > FLIP_LEVEL_COUNT
+
+    # reorder column levels
+    data[column] = order_levels(
+        data, column, None, level_order=level_order, max_levels=max_levels, flip_axis=flip_axis
+    )
 
     # draw the barplot
     count_data = (
@@ -82,7 +84,7 @@ def discrete_univariate_eda(data, column, fig_height=5, fig_width=10, level_orde
         geom_col(fill=BAR_COLOR, color='black')
     )
 
-    # flip axis/rotate labels
+    # flip axis
     value_counts = count_data['count']
     nudge = value_counts.max() / 100
     mid = value_counts.max() / 5 * 4
@@ -96,6 +98,7 @@ def discrete_univariate_eda(data, column, fig_height=5, fig_width=10, level_orde
         ha = ['center'] * len(value_counts)
         nudge_y = [-nudge if x > mid else nudge for x in value_counts]
 
+    # rotate labels
     if rotate_labels:
         gg += theme(axis_text_x=element_text(rotation=90, hjust=1))
     else:
@@ -122,8 +125,8 @@ def discrete_univariate_eda(data, column, fig_height=5, fig_width=10, level_orde
     add_percent_axis(ax, len(data[column]), flip_axis=flip_axis)
 
     # warn user about 'Other' condensing and add info to title
-    if num_levels > top_n:
-        addition = f" ({num_levels - top_n} levels condensed into '__OTHER__')"
+    if num_levels > max_levels:
+        addition = f" ({num_levels - max_levels} levels condensed into 'Other')"
     else:
         addition = ""
     title = (f"{data[column].size} observations over {num_levels} levels{addition}\n"
@@ -137,9 +140,8 @@ def discrete_univariate_eda(data, column, fig_height=5, fig_width=10, level_orde
 def continuous_univariate_eda(data, column, fig_height=4, fig_width=8, hist_bins=0,
                               transform='identity', lower_quantile=0, upper_quantile=1, kde=False):
     """ 
-    Creates a univariate EDA plot and table for a provided numeric variable 
-    column in a pandas DataFrame.
-        
+    Creates a univariate EDA summary for a provided continuous data column in a pandas DataFrame.
+
     Summary consists of a histogram, boxplot, and small table of summary statistics.
 
     Parameters
@@ -723,119 +725,4 @@ def list_univariate_eda(data, column, fig_height=4, fig_width=8, top_entries=10)
     ax_single.set_title(f"{len(set(entries))} unique entries with {len(entries)} total entries across {data[column].size} observations")
     plt.show()
 
-
-def univariate_eda_interact(data):
-    pd.set_option('precision', 2)
-    sns.set(style='whitegrid')
-    theme_set(theme_bw())
-    warnings.simplefilter("ignore")
-    
-    widget = interactive(
-        column_univariate_eda_interact, 
-        data=fixed(data), 
-        column=data.columns,
-        col_type=WIDGET_VALUES['col_type']['widget_options']
-    )
-    widget.layout = Layout(flex_flow='row wrap')
-    for ch in widget.children:
-        if hasattr(ch, 'description') and ch.description in WIDGET_VALUES:
-            ch.style = {'description_width': WIDGET_VALUES[ch.description]['width']}
-            ch.description = WIDGET_VALUES[ch.description]['description']
-
-    def match_type(*args):
-        type_widget.value = detect_column_type(data[col_widget.value])
-    col_widget = widget.children[0]
-    type_widget = widget.children[1]
-    col_widget.observe(match_type, 'value')
-    type_widget.value = detect_column_type(data[data.columns[0]])
-
-    display(widget)
-
-
-def column_univariate_eda_interact(data, column, col_type='discrete', manual_update=False):
-    data = data.copy()
-
-    data[column] = coerce_column_type(data[column], col_type)
-    print('Plot Controls:')
-
-    if col_type == 'discrete':
-        if data[column].nunique() > 10:
-            flip_axis_default = True
-        else:
-            flip_axis_default = False
-        widget = interactive(
-            discrete_univariate_eda,
-            {'manual': manual_update},
-            data=fixed(data),
-            column=fixed(column),
-            fig_height=WIDGET_VALUES['fig_height']['widget_options'],
-            fig_width=WIDGET_VALUES['fig_width']['widget_options'],
-            level_order=WIDGET_VALUES['level_order']['widget_options'],
-            top_n=WIDGET_VALUES['top_n']['widget_options'],
-            flip_axis=flip_axis_default
-        )
-    elif col_type == 'continuous':
-        widget = interactive(
-            continuous_univariate_eda,
-            {'manual': manual_update},
-            data=fixed(data),
-            column=fixed(column),
-            fig_height=WIDGET_VALUES['fig_height']['widget_options'],
-            fig_width=WIDGET_VALUES['fig_width']['widget_options'],
-            hist_bins=WIDGET_VALUES['hist_bins']['widget_options'],
-            transform=WIDGET_VALUES['transform']['widget_options'],
-            lower_quantile=WIDGET_VALUES['lower_quantile']['widget_options'],
-            upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options']
-        )
-    # datetime variables
-    elif col_type == 'datetime':
-        print("See here for valid frequency strings: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects")
-        widget = interactive(
-            datetime_univariate_eda,
-            {'manual': manual_update},
-            data=fixed(data),
-            column=fixed(column),
-            fig_height=WIDGET_VALUES['fig_height']['widget_options'],
-            fig_width=WIDGET_VALUES['fig_width']['widget_options'],
-            hist_bins=WIDGET_VALUES['hist_bins']['widget_options'],
-            lower_quantile=WIDGET_VALUES['lower_quantile']['widget_options'],
-            upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options'],
-            transform=WIDGET_VALUES['transform']['widget_options']
-        )
-    elif col_type == 'text':
-        widget = interactive(
-            text_univariate_eda,
-            {'manual': manual_update},
-            data=fixed(data),
-            column=fixed(column),
-            fig_height=WIDGET_VALUES['fig_height']['widget_options'],
-            fig_width=WIDGET_VALUES['fig_width']['widget_options'],
-            hist_bins=WIDGET_VALUES['hist_bins']['widget_options'],
-            lower_quantile=WIDGET_VALUES['lower_quantile']['widget_options'],
-            upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options'],
-            transform=WIDGET_VALUES['transform']['widget_options'],
-            top_n=WIDGET_VALUES['top_n']['widget_options']
-        )
-    elif col_type == 'list':
-        widget = interactive(
-            list_univariate_eda,
-            {'manual': manual_update},
-            data=fixed(data),
-            column=fixed(column),
-            fig_height=WIDGET_VALUES['fig_height']['widget_options'],
-            fig_width=WIDGET_VALUES['fig_width']['widget_options'],
-            top_entries=WIDGET_VALUES['top_entries']['widget_options']
-        )
-    else:
-        print("No EDA support for this variable type")
-        return
-
-    for ch in widget.children[:-1]:
-        if hasattr(ch, 'description') and ch.description in WIDGET_VALUES:
-            ch.style = {'description_width': WIDGET_VALUES[ch.description]['width']}
-            ch.description = WIDGET_VALUES[ch.description]['description']
-    widget.update()
-    controls = HBox(widget.children[:-1], layout=Layout(flex_flow='row wrap'))
-    output = widget.children[-1]
-    display(VBox([controls, output]))
 

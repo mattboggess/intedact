@@ -133,9 +133,9 @@ WIDGET_VALUES = {
         'width': '30%',
         'widget_options': ['auto', 'descending', 'ascending', 'sorted', 'random']
     },
-    'top_n': {
-        'description': "top n: Maximum number of levels to display before condensing remaining into '__OTHER__'",
-        'width': '20%',
+    'max_levels': {
+        'description': "max levels: Maximum number of levels to display before condensing remaining into 'Other'",
+        'width': '28%',
         'widget_options': (1, 100, 1)
     },
     'top_entries': {
@@ -146,17 +146,17 @@ WIDGET_VALUES = {
     'flip_axis': {
         'description': "Flip plot orientation",
         'width': '0%',
-        'widget_options': 'N/A'
+        'widget_options': [True, False]
     },
     'label_counts': {
         'description': "Add counts and percentages",
         'width': '0%',
-        'widget_options': 'N/A'
+        'widget_options': [True, False]
     },
     'rotate_labels': {
         'description': "Rotate x axis labels",
         'width': '0%',
-        'widget_options': 'N/A'
+        'widget_options': [True, False]
     },
     'hist_bins': {
         'description': "hist bins: Number of bins to use for the histogram (0 uses geom_histogram default bins)",

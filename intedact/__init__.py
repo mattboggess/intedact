@@ -1,2 +1,1 @@
-from .bivariate_eda import bivariate_eda_interact
-from .univariate_eda import univariate_eda_interact
+from .interact import univariate_eda_interact
