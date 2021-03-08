@@ -1,5 +1,8 @@
 # Plot controls (fill color for histograms, bar, and boxplots that don't have fill mapped to column)
 BAR_COLOR = 'steelblue'
+FLIP_LEVEL_COUNT = 10
+THEME_DEFAULT = 'theme_bw'
+
 
 # Column type groupings
 DISCRETE_TYPES = [
@@ -153,10 +156,10 @@ WIDGET_VALUES = {
         'width': '0%',
         'widget_options': [True, False]
     },
-    'rotate_labels': {
-        'description': "Rotate x axis labels",
-        'width': '0%',
-        'widget_options': [True, False]
+    'label_rotation': {
+        'description': "label_rotation: Degree to rotate axis labels",
+        'width': '35%',
+        'widget_options': (0, 90, 1)
     },
     'hist_bins': {
         'description': "hist bins: Number of bins to use for the histogram (0 uses geom_histogram default bins)",
@@ -175,7 +178,7 @@ WIDGET_VALUES = {
              "  - log: Log transform (add a small constant in case of 0's)\n"
              "  - log_exclude0: Log transform with 0's filtered out\n" 
              "  - sqrt: Square root transform"),
-        'width': '28%',
+        'width': '27%',
         'widget_options': ['identity', 'log', 'log_exclude0', 'sqrt']
     },
     'transform1': {

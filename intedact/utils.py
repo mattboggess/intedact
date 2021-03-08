@@ -1,10 +1,142 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
 import scipy.stats as stats
 from pandas.api.types import is_numeric_dtype, is_datetime64_any_dtype
-from plotnine import *
+import plotnine as p9
+import re
 
+def match_axes(fig, ax, gg):
+    upper = max(ax.get_xlim()[1], ax.get_ylim()[1])
+    lower = min(ax.get_xlim()[0], ax.get_ylim()[0])
+    gg += p9.coord_fixed(ratio=1, xlim=(lower, upper), ylim=(lower, upper))
+    _ = gg._draw_using_figure(fig, [ax])
+    return fig, ax, gg
+
+
+def convert_to_freq_string(date_str: str) -> str:
+    """
+    Converts a conversational description of a period (e.g. 2 weeks) to a pandas frequency string (2W).
+
+    Args:
+        date_str: A period description of the form "{number} {period}"
+
+    Returns:
+        A corresponding pandas frequency string
+    """
+    # Column type groupings
+    DATE_CONVERSION = {
+        "year": "AS",
+        "month": "MS",
+        "week": "W",
+        "day": "D",
+        "hour": "H",
+        "minute": "T",
+        "second": "S"
+    }
+    split = date_str.split()
+    if len(split) != 2:
+        return date_str
+    quantity, period = split
+    period = period.lower()
+    if period.endswith("s"):
+        period = period[:-1]
+    period = DATE_CONVERSION[period]
+    return f"{quantity}{period}"
+
+
+def add_count_annotations(gg, data, num_levels, flip_axis):
+    """
+
+    """
+    # Determine annotation placements based on axis flip
+    # TODO: probably need to handle location placement better
+    value_counts = data['Count']
+    nudge = value_counts.max() / 100
+    mid = value_counts.max() / 4 * 3
+    if flip_axis:
+        va = ['center'] * len(value_counts)
+        ha = ['right' if x > mid else 'left' for x in value_counts]
+        nudge_y = [-nudge if x > mid else nudge for x in value_counts]
+    else:
+        va = ['top' if x > mid else 'bottom' for x in value_counts]
+        ha = ['center'] * len(value_counts)
+        nudge_y = [-nudge if x > mid else nudge for x in value_counts]
+
+    # Determine annotation size
+    # TODO: probably need better automatic sizing determination
+    if num_levels > 10:
+        size = 8
+    else:
+        size = 11
+
+    # add count/percentage annotations
+    data['label'] = [f"{x} ({100 * x / data['Count'].sum():.1f}%)" for x in data['Count']]
+    gg += p9.geom_text(
+        p9.aes(label='label', group=1, ha=ha, va=va),
+        nudge_y=nudge_y,
+        color='black',
+        size=size
+    )
+    return gg
+
+
+def preprocess_transformations(data: pd.DataFrame, column: str, transform: str = "identity") -> pd.DataFrame:
+    """
+    Preprocesses a data column to be compatible with the provided transformation.
+
+    Args:
+        data: pandas DataFrame holding the data
+        column: The dataframe column that is being transformed
+        transform: Transformation to apply to the column:
+         - 'identity': no transformation
+         - 'log': apply a logarithmic transformation with small constant added in case of zero values
+         - 'log_exclude0': apply a logarithmic transformation with zero values removed
+         - 'sqrt': apply a square root transformation
+    Returns:
+        Modified dataframe with the column data updated according to the transform specified
+    """
+    if transform == 'log':
+        data[column] += 1e-6
+    elif transform == 'log_exclude0':
+        data = data[data[column] > 0]
+    return data
+
+
+def transform_axis(gg: p9.ggplot, column: str, transform: str = "identity", xaxis: bool = False) -> (p9.ggplot, str):
+    """
+    Modifies a plotnine axis scale according to a specified data transformation.
+
+    Args:
+        gg: The plotnine ggplot object to modify the axis scale for
+        column: The dataframe column that is being transformed
+        transform: Transformation to apply to the column:
+         - 'identity': no transformation
+         - 'log': apply a logarithmic transformation with small constant added in case of zero values
+         - 'log_exclude0': apply a logarithmic transformation with zero values removed
+         - 'sqrt': apply a square root transformation
+        xaxis: Whether to transform the x or the y axis
+    Returns:
+        Tuple containing the modified ggplot object with updated scale and modified axis label denoting
+        the scale change.
+    """
+    if transform in ['log', 'log_exclude0']:
+        if xaxis:
+            gg += p9.scale_x_log10()
+        else:
+            gg += p9.scale_y_log10()
+        label = f"{column} (log10 scale)"
+    elif transform == 'sqrt':
+        if xaxis:
+            gg += p9.scale_x_sqrt()
+        else:
+            gg += p9.scale_y_sqrt()
+        label = f"{column} (square root scale)"
+    else:
+        label = column
+
+    return gg, label
 
 def iqr(a):
     """
@@ -40,7 +172,7 @@ def freedman_diaconis_bins(a, transform='identity'):
     return min(np.int(bins), 100)
 
 
-def add_percent_axis(ax, data_size, flip_axis=False):
+def add_percent_axis(ax: plt.Axes, data_size, flip_axis: bool = False) -> plt.Axes:
     """
     Adds a twin axis with percentages to a count axis.
     """
@@ -70,36 +202,30 @@ def _rotate_labels(gg, rotate=True):
         gg += theme(axis_text_x=element_text(rotation=0))
     return gg
 
-def preprocess_numeric_variables(data, column1, column2=None, lq1=0, hq1=1, lq2=0, hq2=0, 
-                                 transform1='identity', transform2='identity'):
+def trim_quantiles(
+    data: pd.DataFrame,
+    column: str,
+    lower_quantile: float = 0,
+    upper_quantile: float = 1
+) -> pd.DataFrame:
     """
-    Utility script for removing lower and upper quantiles of data and preprocessing data
-    for particular transformations.
+    Filters a dataframe by removing rows where the values for a specified column are above or below
+    provided quantile limits.
+
+    Args:
+        data: pandas DataFrame to perform EDA on
+        column: A string matching a column in the data to visualize
+        lower_quantile: Lower quantile of column data to remove below
+        upper_quantile: Upper quantile of column data to remove above
+
+    Returns:
+        pandas Dataframe filtered to remove rows where column values are beyond the specified quantiles
     """
-    # remove upper and lower percentiles in case of outliers
-    lq1 = data[column1].quantile(lq1)
-    hq1 = data[column1].quantile(hq1)
-    query = (data[column1] >= lq1) & (data[column1] <= hq1)
-    if column2:
-        lq2 = data[column2].quantile(lq2)
-        hq2 = data[column2].quantile(hq2)
-        query = query & (data[column2] >= lq2) & (data[column2] <= hq2)
-    data = data[query]
-    
-    # modify data for transforms 
-    if transform1 == 'log_exclude0':
-        data = data[data[column1] > 0]
-    elif transform1 == 'log':
-        data[column1] = data[column1] + 1e-6
-        
-    if column2:
-        if transform2 == 'log_exclude0':
-            data = data[data[column2] > 0]
-        elif transform2 == 'log':
-            data[column2] = data[column2] + 1e-6
-    
-    return data
-    
+    lower_quantile = data[column].quantile(lower_quantile)
+    upper_quantile = data[column].quantile(upper_quantile)
+    query = (data[column] >= lower_quantile) & (data[column] <= upper_quantile)
+    return data[query]
+
 
 def detect_column_type(col_data, discrete_limit=50):
 
@@ -197,7 +323,7 @@ def order_levels(
     else:
         raise ValueError(f"Unknown level order specification: {level_order}")
         
-    # restrict to top_n levels (condense rest into Other)
+    # restrict to max_levels levels (condense rest into Other)
     num_levels = len(data[column1].unique())
     if num_levels > max_levels:
         other_levels = order[max_levels - 1:]

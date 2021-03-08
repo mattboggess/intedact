@@ -15,10 +15,21 @@ from .config import *
 
 
 def continuous_continuous_bivariate_eda(
-    data, column1, column2, fig_width=6, fig_height=6, trend_line='auto', alpha=1,
-    lower_quantile1=0, upper_quantile1=1, lower_quantile2=0, upper_quantile2=1,
-    transform1='identity', transform2='identity', equalize_axes=False,  reference_line=False,
-    plot_density=False):
+    data,
+    column1,
+    column2,
+    trend_line='auto',
+    alpha=1,
+    lower_quantile1=0,
+    upper_quantile1=1,
+    lower_quantile2=0,
+    upper_quantile2=1,
+    transform1='identity',
+    transform2='identity',
+    equalize_axes=False,
+    reference_line=False,
+    plot_density=False,
+    **kwargs):
     """
     Creates an EDA plot for two continuous variables.
 

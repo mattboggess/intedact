@@ -4,9 +4,9 @@ from plotnine import *
 import ipywidgets as widgets
 import warnings
 
-from .config import WIDGET_VALUES
+from .config import WIDGET_VALUES, FLIP_LEVEL_COUNT, BAR_COLOR
 from .utils import detect_column_type, coerce_column_type
-from .univariate_eda import *
+from .univariate_summaries import *
 from .bivariate_eda import *
 
 def univariate_eda_interact(data):
@@ -45,12 +45,12 @@ def column_univariate_eda_interact(data, column, col_type='discrete', manual_upd
     print('Plot Controls:')
 
     if col_type == 'discrete':
-        if data[column].nunique() > 10:
+        if data[column].nunique() > FLIP_LEVEL_COUNT:
             flip_axis_default = True
         else:
             flip_axis_default = False
         widget = widgets.interactive(
-            discrete_univariate_eda,
+            discrete_univariate_summary,
             {'manual': manual_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
@@ -60,11 +60,13 @@ def column_univariate_eda_interact(data, column, col_type='discrete', manual_upd
             max_levels=WIDGET_VALUES['max_levels']['widget_options'],
             label_counts=widgets.Checkbox(True),
             flip_axis=widgets.Checkbox(flip_axis_default),
-            rotate_labels=widgets.Checkbox(False)
+            bar_color=fixed(BAR_COLOR),
+            label_rotation=WIDGET_VALUES['label_rotation']['widget_options'],
+            interactive=fixed(True)
         )
     elif col_type == 'continuous':
         widget = interactive(
-            continuous_univariate_eda,
+            continuous_univariate_summary,
             {'manual': manual_update},
             data=fixed(data),
             column=fixed(column),
@@ -73,7 +75,10 @@ def column_univariate_eda_interact(data, column, col_type='discrete', manual_upd
             hist_bins=WIDGET_VALUES['hist_bins']['widget_options'],
             transform=WIDGET_VALUES['transform']['widget_options'],
             lower_quantile=WIDGET_VALUES['lower_quantile']['widget_options'],
-            upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options']
+            upper_quantile=WIDGET_VALUES['upper_quantile']['widget_options'],
+            kde=widgets.Checkbox(False),
+            bar_color=fixed(BAR_COLOR),
+            interactive=fixed(True)
         )
     # datetime variables
     elif col_type == 'datetime':
