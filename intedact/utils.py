@@ -4,9 +4,195 @@ import matplotlib.ticker as mtick
 import numpy as np
 import scipy.stats as stats
 from pandas.api.types import is_numeric_dtype, is_datetime64_any_dtype
-from typing import List
+from typing import List, Optional
 import plotnine as p9
 import re
+
+
+# Plotting Helpers
+
+
+def add_barplot_annotations(
+    ax: plt.Axes,
+    data: pd.DataFrame,
+    column: str,
+    add_percent: bool,
+    flip_axis: bool,
+    label_fontsize: Optional[int] = None,
+    height_threshold: float = 0.8,
+) -> plt.Axes:
+    """
+    Converts a conversational description of a period (e.g. 2 weeks) to a pandas frequency string (2W).
+
+    Args:
+        ax: matplotlib axes with barplot to annotate
+        data: pandas Dataframe containing barplot data
+        column: Column with the values to annotate
+        add_percent: Whether to add percentages (assumes values are counts)
+        flip_axis: Whether the axes have been flipped for barplot
+        label_fontsize: Size of the annotations text. Default tries to infer a reasonable size based on the figure
+         size and number of values.
+        height_threshold: Threshold for how tall a bar must be before labels get placed within bar instead of
+         on top of bar
+
+    Returns:
+        Axis with annotations added
+    """
+    # TODO: Handle default annotation size
+    for i, value in enumerate(data[column]):
+
+        label = f"{value}"
+        if flip_axis:
+            if add_percent:
+                label += f" ({100 * value / data[column].sum():.2f})%"
+            va = "center"
+            if value > height_threshold * ax.get_xlim()[1]:
+                ha = "right"
+                color = "white"
+                mod = -0.005
+            else:
+                ha = "left"
+                color = "black"
+                mod = 0.005
+            y = i
+            x = value + mod * ax.get_xlim()[1]
+        else:
+            if add_percent:
+                label += f"\n{100 * value / data[column].sum():.2f}%"
+            ha = "center"
+            if value > height_threshold * ax.get_ylim()[1]:
+                va = "top"
+                color = "white"
+                mod = -0.01
+            else:
+                va = "bottom"
+                color = "black"
+                mod = 0.01
+            x = i
+            y = value + mod * ax.get_ylim()[1]
+
+        ax.text(
+            x,
+            y,
+            label,
+            fontsize=label_fontsize,
+            color=color,
+            va=va,
+            ha=ha,
+        )
+    return ax
+
+
+def add_percent_axis(ax: plt.Axes, data_size, flip_axis: bool = False) -> plt.Axes:
+    """
+    Adds a twin axis with percentages to a count plot.
+
+    Args:
+        ax: Plot axes figure to add percentage axis to
+        data_size: Total count to use to normalize percentages
+        flip_axis: Whether the countplot had its axes flipped
+
+    Returns:
+        Twin axis that percentages were added to
+    """
+    if flip_axis:
+        ax_perc = ax.twiny()
+        ax_perc.set_xticks(100 * ax.get_xticks() / data_size)
+        ax_perc.set_xlim(
+            (
+                100.0 * (float(ax.get_xlim()[0]) / data_size),
+                100.0 * (float(ax.get_xlim()[1]) / data_size),
+            )
+        )
+        ax_perc.xaxis.set_major_formatter(mtick.PercentFormatter())
+        ax_perc.xaxis.set_tick_params(labelsize=10)
+    else:
+        ax_perc = ax.twinx()
+        ax_perc.set_yticks(100 * ax.get_yticks() / data_size)
+        ax_perc.set_ylim(
+            (
+                100.0 * (float(ax.get_ylim()[0]) / data_size),
+                100.0 * (float(ax.get_ylim()[1]) / data_size),
+            )
+        )
+        ax_perc.yaxis.set_major_formatter(mtick.PercentFormatter())
+        ax_perc.yaxis.set_tick_params(labelsize=10)
+    ax_perc.grid(False)
+    return ax_perc
+
+
+# Data Helpers
+
+
+def order_levels(
+    data: pd.DataFrame,
+    column1: str,
+    column2: Optional[str] = None,
+    order_method: str = "auto",
+    max_levels: int = 30,
+) -> List[str]:
+    """
+    Orders the levels of a discrete data column and condenses excess levels into Other category.
+
+    Args:
+        data: pandas DataFrame with data columns
+        column1: A string matching a column whose levels we want to order
+        column2: A string matching a second optional column whose values we can use to order column1 instead of using
+         counts
+        order_method: Order in which to sort the levels.
+         - 'auto' sorts ordinal variables by provided ordering, nominal variables by
+            descending frequency, and numeric variables in sorted order.
+         - 'descending' sorts in descending frequency.
+         - 'ascending' sorts in ascending frequency.
+         - 'sorted' sorts according to sorted order of the levels themselves.
+         - 'random' produces a random order. Useful if there are too many levels for one plot.
+        max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
+         max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
+
+    Returns:
+        Pandas series of column1 that has been converted into a Categorical type with the new level ordering
+    """
+
+    # determine order to plot levels
+    if column2:
+        value_counts = data.groupby(column1)[column2].median()
+    else:
+        value_counts = data[column1].value_counts()
+
+    if order_method == "auto":
+        if data[column1].dtype.name == "category" and data[column1].cat.ordered:
+            order = list(data[column1].cat.categories)
+        elif is_numeric_dtype(data[column1]):
+            order = sorted(list(value_counts.index))
+        else:
+            order = list(value_counts.sort_values(ascending=False).index)
+    elif order_method == "ascending":
+        order = list(value_counts.sort_values(ascending=True).index)
+    elif order_method == "descending":
+        order = list(value_counts.sort_values(ascending=False).index)
+    elif order_method == "sorted":
+        order = sorted(list(value_counts.index))
+    elif order_method == "random":
+        order = list(value_counts.sample(frac=1).index)
+    else:
+        raise ValueError(f"Unknown level order specification: {order_method}")
+
+    # restrict to max_levels levels (condense rest into Other)
+    num_levels = len(data[column1].unique())
+    if num_levels > max_levels:
+        other_levels = order[max_levels - 1 :]
+        order = order[: max_levels - 1] + ["Other"]
+        if data[column1].dtype.name == "category":
+            data[column1].cat.add_categories(["Other"], inplace=True)
+        data[column1][data[column1].isin(other_levels)] = "Other"
+
+    # convert to ordered categorical variable
+    data[column1] = pd.Categorical(data[column1], categories=order, ordered=True)
+
+    return data[column1]
+
+
+# Old
 
 
 def match_axes(fig, ax, gg):
@@ -46,42 +232,6 @@ def convert_to_freq_string(date_str: str) -> str:
         period = period[:-1]
     period = DATE_CONVERSION[period]
     return f"{quantity}{period}"
-
-
-def add_count_annotations(gg, data, num_levels, flip_axis):
-    """"""
-    # Determine annotation placements based on axis flip
-    # TODO: probably need to handle location placement better
-    value_counts = data["Count"]
-    nudge = value_counts.max() / 100
-    mid = value_counts.max() / 4 * 3
-    if flip_axis:
-        va = ["center"] * len(value_counts)
-        ha = ["right" if x > mid else "left" for x in value_counts]
-        nudge_y = [-nudge if x > mid else nudge for x in value_counts]
-    else:
-        va = ["top" if x > mid else "bottom" for x in value_counts]
-        ha = ["center"] * len(value_counts)
-        nudge_y = [-nudge if x > mid else nudge for x in value_counts]
-
-    # Determine annotation size
-    # TODO: probably need better automatic sizing determination
-    if num_levels > 10:
-        size = 8
-    else:
-        size = 11
-
-    # add count/percentage annotations
-    data["label"] = [
-        f"{x} ({100 * x / data['Count'].sum():.1f}%)" for x in data["Count"]
-    ]
-    gg += p9.geom_text(
-        p9.aes(label="label", group=1, ha=ha, va=va),
-        nudge_y=nudge_y,
-        color="black",
-        size=size,
-    )
-    return gg
 
 
 def preprocess_transformations(
@@ -179,41 +329,6 @@ def freedman_diaconis_bins(a, transform="identity"):
     return min(np.int(bins), 100)
 
 
-def add_percent_axis(ax: plt.Axes, data_size, flip_axis: bool = False) -> plt.Axes:
-    """
-    Adds a twin axis with percentages to a count plot.
-
-    Args:
-        ax: Plot axes figure to add percentage axis to
-        data_size: Total count of ex
-    """
-    if flip_axis:
-        ax_perc = ax.twiny()
-        ax_perc.set_xticks(100 * ax.get_xticks() / data_size)
-        ax_perc.set_xlim(
-            (
-                100.0 * (float(ax.get_xlim()[0]) / data_size),
-                100.0 * (float(ax.get_xlim()[1]) / data_size),
-            )
-        )
-        ax_perc.xaxis.set_major_formatter(mtick.PercentFormatter())
-        ax_perc.xaxis.set_tick_params(labelsize=10)
-    else:
-        ax_perc = ax.twinx()
-        ax_perc.set_yticks(100 * ax.get_yticks() / data_size)
-        ax_perc.set_ylim(
-            (
-                100.0 * (float(ax.get_ylim()[0]) / data_size),
-                100.0 * (float(ax.get_ylim()[1]) / data_size),
-            )
-        )
-        ax_perc.yaxis.set_major_formatter(mtick.PercentFormatter())
-        ax_perc.yaxis.set_tick_params(labelsize=10)
-    ax_perc.grid(False)
-
-    return ax_perc
-
-
 def _rotate_labels(gg, rotate=True):
     if rotate:
         gg += theme(axis_text_x=element_text(rotation=90))
@@ -288,73 +403,6 @@ def coerce_column_type(col_data, col_type):
         return col_data.astype("string")
     else:
         return col_data
-
-
-def order_levels(
-    data: pd.DataFrame,
-    column1: str,
-    column2: str = None,
-    level_order: str = "auto",
-    max_levels: int = 20,
-) -> List[str]:
-    """
-    Orders the levels of a discrete data column and condenses excess levels into Other category.
-
-    Args:
-        data: pandas DataFrame with data columns
-        column1: A string matching a column whose levels we want to order
-        column2: A string matching a second optional column whose values we can use to order column1
-        level_order: Order in which to sort the levels.
-         - 'auto' sorts ordinal variables by provided ordering, nominal variables by
-            descending frequency, and numeric variables in sorted order.
-         - 'descending' sorts in descending frequency.
-         - 'ascending' sorts in ascending frequency.
-         - 'sorted' sorts according to sorted order of the levels themselves.
-         - 'random' produces a random order. Useful if there are too many levels for one plot.
-        max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
-         max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
-
-    Returns:
-        Pandas series of column1 that has been converted into a Categorical type with the new level ordering
-    """
-
-    # determine order to plot levels
-    if column2:
-        value_counts = data.groupby(column1)[column2].median()
-    else:
-        value_counts = data[column1].value_counts()
-
-    if level_order == "auto":
-        if data[column1].dtype.name == "category" and data[column1].cat.ordered:
-            order = list(data[column1].cat.categories)
-        elif is_numeric_dtype(data[column1]):
-            order = sorted(list(value_counts.index))
-        else:
-            order = list(value_counts.sort_values(ascending=False).index)
-    elif level_order == "ascending":
-        order = list(value_counts.sort_values(ascending=True).index)
-    elif level_order == "descending":
-        order = list(value_counts.sort_values(ascending=False).index)
-    elif level_order == "sorted":
-        order = sorted(list(value_counts.index))
-    elif level_order == "random":
-        order = list(value_counts.sample(frac=1).index)
-    else:
-        raise ValueError(f"Unknown level order specification: {level_order}")
-
-    # restrict to max_levels levels (condense rest into Other)
-    num_levels = len(data[column1].unique())
-    if num_levels > max_levels:
-        other_levels = order[max_levels - 1 :]
-        order = order[: max_levels - 1] + ["Other"]
-        if data[column1].dtype.name == "category":
-            data[column1].cat.add_categories(["Other"], inplace=True)
-        data[column1][data[column1].isin(other_levels)] = "Other"
-
-    # convert to ordered categorical variable
-    data[column1] = pd.Categorical(data[column1], categories=order, ordered=True)
-
-    return data[column1]
 
 
 def fmt_counts(counts, percentages):

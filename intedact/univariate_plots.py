@@ -12,7 +12,7 @@ from .utils import (
     add_percent_axis,
     convert_to_freq_string,
 )
-from .utils import add_count_annotations, preprocess_transformations, transform_axis
+from .utils import add_barplot_annotations, preprocess_transformations, transform_axis
 from .config import FLIP_LEVEL_COUNT, BAR_COLOR, THEME_DEFAULT
 from .bivariate_plots import time_series_plot
 import matplotlib.dates as mdates
@@ -108,23 +108,24 @@ def countplot(
     ax: Optional[plt.Axes] = None,
     order: Union[str, List] = "auto",
     max_levels: int = 30,
+    flip_axis: Optional[bool] = None,
+    label_rotation: Optional[int] = None,
+    percent_axis: bool = True,
     label_counts: bool = True,
-    annotation_fontsize: int = 14,
-    flip_axis: bool = None,
+    label_fontsize: Optional[float] = None,
     include_missing: bool = False,
-    label_rotation: int = 0,
     **kwargs,
 ) -> plt.Axes:
     """
     Plots a bar plot of counts/percentages across the levels of a discrete data column in a pandas DataFrame.
 
-    Wraps seaborn's countplot adding annotations, percent twin axis, and a few other nice argument controls
+    Wraps seaborn's countplot adding annotations, twin axis for percents, and a few other nice argument controls
     useful for EDA.
 
     Args:
         data: pandas DataFrame with data to be plotted
         column: column in the dataframe to plot
-        ax: matplotlib axes generated from blank ggplot to plot onto. If specified, must also specify fig
+        ax: matplotlib axes to plot to. Defaults to current axis.
         order: Order in which to sort the levels of the variable for plotting:
 
          - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
@@ -135,104 +136,73 @@ def countplot(
          Or you can pass a list of level names in directly for your own custom order.
         max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
          max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
+        percent_axis: Whether to add a twin y axis with percentages
         label_counts: Whether to add exact counts and percentages as text annotations on each bar in the plot.
+        label_fontsize: Size of the annotations text. Default tries to infer a reasonable size based on the figure
+         size and number of levels.
         flip_axis: Whether to flip the plot so labels are on y axis. Useful for long level names or lots of levels.
+         Default tries to infer based on number of levels and label_rotation value.
         label_rotation: Amount to rotate level labels. Useful for long level names or lots of levels.
+        include_missing: Whether to include missing values as an additional level in the data to be plotted
+        kwargs: Additional keyword arguments passed through to [sns.barplot](https://seaborn.pydata.org/generated/seaborn.barplot.html)
 
     Returns:
-        The axes figure plot was drawn to
+        The axes plot was drawn to
 
-    Example:
+    Examples:
         .. plot::
 
             import seaborn as sns
             import intedact
             data = sns.load_dataset('tips')
             intedact.countplot(data, 'day')
-
     """
     data = data.copy()
 
+    # Optionally add missing values as an additional level
     if include_missing:
         if data[column].dtype.name == "category":
             data[column].cat.add_categories(["NA"], inplace=True)
         data[column] = data[column].fillna("NA")
 
-    # TODO: Get more intelligent flip axis determination
-    num_levels = data[column].nunique()
+    # Handle axis flip default
+    # TODO: Make more intelligent
+    num_plot_levels = min(max_levels, data[column].nunique())
     if flip_axis is None:
-        flip_axis = num_levels >= FLIP_LEVEL_COUNT and label_rotation == 0
+        flip_axis = num_plot_levels >= FLIP_LEVEL_COUNT and label_rotation == 0
 
-    # reorder column levels
+    # Reorder column levels
     if type(order) == str:
         data[column] = order_levels(
-            data, column, None, level_order=order, max_levels=max_levels
+            data, column, None, order_method=order, max_levels=max_levels
         )
         order = list(data[column].cat.categories)
 
-    # make the barplot
+    # Make the countplot
+    x = "Count" if flip_axis else column
+    y = column if flip_axis else "Count"
     count_data = (
         data.groupby(column).size().reset_index().rename({0: "Count"}, axis="columns")
     )
-    if flip_axis:
-        x = "Count"
-        y = column
-    else:
-        x = column
-        y = "Count"
     ax = sns.barplot(x=x, y=y, data=count_data, ax=ax, order=order, **kwargs)
 
-    # add annotations
+    # Add annotations
     if label_counts:
-        ax = add_annotations(ax, count_data, flip_axis, annotation_fontsize)
+        ax = add_barplot_annotations(
+            ax,
+            count_data,
+            "Count",
+            add_percent=True,
+            flip_axis=flip_axis,
+            label_fontsize=label_fontsize,
+        )
 
-    # add a twin axis for percentage
-    add_percent_axis(ax, count_data["Count"].sum(), flip_axis=flip_axis)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=label_rotation)
 
-    return ax
+    # Add a twin axis for percentage
+    if percent_axis:
+        add_percent_axis(ax, count_data["Count"].sum(), flip_axis=flip_axis)
 
-
-def add_annotations(ax, count_data, flip_axis, annotation_fontsize):
-
-    for i, count in enumerate(count_data.Count):
-        if flip_axis:
-            if count > 0.8 * ax.get_xlim()[1]:
-                ha = "right"
-                color = "white"
-                mod = -0.005
-            else:
-                ha = "left"
-                color = "black"
-                mod = 0.005
-            # Get unit scale
-            ax.text(
-                count + mod * ax.get_xlim()[1],
-                i,
-                f"{count} ({100 * count / count_data.Count.sum():.2f})%",
-                fontsize=annotation_fontsize,
-                color=color,
-                va="center",
-                ha=ha,
-            )
-        else:
-            if count > 0.8 * ax.get_ylim()[1]:
-                va = "top"
-                color = "white"
-                mod = -0.01
-            else:
-                va = "bottom"
-                color = "black"
-                mod = 0.01
-            # Get unit scale
-            ax.text(
-                i,
-                count + mod * ax.get_ylim()[1],
-                f"{count}\n{100 * count / count_data.Count.sum():.2f}%",
-                fontsize=annotation_fontsize,
-                color=color,
-                ha="center",
-                va=va,
-            )
     return ax
 
 
