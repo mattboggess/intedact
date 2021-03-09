@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from typing import Union, List
+from typing import Union, List, Optional
 import seaborn as sns
 import plotnine as p9
 from typing import Tuple
@@ -16,6 +16,8 @@ from .utils import add_count_annotations, preprocess_transformations, transform_
 from .config import FLIP_LEVEL_COUNT, BAR_COLOR, THEME_DEFAULT
 from .bivariate_plots import time_series_plot
 import matplotlib.dates as mdates
+
+sns.set_style("whitegrid")
 
 
 def boxplot(
@@ -100,161 +102,45 @@ def boxplot(
     return fig, ax, gg
 
 
-def countplot_old(
-    data: pd.DataFrame,
-    column: str,
-    fig: plt.Figure = None,
-    ax: plt.Axes = None,
-    fig_width: int = None,
-    fig_height: int = None,
-    level_order: str = "auto",
-    max_levels: int = 30,
-    label_counts: bool = True,
-    flip_axis: bool = None,
-    label_rotation: int = 0,
-    bar_color: str = None,
-    theme: str = None,
-) -> Tuple[plt.Figure, plt.Axes, p9.ggplot]:
-    """
-    Plots a bar plot of counts/percentages across the levels of a discrete data column in a pandas DataFrame.
-
-    Args:
-        data: pandas DataFrame with data to be plotted
-        column: column in the dataframe to plot
-        fig: matplotlib Figure generated from blank ggplot to plot onto. If specified, must also specify ax
-        ax: matplotlib axes generated from blank ggplot to plot onto. If specified, must also specify fig
-        fig_width: figure width in inches
-        fig_height: figure height in inches
-        level_order: Order in which to sort the levels of the variable for plotting:
-
-         - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
-         - **'descending'**: sorts in descending frequency.
-         - **'ascending'**: sorts in ascending frequency.
-         - **'sorted'**: sorts according to sorted order of the levels themselves.
-         - **'random'**: produces a random order. Useful if there are too many levels for one plot.
-        max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
-         max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
-        label_counts: Whether to add exact counts and percentages as text annotations on each bar in the plot.
-        flip_axis: Whether to flip the plot so labels are on y axis. Useful for long level names or lots of levels.
-        label_rotation: Amount to rotate level labels. Useful for long level names or lots of levels.
-        bar_color: Color to use for bar fills
-        theme: plotnine theme to use for the plot, str must match available theme listed `here <https://plotnine.readthedocs.io/en/stable/api.html#themes>`_
-
-    Returns:
-        Tuple containing matplotlib figure and axes along with the plotnine ggplot object
-
-    Example:
-        .. plot::
-
-            import seaborn as sns
-            import intedact
-            data = sns.load_dataset('tips')
-            intedact.countplot(data, 'day')
-
-    """
-    # TODO: Get more intelligent flip axis determination
-    num_levels = data[column].nunique()
-    if flip_axis is None:
-        flip_axis = num_levels >= FLIP_LEVEL_COUNT and label_rotation == 0
-
-    # reorder column levels
-    data[column] = order_levels(
-        data,
-        column,
-        None,
-        level_order=level_order,
-        max_levels=max_levels,
-        flip_axis=flip_axis,
-    )
-
-    # make the barplot
-    count_data = (
-        data.groupby(column).size().reset_index().rename({0: "Count"}, axis="columns")
-    )
-    if bar_color is not None:
-        args = {"fill": bar_color, "color": "black"}
-    else:
-        args = {"fill": BAR_COLOR, "color": "black"}
-    gg = p9.ggplot(count_data, p9.aes(x=column, y="Count")) + p9.geom_col(**args)
-
-    if theme is not None:
-        gg += eval(f"p9.{theme}()")
-    else:
-        gg += eval(f"p9.{THEME_DEFAULT}()")
-
-    # rotate labels
-    gg += p9.theme(axis_text_x=p9.element_text(rotation=label_rotation, ha="center"))
-
-    # flip axis
-    if flip_axis:
-        gg += p9.coord_flip()
-        xlabel = "Count"
-        ylabel = column
-    else:
-        xlabel = column
-        ylabel = "Count"
-
-    # add annotations
-    if label_counts:
-        gg = add_count_annotations(gg, count_data, num_levels, flip_axis)
-
-    if fig is None and ax is None:
-        gg.draw()
-        fig = plt.gcf()
-        ax = fig.axes[0]
-    elif fig is not None and ax is not None:
-        _ = gg._draw_using_figure(fig, [ax])
-        ax.set_ylabel(ylabel)
-        ax.set_xlabel(xlabel)
-
-    # add a twin axis for percentage
-    add_percent_axis(ax, len(data[column]), flip_axis=flip_axis)
-
-    # set the figure size
-    if fig_width is not None and fig_height is not None:
-        fig.set_size_inches(fig_width, fig_height)
-
-    return fig, ax, gg
-
-
 def countplot(
     data: pd.DataFrame,
     column: str,
+    ax: Optional[plt.Axes] = None,
     order: Union[str, List] = "auto",
     max_levels: int = 30,
     label_counts: bool = True,
+    annotation_fontsize: int = 14,
     flip_axis: bool = None,
+    include_missing: bool = False,
     label_rotation: int = 0,
-    ax: plt.Axes = None,
     **kwargs,
-) -> Tuple[plt.Figure, plt.Axes, p9.ggplot]:
+) -> plt.Axes:
     """
     Plots a bar plot of counts/percentages across the levels of a discrete data column in a pandas DataFrame.
+
+    Wraps seaborn's countplot adding annotations, percent twin axis, and a few other nice argument controls
+    useful for EDA.
 
     Args:
         data: pandas DataFrame with data to be plotted
         column: column in the dataframe to plot
-        fig: matplotlib Figure generated from blank ggplot to plot onto. If specified, must also specify ax
         ax: matplotlib axes generated from blank ggplot to plot onto. If specified, must also specify fig
-        fig_width: figure width in inches
-        fig_height: figure height in inches
-        level_order: Order in which to sort the levels of the variable for plotting:
+        order: Order in which to sort the levels of the variable for plotting:
 
          - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
          - **'descending'**: sorts in descending frequency.
          - **'ascending'**: sorts in ascending frequency.
          - **'sorted'**: sorts according to sorted order of the levels themselves.
          - **'random'**: produces a random order. Useful if there are too many levels for one plot.
+         Or you can pass a list of level names in directly for your own custom order.
         max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
          max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
         label_counts: Whether to add exact counts and percentages as text annotations on each bar in the plot.
         flip_axis: Whether to flip the plot so labels are on y axis. Useful for long level names or lots of levels.
         label_rotation: Amount to rotate level labels. Useful for long level names or lots of levels.
-        bar_color: Color to use for bar fills
-        theme: plotnine theme to use for the plot, str must match available theme listed `here <https://plotnine.readthedocs.io/en/stable/api.html#themes>`_
 
     Returns:
-        Tuple containing matplotlib figure and axes along with the plotnine ggplot object
+        The axes figure plot was drawn to
 
     Example:
         .. plot::
@@ -265,6 +151,13 @@ def countplot(
             intedact.countplot(data, 'day')
 
     """
+    data = data.copy()
+
+    if include_missing:
+        if data[column].dtype.name == "category":
+            data[column].cat.add_categories(["NA"], inplace=True)
+        data[column] = data[column].fillna("NA")
+
     # TODO: Get more intelligent flip axis determination
     num_levels = data[column].nunique()
     if flip_axis is None:
@@ -272,63 +165,75 @@ def countplot(
 
     # reorder column levels
     if type(order) == str:
-        order = order_levels(
-            data,
-            column,
-            None,
-            level_order=order,
-            max_levels=max_levels,
-            flip_axis=flip_axis,
+        data[column] = order_levels(
+            data, column, None, level_order=order, max_levels=max_levels
         )
+        order = list(data[column].cat.categories)
 
     # make the barplot
     count_data = (
         data.groupby(column).size().reset_index().rename({0: "Count"}, axis="columns")
     )
-    if bar_color is not None:
-        args = {"fill": bar_color, "color": "black"}
-    else:
-        args = {"fill": BAR_COLOR, "color": "black"}
-    gg = p9.ggplot(count_data, p9.aes(x=column, y="Count")) + p9.geom_col(**args)
-
-    if theme is not None:
-        gg += eval(f"p9.{theme}()")
-    else:
-        gg += eval(f"p9.{THEME_DEFAULT}()")
-
-    # rotate labels
-    gg += p9.theme(axis_text_x=p9.element_text(rotation=label_rotation, ha="center"))
-
-    # flip axis
     if flip_axis:
-        gg += p9.coord_flip()
-        xlabel = "Count"
-        ylabel = column
+        x = "Count"
+        y = column
     else:
-        xlabel = column
-        ylabel = "Count"
+        x = column
+        y = "Count"
+    ax = sns.barplot(x=x, y=y, data=count_data, ax=ax, order=order, **kwargs)
 
     # add annotations
     if label_counts:
-        gg = add_count_annotations(gg, count_data, num_levels, flip_axis)
-
-    if fig is None and ax is None:
-        gg.draw()
-        fig = plt.gcf()
-        ax = fig.axes[0]
-    elif fig is not None and ax is not None:
-        _ = gg._draw_using_figure(fig, [ax])
-        ax.set_ylabel(ylabel)
-        ax.set_xlabel(xlabel)
+        ax = add_annotations(ax, count_data, flip_axis, annotation_fontsize)
 
     # add a twin axis for percentage
-    add_percent_axis(ax, len(data[column]), flip_axis=flip_axis)
+    add_percent_axis(ax, count_data["Count"].sum(), flip_axis=flip_axis)
 
-    # set the figure size
-    if fig_width is not None and fig_height is not None:
-        fig.set_size_inches(fig_width, fig_height)
+    return ax
 
-    return fig, ax, gg
+
+def add_annotations(ax, count_data, flip_axis, annotation_fontsize):
+
+    for i, count in enumerate(count_data.Count):
+        if flip_axis:
+            if count > 0.8 * ax.get_xlim()[1]:
+                ha = "right"
+                color = "white"
+                mod = -0.005
+            else:
+                ha = "left"
+                color = "black"
+                mod = 0.005
+            # Get unit scale
+            ax.text(
+                count + mod * ax.get_xlim()[1],
+                i,
+                f"{count} ({100 * count / count_data.Count.sum():.2f})%",
+                fontsize=annotation_fontsize,
+                color=color,
+                va="center",
+                ha=ha,
+            )
+        else:
+            if count > 0.8 * ax.get_ylim()[1]:
+                va = "top"
+                color = "white"
+                mod = -0.01
+            else:
+                va = "bottom"
+                color = "black"
+                mod = 0.01
+            # Get unit scale
+            ax.text(
+                i,
+                count + mod * ax.get_ylim()[1],
+                f"{count}\n{100 * count / count_data.Count.sum():.2f}%",
+                fontsize=annotation_fontsize,
+                color=color,
+                ha="center",
+                va=va,
+            )
+    return ax
 
 
 def continuous_summary_stats(
