@@ -7,59 +7,52 @@ from typing import Tuple
 from .utils import (
     freedman_diaconis_bins,
     trim_quantiles,
-    transform_axis,
     order_levels,
     add_percent_axis,
+    transform_axis,
+    preprocess_transform,
     convert_to_freq_string,
+    add_barplot_annotations,
 )
-from .utils import add_barplot_annotations, preprocess_transformations, transform_axis
-from .config import FLIP_LEVEL_COUNT, BAR_COLOR, THEME_DEFAULT
+from .config import FLIP_LEVEL_COUNT
 from .bivariate_plots import time_series_plot
-import matplotlib.dates as mdates
-
-sns.set_style("whitegrid")
 
 
 def boxplot(
     data: pd.DataFrame,
     column: str,
-    transform: str = "identity",
+    ax: Optional[plt.Axes] = None,
     lower_quantile: int = 0,
     upper_quantile: int = 1,
+    transform: str = "identity",
+    clip: float = 0,
     flip_axis: bool = True,
-    bar_color: str = None,
-    theme: str = None,
-    fig_width: int = None,
-    fig_height: int = None,
-    fig: plt.Figure = None,
-    ax: plt.Axes = None,
-) -> plt.Figure:
+    **kwargs,
+) -> plt.Axes:
     """
-    Plots a boxplot of a data column in a pandas DataFrame.
+    Plots a boxplot of a numerical data column in a pandas DataFrame.
+
+    Wraps seaborn's boxplot adding additional data handling arguments such as log transformations and trimming
+    quantiles to ignore outliers.
 
     Args:
         data: pandas DataFrame containing data to be plotted
         column: name of column to plot histogram of
-        fig: matplotlib Figure generated from blank ggplot to plot onto. If specified, must also specify ax
         ax: matplotlib axes generated from blank ggplot to plot onto. If specified, must also specify fig
-        fig_width: figure width in inches
-        fig_height: figure height in inches
+        lower_quantile: Lower quantile of data to remove before plotting for ignoring outliers
+        upper_quantile: Upper quantile of data to remove before plotting for ignoring outliers
         transform: Transformation to apply to the data for plotting:
 
          - **'identity'**: no transformation
-         - **'log'**: apply a logarithmic transformation with small constant added in case of zero values
-         - **'log_exclude0'**: apply a logarithmic transformation with zero values removed
-         - **'sqrt'**: apply a square root transformation
-        lower_quantile: Lower quantile of data to remove before plotting for ignoring outliers
-        upper_quantile: Upper quantile of data to remove before plotting for ignoring outliers
+         - **'log'**: apply a logarithmic transformation to the data
+        clip: Value to clip zero values to for log transformation. If 0 (default), zero values are simply removed.
         flip_axis: Whether to flip the plot so boxplot is horizontal.
-        bar_color: Color to use for histogram bars
-        theme: plotnine theme to use for the plot, str must match available theme listed `here <https://plotnine.readthedocs.io/en/stable/api.html#themes>`_
+        kwargs: Additional keyword arguments passed through to [sns.boxplot](https://seaborn.pydata.org/generated/seaborn.boxplot.html)
 
     Returns:
-        Tuple containing matplotlib figure and axes along with the plotnine ggplot object
+        The axes plot was drawn to
 
-    Example:
+    Examples:
         .. plot::
 
             import seaborn as sns
@@ -67,39 +60,26 @@ def boxplot(
             data = sns.load_dataset('tips')
             intedact.boxplot(data, 'total_bill')
     """
+    data = data.copy()
+
+    # Remove upper and lower quantiles
     data = trim_quantiles(
         data, column, lower_quantile=lower_quantile, upper_quantile=upper_quantile
     )
-    data = preprocess_transformations(data, column, transform=transform)
 
-    # plot boxplot
-    if bar_color is not None:
-        args = {"fill": bar_color, "color": "black"}
-    else:
-        args = {"color": "black", "fill": BAR_COLOR}
-    gg = p9.ggplot(data, p9.aes(x=[""], y=column)) + p9.geom_boxplot(**args)
+    # Clip/remove zeros for log transformation
+    data = preprocess_transform(data, column, transform, clip=clip)
 
+    # Plot boxplot
     if flip_axis:
-        gg += p9.coord_flip()
-
-    # handle axes transforms
-    gg, label = transform_axis(gg, column, transform, xaxis=False)
-
-    if theme is not None:
-        gg += eval(f"p9.{theme}()")
+        ax = sns.boxplot(x=column, data=data, ax=ax, **kwargs)
     else:
-        gg += eval(f"p9.{THEME_DEFAULT}()")
+        ax = sns.boxplot(y=column, data=data, ax=ax, **kwargs)
 
-    if fig and ax is not None:
-        _ = gg._draw_using_figure(fig, [ax])
-    else:
-        fig = gg.draw()
+    # Log transform axis
+    ax = transform_axis(ax, column, transform=transform, xaxis=flip_axis)
 
-    # set the figure size
-    if fig_width is not None and fig_height is not None:
-        fig.set_size_inches(fig_width, fig_height)
-
-    return fig, ax, gg
+    return ax
 
 
 def countplot(
@@ -197,6 +177,7 @@ def countplot(
             label_fontsize=label_fontsize,
         )
 
+    # Add label rotation
     ax.set_xticklabels(ax.get_xticklabels(), rotation=label_rotation)
 
     # Add a twin axis for percentage
@@ -251,44 +232,36 @@ def continuous_summary_stats(
 def histogram(
     data: pd.DataFrame,
     column: str,
-    fig: plt.Figure = None,
     ax: plt.Axes = None,
-    fig_width: int = None,
-    fig_height: int = None,
-    hist_bins: int = 0,
+    bins: Optional[int] = None,
     transform: str = "identity",
+    clip: float = 0,
     lower_quantile: int = 0,
     upper_quantile: int = 1,
     kde: bool = False,
-    bar_color: str = None,
-    theme: str = None,
-) -> Tuple[plt.Figure, plt.Axes, p9.ggplot]:
+    **kwargs,
+) -> plt.Axes:
     """
     Plots a histogram of a data column in a pandas DataFrame.
 
     Args:
         data: pandas DataFrame containing data to be plotted
         column: name of column to plot histogram of
-        fig: matplotlib Figure generated from blank ggplot to plot onto. If specified, must also specify ax
-        ax: matplotlib axes generated from blank ggplot to plot onto. If specified, must also specify fig
-        fig_width: figure width in inches
-        fig_height: figure height in inches
-        hist_bins: Number of bins to use for the time delta histogram. Default is 0 which translates to
+        ax: matplotlib axes to draw plot onto
+        bins: Number of bins to use for the time delta histogram. Default is 0 which translates to
          automatically determined bins.
         transform: Transformation to apply to the data for plotting:
 
          - **'identity'**: no transformation
-         - **'log'**: apply a logarithmic transformation with small constant added in case of zero values
-         - **'log_exclude0'**: apply a logarithmic transformation with zero values removed
-         - **'sqrt'**: apply a square root transformation
+         - **'log'**: apply a logarithmic transformation to the data
+        clip: Value to clip zero values to for log transformation. If 0 (default), zero values are simply removed.
         lower_quantile: Lower quantile of data to remove before plotting for ignoring outliers
         upper_quantile: Upper quantile of data to remove before plotting for ignoring outliers
         kde: Whether to overlay a KDE plot on the histogram
-        bar_color: Color to use for histogram bars
-        theme: plotnine theme to use for the plot, str must match available theme listed `here <https://plotnine.readthedocs.io/en/stable/api.html#themes>`_
+        kwargs: Additional keyword arguments passed through to [sns.histplot](https://seaborn.pydata.org/generated/seaborn.histplot.html)
 
     Returns:
-        Tuple containing matplotlib figure and axes along with the plotnine ggplot object
+        Matplotlib axes object with histogram drawn
 
     Example:
         .. plot::
@@ -298,55 +271,30 @@ def histogram(
             data = sns.load_dataset('tips')
             intedact.histogram(data, 'total_bill')
     """
+    data = data.copy()
 
-    # calculate bin number from data if not provided
-    if hist_bins == 0:
-        hist_bins = freedman_diaconis_bins(data[column], transform)
-
+    # Remove upper and lower quantiles
     data = trim_quantiles(
         data, column, lower_quantile=lower_quantile, upper_quantile=upper_quantile
     )
-    data = preprocess_transformations(data, column, transform=transform)
 
-    # plot histogram
-    if bar_color is not None:
-        args = {"fill": bar_color, "color": "black"}
-    else:
-        args = {"fill": BAR_COLOR, "color": "black"}
-    if kde:
-        ylabel = "Density"
-        gg = (
-            p9.ggplot(data, p9.aes(x=column, y="..density.."))
-            + p9.geom_histogram(bins=hist_bins, **args)
-            + p9.geom_density()
-        )
-    else:
-        ylabel = "Count"
-        gg = p9.ggplot(data, p9.aes(x=column)) + p9.geom_histogram(
-            bins=hist_bins, **args
-        )
+    # Clip/remove zeros for log transformation
+    data = preprocess_transform(data, column, transform, clip=clip)
 
-    # handle axes transforms
-    gg, xlabel = transform_axis(gg, column, transform, xaxis=True)
+    # Plot histogram
+    if bins is None:
+        bins = freedman_diaconis_bins(data[column], log=transform == "log")
+    ax = sns.histplot(
+        x=column,
+        data=data,
+        ax=ax,
+        kde=kde,
+        log_scale=transform == "log",
+        bins=bins,
+        **kwargs,
+    )
 
-    if theme is not None:
-        gg += eval(f"p9.{theme}()")
-    else:
-        gg += eval(f"p9.{THEME_DEFAULT}()")
-
-    if fig and ax is not None:
-        _ = gg._draw_using_figure(fig, [ax])
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
-    else:
-        gg += p9.labs(x=xlabel, y=ylabel)
-        fig = gg.draw()
-
-    # set the figure size
-    if fig_width is not None and fig_height is not None:
-        fig.set_size_inches(fig_width, fig_height)
-
-    return fig, ax, gg
+    return ax
 
 
 def time_series_countplot(

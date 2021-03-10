@@ -121,7 +121,68 @@ def add_percent_axis(ax: plt.Axes, data_size, flip_axis: bool = False) -> plt.Ax
     return ax_perc
 
 
+def transform_axis(
+    ax: plt.Axes,
+    column: str,
+    transform: str = "identity",
+    xaxis: bool = False,
+) -> plt.Axes:
+    """
+    Modifies an axis object to use a log transformation
+
+    TODO: Better format for axis tick labels
+
+    Args:
+        ax: The axes object to modify scale for
+        column: The dataframe column that is being transformed
+        transform: Transformation to apply to the data for plotting:
+
+         - **'identity'**: no transformation
+         - **'log'**: apply a logarithmic transformation to the data
+        clip: Value to clip zero values to for log transformation. If 0 (default), zero values are simply removed.
+        xaxis: Whether to transform the x or the y axis
+    Returns:
+        Tuple containing the modified ggplot object with updated scale and modified axis label denoting
+        the scale change.
+    """
+    if transform == "log":
+        label = f"{column} (log10 scale)"
+        if xaxis:
+            ax.set_xlabel(label)
+            ax.set_xscale("log", base=10)
+        else:
+            ax.set_ylabel(label)
+            ax.set_yscale("log", base=10)
+    return ax
+
+
 # Data Helpers
+
+
+def preprocess_transform(
+    data: pd.DataFrame,
+    column: str,
+    transform: str = "identity",
+    clip: float = 0,
+) -> pd.DataFrame:
+    """
+    Preprocesses a pandas dataframe column for applying a data transformation
+
+    Args:
+        data: Data to be transformed
+        column: The dataframe column that is being transformed
+        transform: Transformation to apply to the data for plotting:
+
+         - **'identity'**: no transformation
+         - **'log'**: apply a logarithmic transformation to the data
+        clip: Value to clip zero values to for log transformation. If 0 (default), zero values are simply removed.
+    Returns:
+        pandas DataFrame with preprocessed column data
+    """
+    if transform == "log":
+        data.loc[data[column] < clip, column] = clip
+        data = data[data[column] > 0]
+    return data
 
 
 def order_levels(
@@ -192,6 +253,52 @@ def order_levels(
     return data[column1]
 
 
+def preprocess_transformations(
+    data: pd.DataFrame, column: str, transform: str = "identity"
+) -> pd.DataFrame:
+    """
+    Preprocesses a data column to be compatible with the provided transformation.
+
+    Args:
+        data: pandas DataFrame holding the data
+        column: The dataframe column that is being transformed
+        transform: Transformation to apply to the column:
+         - 'identity': no transformation
+         - 'log': apply a logarithmic transformation with small constant added in case of zero values
+         - 'log_exclude0': apply a logarithmic transformation with zero values removed
+         - 'sqrt': apply a square root transformation
+    Returns:
+        Modified dataframe with the column data updated according to the transform specified
+    """
+    if transform == "log":
+        data[column] += 1e-6
+    elif transform == "log_exclude0":
+        data = data[data[column] > 0]
+    return data
+
+
+def freedman_diaconis_bins(a, log=None):
+    """
+    Calculate number of hist bins using Freedman-Diaconis rule.
+    https://github.com/has2k1/plotnine/blob/bcb93d6cc4ff266565c32a095e40b0127d3d3b7c/plotnine/stats/binning.py
+    Ceiling at 100 for default efficiency purposes.
+    """
+    # From http://stats.stackexchange.com/questions/798/
+    a = np.asarray(a)
+    if log is not None:
+        a = np.log(a) / np.log(log)
+
+    h = 2 * iqr(a) / (len(a) ** (1 / 3))
+
+    # fall back to sqrt(a) bins if iqr is 0
+    if h == 0:
+        bins = np.ceil(np.sqrt(a.size))
+    else:
+        bins = np.ceil((np.nanmax(a) - np.nanmin(a)) / h)
+
+    return min(np.int(bins), 100)
+
+
 # Old
 
 
@@ -234,67 +341,6 @@ def convert_to_freq_string(date_str: str) -> str:
     return f"{quantity}{period}"
 
 
-def preprocess_transformations(
-    data: pd.DataFrame, column: str, transform: str = "identity"
-) -> pd.DataFrame:
-    """
-    Preprocesses a data column to be compatible with the provided transformation.
-
-    Args:
-        data: pandas DataFrame holding the data
-        column: The dataframe column that is being transformed
-        transform: Transformation to apply to the column:
-         - 'identity': no transformation
-         - 'log': apply a logarithmic transformation with small constant added in case of zero values
-         - 'log_exclude0': apply a logarithmic transformation with zero values removed
-         - 'sqrt': apply a square root transformation
-    Returns:
-        Modified dataframe with the column data updated according to the transform specified
-    """
-    if transform == "log":
-        data[column] += 1e-6
-    elif transform == "log_exclude0":
-        data = data[data[column] > 0]
-    return data
-
-
-def transform_axis(
-    gg: p9.ggplot, column: str, transform: str = "identity", xaxis: bool = False
-) -> (p9.ggplot, str):
-    """
-    Modifies a plotnine axis scale according to a specified data transformation.
-
-    Args:
-        gg: The plotnine ggplot object to modify the axis scale for
-        column: The dataframe column that is being transformed
-        transform: Transformation to apply to the column:
-         - 'identity': no transformation
-         - 'log': apply a logarithmic transformation with small constant added in case of zero values
-         - 'log_exclude0': apply a logarithmic transformation with zero values removed
-         - 'sqrt': apply a square root transformation
-        xaxis: Whether to transform the x or the y axis
-    Returns:
-        Tuple containing the modified ggplot object with updated scale and modified axis label denoting
-        the scale change.
-    """
-    if transform in ["log", "log_exclude0"]:
-        if xaxis:
-            gg += p9.scale_x_log10()
-        else:
-            gg += p9.scale_y_log10()
-        label = f"{column} (log10 scale)"
-    elif transform == "sqrt":
-        if xaxis:
-            gg += p9.scale_x_sqrt()
-        else:
-            gg += p9.scale_y_sqrt()
-        label = f"{column} (square root scale)"
-    else:
-        label = column
-
-    return gg, label
-
-
 def iqr(a):
     """
     Calculate the IQR for an array of numbers.
@@ -304,29 +350,6 @@ def iqr(a):
     q1 = stats.scoreatpercentile(a, 25)
     q3 = stats.scoreatpercentile(a, 75)
     return q3 - q1
-
-
-def freedman_diaconis_bins(a, transform="identity"):
-    """
-    Calculate number of hist bins using Freedman-Diaconis rule.
-    https://github.com/has2k1/plotnine/blob/bcb93d6cc4ff266565c32a095e40b0127d3d3b7c/plotnine/stats/binning.py
-    """
-    # From http://stats.stackexchange.com/questions/798/
-    a = np.asarray(a)
-    if "log" in transform:
-        a = np.log10(a)
-    elif transform == "sqrt":
-        a = np.sqrt(a)
-
-    h = 2 * iqr(a) / (len(a) ** (1 / 3))
-
-    # fall back to sqrt(a) bins if iqr is 0
-    if h == 0:
-        bins = np.ceil(np.sqrt(a.size))
-    else:
-        bins = np.ceil((np.nanmax(a) - np.nanmin(a)) / h)
-
-    return min(np.int(bins), 100)
 
 
 def _rotate_labels(gg, rotate=True):
