@@ -5,7 +5,17 @@ import numpy as np
 import scipy.stats as stats
 from pandas.api.types import is_numeric_dtype, is_datetime64_any_dtype
 from typing import List, Optional
-import plotnine as p9
+import matplotlib.dates as mdates
+from dateutil.rrule import (
+    rrule,
+    YEARLY,
+    MONTHLY,
+    WEEKLY,
+    DAILY,
+    HOURLY,
+    MINUTELY,
+    SECONDLY,
+)
 import re
 
 
@@ -156,6 +166,112 @@ def transform_axis(
     return ax
 
 
+from plotnine.stats.smoothers import predictdf
+
+
+def add_trendline(
+    data: pd.DataFrame,
+    x: str,
+    y: str,
+    ax: plt.Axes,
+    method: str,
+    span: float = 0.75,
+    level: float = 0.95,
+) -> plt.Axes:
+    """
+    Adds a trendline to a line or scatter plot. This is a modified version of plotnine's
+    stat_smooth since plotnine can't interface with existing matplotlib axes.
+
+    plotnine is amazing and I wish I could have used it for this project!
+
+    Args:
+        data: pandas Dataframe to add trend line for
+        x: x axis variable column name
+        y: y axis variable column name
+        ax: matplotlib axis to add trend line to
+        method: smoothing method, see plotnine's [stat_smooth](https://plotnine.readthedocs.io/en/stable/generated/plotnine.stats.stat_smooth.html#plotnine.stats.stat_smooth) for options
+        span: span parameter for loess
+        level: confidence level to use for drawing confidence interval
+
+    Returns:
+        matplotlib axes object with trend line added
+    """
+
+    params = {
+        "geom": "smooth",
+        "position": "identity",
+        "na_rm": False,
+        "method": method,
+        "se": True,
+        "n": 80,
+        "formula": None,
+        "fullrange": False,
+        "level": level,
+        "span": span,
+        "method_args": {},
+    }
+
+    if params["method"] == "auto":
+        max_group = data[x].value_counts().max()
+        if max_group < 1000:
+            try:
+                from skmisc.loess import loess  # noqa: F401
+
+                params["method"] = "loess"
+            except ImportError:
+                params["method"] = "lowess"
+        else:
+            params["method"] = "glm"
+
+    if params["method"] == "mavg":
+        if "window" not in params["method_args"]:
+            window = len(data) // 10
+            params["method_args"]["window"] = window
+
+    if params["formula"]:
+        allowed = {"lm", "ols", "wls", "glm", "rlm", "gls"}
+        if params["method"] not in allowed:
+            raise ValueError(
+                "You can only use a formula with `method` is "
+                "one of {}".format(allowed)
+            )
+
+    # convert datetime to numeric values
+    if data[x].dtype.kind == "M":
+        data["x"] = (data[x] - data[x].min()).dt.total_seconds()
+    else:
+        data["x"] = data[x]
+    data["y"] = data[y]
+
+    data = data.sort_values("x")
+    n = data.shape[0]
+    x_unique = data["x"].unique()
+
+    # Not enough data to fit
+    if len(x_unique) < 2:
+        print("Need 2 or more points to smooth")
+        return pd.DataFrame()
+
+    if data["x"].dtype.kind == "i":
+        xseq = np.sort(x_unique)
+    else:
+        rangee = [data["x"].min(), data["x"].max()]
+        xseq = np.linspace(rangee[0], rangee[1], n)
+
+    df = predictdf(data, xseq, **params)
+
+    ax.plot(data[x], df["y"], color="black", linewidth=2)
+    ax.fill_between(
+        data[x],
+        df["ymin"],
+        df["ymax"],
+        alpha=0.2,
+        color="black",
+        edgecolor=None,
+    )
+    return ax
+
+
 # Data Helpers
 
 
@@ -277,7 +393,7 @@ def preprocess_transformations(
     return data
 
 
-def freedman_diaconis_bins(a, log=None):
+def freedman_diaconis_bins(a, log=False):
     """
     Calculate number of hist bins using Freedman-Diaconis rule.
     https://github.com/has2k1/plotnine/blob/bcb93d6cc4ff266565c32a095e40b0127d3d3b7c/plotnine/stats/binning.py
@@ -285,8 +401,8 @@ def freedman_diaconis_bins(a, log=None):
     """
     # From http://stats.stackexchange.com/questions/798/
     a = np.asarray(a)
-    if log is not None:
-        a = np.log(a) / np.log(log)
+    if log:
+        a = np.log(a)
 
     h = 2 * iqr(a) / (len(a) ** (1 / 3))
 
@@ -297,17 +413,6 @@ def freedman_diaconis_bins(a, log=None):
         bins = np.ceil((np.nanmax(a) - np.nanmin(a)) / h)
 
     return min(np.int(bins), 100)
-
-
-# Old
-
-
-def match_axes(fig, ax, gg):
-    upper = max(ax.get_xlim()[1], ax.get_ylim()[1])
-    lower = min(ax.get_xlim()[0], ax.get_ylim()[0])
-    gg += p9.coord_fixed(ratio=1, xlim=(lower, upper), ylim=(lower, upper))
-    _ = gg._draw_using_figure(fig, [ax])
-    return fig, ax, gg
 
 
 def convert_to_freq_string(date_str: str) -> str:
@@ -339,6 +444,46 @@ def convert_to_freq_string(date_str: str) -> str:
         period = period[:-1]
     period = DATE_CONVERSION[period]
     return f"{quantity}{period}"
+
+
+def convert_date_breaks(breaks_str: str) -> mdates.DateLocator:
+    """
+    Converts a conversational description of a period (e.g. 2 weeks) to a matplotlib date tick Locator.
+
+    Args:
+        breaks_str: A period description of the form "{interval} {period}"
+
+    Returns:
+        A corresponding mdates.Locator
+    """
+    # Column type groupings
+    DATE_CONVERSION = {
+        "year": YEARLY,
+        "month": MONTHLY,
+        "week": WEEKLY,
+        "day": DAILY,
+        "hour": HOURLY,
+        "minute": MINUTELY,
+        "second": SECONDLY,
+    }
+    interval, period = breaks_str.split()
+    period = period.lower()
+    if period.endswith("s"):
+        period = period[:-1]
+    period = DATE_CONVERSION[period]
+
+    return mdates.RRuleLocator(mdates.rrulewrapper(period, interval=int(interval)))
+
+
+# Old
+
+
+def match_axes(fig, ax, gg):
+    upper = max(ax.get_xlim()[1], ax.get_ylim()[1])
+    lower = min(ax.get_xlim()[0], ax.get_ylim()[0])
+    gg += p9.coord_fixed(ratio=1, xlim=(lower, upper), ylim=(lower, upper))
+    _ = gg._draw_using_figure(fig, [ax])
+    return fig, ax, gg
 
 
 def iqr(a):

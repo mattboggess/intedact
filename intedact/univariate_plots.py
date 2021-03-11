@@ -300,44 +300,40 @@ def histogram(
 def time_series_countplot(
     data: pd.DataFrame,
     column: str,
-    fig: plt.Figure = None,
-    ax: plt.Axes = None,
-    fig_width: int = None,
-    fig_height: int = None,
-    ts_type: str = "line",
+    ax: Optional[plt.Axes] = None,
+    ts_type: str = "point",
     ts_freq: str = "auto",
-    trend_line: str = "none",
-    date_labels: str = None,
-    date_breaks: str = None,
-    theme: str = None,
-) -> Tuple[plt.Figure, plt.Axes, p9.ggplot]:
+    trend_line: Optional[str] = None,
+    date_labels: Optional[str] = None,
+    date_breaks: Optional[str] = None,
+    span: float = 0.75,
+    ci_level: float = 0.95,
+    **kwargs,
+) -> plt.Axes:
     """
-    Plots a times series plot of datetime column where the y axis is counts of observations aggregated a provided
+    Plots a times series plot of datetime column where the y axis is counts of observations aggregated at a provided
     temporal frequency. Assumes that each row in the dataframe is a single event and not already aggregated.
 
     Args:
         data: pandas DataFrame to perform EDA on
         column: A string matching a column in the data
-        fig: matplotlib Figure generated from blank ggplot to plot onto. If specified, must also specify ax
         ax: matplotlib axes generated from blank ggplot to plot onto. If specified, must also specify fig
-        fig_width: Width of the plot in inches
-        fig_height: Height of the plot in inches
         ts_type: 'line' plots a line graph while 'point' plots points for observations
         ts_freq: String describing the frequency at which to aggregate data in one of two formats:
 
             - A `pandas offset string <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`_.
             - A human readable string in the same format passed to date breaks (e.g. "4 months")
             Default is to attempt to intelligently determine a good aggregation frequency.
-        trend_line: Trend line to plot over data. Default is to plot no trend line. Other options are passed
-            to `geom_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.geoms.geom_smooth.html>`_.
-        date_labels: Date formatting string that will be passed to the labels argument
-            of `scale_datetime <https://plotnine.readthedocs.io/en/stable/generated/plotnine.scales.scale.scale_datetime.html#plotnine.scales.scale.scale_datetime>`_.
-        date_breaks: Date breaks string that will be passed to the breaks argument
-            of `scale_datetime <https://plotnine.readthedocs.io/en/stable/generated/plotnine.scales.scale.scale_datetime.html#plotnine.scales.scale.scale_datetime>`_.
-        theme: plotnine theme to use for the plot, str must match available theme listed `here <https://plotnine.readthedocs.io/en/stable/api.html#themes>`_.
+        trend_line: Trend line to plot over data. Default is to plot no trend line. Other options available are
+            same as those available in plotnine's `stat_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.stats.stat_smooth.html#plotnine.stats.stat_smooth>`_
+        date_labels: strftime date formatting string that will be used to set the format of the x axis tick labels
+        date_breaks: Date breaks string in form '{interval} {period}'. Interval must be an integer and period must be
+          a time period ranging from seconds to years. (e.g. '1 year', '3 minutes')
+        span: Span parameter to determine amount of smoothing for loess
+        ci_level: Confidence level determining how wide to plot confidence intervals for smoothing.
 
     Returns:
-        Tuple containing matplotlib figure and axes along with the plotnine ggplot object
+        Matplotlib axes with time series drawn
 
     Example:
         .. plot::
@@ -346,14 +342,15 @@ def time_series_countplot(
             import intedact
             data = pd.read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/tidytuesday_tweets/data.csv")
             data['created_at'] = pd.to_datetime(data.created_at)
-            intedact.time_series_countplot(data, 'created_at', ts_freq='1W', trend_line='auto');
+            intedact.time_series_countplot(data, 'created_at', ts_freq='1 week', trend_line='auto');
     """
-    # TODO: Handle color specification
+    # TODO: Handle auto aggregating more intelligently
     if ts_freq == "auto":
         ts_freq = "1 month"
+    ylabel = f"Count (aggregated every {ts_freq})"
     ts_freq = convert_to_freq_string(ts_freq)
 
-    # resample and aggregate time series counts
+    # Resample and aggregate time series counts
     tmp = (
         data.set_index(column)
         .resample(ts_freq)
@@ -362,22 +359,23 @@ def time_series_countplot(
         .rename({0: "Count"}, axis="columns")
     )
 
-    fig, ax, gg = time_series_plot(
+    # Draw the time series plot
+    ax = time_series_plot(
         tmp,
         column,
         "Count",
-        fig_width=fig_width,
-        fig_height=fig_height,
-        fig=fig,
         ax=ax,
         ts_type=ts_type,
         trend_line=trend_line,
         date_labels=date_labels,
         date_breaks=date_breaks,
-        theme=theme,
+        span=span,
+        ci_level=ci_level,
+        **kwargs,
     )
 
-    # add a twin axis for percentage
+    # Add a twin axis for percentage
     add_percent_axis(ax, len(data[column]), flip_axis=False)
 
-    return fig, ax, gg
+    ax.set_ylabel(ylabel)
+    return ax

@@ -2,15 +2,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import plotnine as p9
-from typing import Tuple
-from .config import THEME_DEFAULT
+from typing import Tuple, Optional
 from .utils import (
     convert_to_freq_string,
     trim_quantiles,
     preprocess_transformations,
     transform_axis,
     match_axes,
+    add_trendline,
+    convert_date_breaks,
 )
+import seaborn as sns
 
 
 def histogram2d(
@@ -231,17 +233,15 @@ def time_series_plot(
     data: pd.DataFrame,
     column1: str,
     column2: str,
-    fig: plt.Figure = None,
-    ax: plt.Axes = None,
-    fig_width: int = None,
-    fig_height: int = None,
-    ts_type: str = "line",
-    ts_freq: str = "auto",
-    trend_line: str = "none",
-    date_labels: str = None,
-    date_breaks: str = None,
-    theme: str = None,
-) -> Tuple[plt.Figure, plt.Axes, p9.ggplot]:
+    ax: Optional[plt.Axes] = None,
+    ts_type: str = "point",
+    trend_line: Optional[str] = None,
+    date_labels: Optional[str] = None,
+    date_breaks: Optional[str] = None,
+    span: float = 0.75,
+    ci_level: float = 0.95,
+    **kwargs,
+) -> plt.Axes:
     """
     Plots a times series plot of a datetime column and a numerical column.
 
@@ -249,24 +249,18 @@ def time_series_plot(
         data: pandas DataFrame to perform EDA on
         column1: A string matching a datetime column in the data
         column2: A string matching a numerical column in the data
-        fig: matplotlib Figure generated from blank ggplot to plot onto. If specified, must also specify ax
-        ax: matplotlib axes generated from blank ggplot to plot onto. If specified, must also specify fig
-        fig_width: Width of the plot in inches
-        fig_height: Height of the plot in inches
-        ts_type: 'line' plots a line graph while 'point' plots points for observations
-        ts_freq: pandas offset string that denotes the frequency at which to aggregate for the time series plot.
-            Default is to attempt to automatically determine a reasonable time frequency to aggregate at.
-            See `here <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`_ for pandas offset string options.
+        ax: matplotlib axes to draw plot onto
+        ts_type: 'line' plots a line graph, 'point' plots points for observations
         trend_line: Trend line to plot over data. Default is to plot no trend line. Other options are passed
             to `geom_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.geoms.geom_smooth.html>`_.
-        date_labels: Date formatting string that will be passed to the labels argument
-            of `scale_datetime <https://plotnine.readthedocs.io/en/stable/generated/plotnine.scales.scale.scale_datetime.html#plotnine.scales.scale.scale_datetime>`_.
-        date_breaks: Date breaks string that will be passed to the breaks argument
-            of `scale_datetime <https://plotnine.readthedocs.io/en/stable/generated/plotnine.scales.scale.scale_datetime.html#plotnine.scales.scale.scale_datetime>`_.
-        theme: plotnine theme to use for the plot, str must match available theme listed `here <https://plotnine.readthedocs.io/en/stable/api.html#themes>`_.
+        date_labels: strftime date formatting string that will be used to set the format of the x axis tick labels
+        date_breaks: Date breaks string in form '{interval} {period}'. Interval must be an integer and period must be
+          a time period ranging from seconds to years. (e.g. '1 year', '3 minutes')
+        span: span parameter for loess
+        ci_level: confidence level to use for drawing confidence interval
 
     Returns:
-        Tuple containing matplotlib figure and axes along with the plotnine ggplot object
+        matplotlib Axes to plot time series on
 
     Example:
         .. plot::
@@ -275,61 +269,30 @@ def time_series_plot(
             import intedact
             data = pd.read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/tidytuesday_tweets/data.csv")
             data['created_at'] = pd.to_datetime(data.created_at)
-            intedact.time_series_countplot(data, 'created_at', ts_freq='1W', trend_line='auto');
+            intedact.time_series(data, 'created_at', trend_line='auto');
     """
-    # TODO: Handle color specification
-
-    # TODO: make this intelligent
-    ts_freq = convert_to_freq_string(ts_freq)
-    if ts_freq == "auto":
-        ts_freq = "1AS"
-
-    # plot the line or point plot
-    if ts_type == "line":
-        gg = p9.ggplot(data, p9.aes(x=column1, y=column2)) + p9.geom_line()
+    if ts_type == "point":
+        ax = sns.scatterplot(data=data, ax=ax, x=column1, y=column2, **kwargs)
     else:
-        gg = p9.ggplot(data, p9.aes(x=column1, y=column2)) + p9.geom_point()
+        ax = sns.lineplot(data=data, ax=ax, x=column1, y=column2, **kwargs)
 
-    # add smooth line if specified
-    if trend_line != "none":
-        gg += p9.geom_smooth(method=trend_line, color="red")
+    if trend_line is not None:
+        ax = add_trendline(
+            data, column1, column2, ax, method=trend_line, span=span, level=ci_level
+        )
 
-    # use provided breaks and labels if specified
-    if date_breaks is not None and date_labels is not None:
-        gg += p9.scale_x_datetime(date_breaks=date_breaks, date_labels=date_labels)
-    elif date_breaks is not None:
-        gg += p9.scale_x_datetime(date_breaks=date_breaks)
-    elif date_labels is not None:
-        gg += p9.scale_x_datetime(date_labels=date_labels)
-
-    # use provided theme
-    if theme is not None:
-        gg += eval(f"p9.{theme}()")
-    else:
-        gg += eval(f"p9.{THEME_DEFAULT}()")
-
-    # draw the figure
-    # xlabel = f"{column1} (aggregated at {ts_freq})"
-    xlabel = column1
-    if fig and ax is not None:
-        _ = gg._draw_using_figure(fig, [ax])
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(column2)
-    else:
-        gg += p9.labs(x=xlabel, y=column2)
-        fig = gg.draw()
-        ax = fig.axes[0]
-
-    # use matplotlib default date labels if non specified
-    locator = mdates.AutoDateLocator(minticks=4, maxticks=7)
-    formatter = mdates.ConciseDateFormatter(locator)
+    # Set the date axis tick breaks
     if date_breaks is None:
-        ax.xaxis.set_major_locator(locator)
+        locator = mdates.AutoDateLocator(minticks=4, maxticks=7)
+    else:
+        locator = convert_date_breaks(date_breaks)
+    ax.xaxis.set_major_locator(locator)
+
+    # Set the date axis tick label formats
     if date_labels is None:
-        ax.xaxis.set_major_formatter(formatter)
+        formatter = mdates.ConciseDateFormatter(locator)
+    else:
+        formatter = mdates.DateFormatter(date_labels)
+    ax.xaxis.set_major_formatter(formatter)
 
-    # set the figure size
-    if fig_width is not None and fig_height is not None:
-        fig.set_size_inches(fig_width, fig_height)
-
-    return fig, ax, gg
+    return ax
