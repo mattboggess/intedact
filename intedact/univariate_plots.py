@@ -2,8 +2,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Union, List, Optional
 import seaborn as sns
-import plotnine as p9
-from typing import Tuple
 from .utils import (
     freedman_diaconis_bins,
     trim_quantiles,
@@ -139,12 +137,6 @@ def countplot(
     """
     data = data.copy()
 
-    # Optionally add missing values as an additional level
-    if include_missing:
-        if data[column].dtype.name == "category":
-            data[column].cat.add_categories(["NA"], inplace=True)
-        data[column] = data[column].fillna("NA")
-
     # Handle axis flip default
     # TODO: Make more intelligent
     num_plot_levels = min(max_levels, data[column].nunique())
@@ -152,11 +144,15 @@ def countplot(
         flip_axis = num_plot_levels >= FLIP_LEVEL_COUNT and label_rotation == 0
 
     # Reorder column levels
-    if type(order) == str:
-        data[column] = order_levels(
-            data, column, None, order_method=order, max_levels=max_levels
-        )
-        order = list(data[column].cat.categories)
+    data[column] = order_levels(
+        data,
+        column,
+        None,
+        order=order,
+        max_levels=max_levels,
+        include_missing=include_missing,
+    )
+    order = list(data[column].cat.categories)
 
     # Make the countplot
     x = "Count" if flip_axis else column

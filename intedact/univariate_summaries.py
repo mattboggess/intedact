@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 from itertools import combinations
-from plotnine import *
 from matplotlib import gridspec
 from IPython.display import display
+from typing import Union, List, Tuple
 from .utils import *
 from .univariate_plots import (
     histogram,
@@ -19,50 +19,57 @@ from .config import BAR_COLOR
 import warnings
 import calendar
 
-warnings.filterwarnings("ignore")
-
 
 def discrete_univariate_summary(
     data: pd.DataFrame,
     column: str,
     fig_height: int = 5,
     fig_width: int = 10,
-    level_order: str = "auto",
+    order: Union[str, List] = "auto",
     max_levels: int = 30,
+    flip_axis: Optional[bool] = None,
+    label_rotation: Optional[int] = None,
+    percent_axis: bool = True,
     label_counts: bool = True,
-    flip_axis: bool = None,
-    label_rotation: int = 0,
-    bar_color: str = BAR_COLOR,
+    label_fontsize: Optional[float] = None,
+    include_missing: bool = False,
     interactive: bool = False,
-) -> None:
+    **kwargs,
+) -> Tuple[pd.DataFrame, plt.Figure]:
     """
     Creates a univariate EDA summary for a provided discrete data column in a pandas DataFrame.
 
-    Summary consists of a single bar plot with twin axes for counts and percentages for each level of the
-    variable. Percentages are relative to observed data only (missing observations are ignored).
+    Summary consists of a count plot with twin axes for counts and percentages for each level of the
+    variable and a small summary table.
 
     Args:
         data: pandas DataFrame with data to be plotted
         column: column in the dataframe to plot
         fig_width: figure width in inches
         fig_height: figure height in inches
-        level_order: Order in which to sort the levels.
+        order: Order in which to sort the levels of the variable for plotting:
 
-            - 'auto' sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
-            - 'descending' sorts in descending frequency.
-            - 'ascending' sorts in ascending frequency.
-            - 'sorted' sorts according to sorted order of the levels themselves.
-            - 'random' produces a random order. Useful if there are too many levels for one plot.
+         - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
+         - **'descending'**: sorts in descending frequency.
+         - **'ascending'**: sorts in ascending frequency.
+         - **'sorted'**: sorts according to sorted order of the levels themselves.
+         - **'random'**: produces a random order. Useful if there are too many levels for one plot.
+         Or you can pass a list of level names in directly for your own custom order.
         max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
          max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
+        percent_axis: Whether to add a twin y axis with percentages
         label_counts: Whether to add exact counts and percentages as text annotations on each bar in the plot.
+        label_fontsize: Size of the annotations text. Default tries to infer a reasonable size based on the figure
+         size and number of levels.
         flip_axis: Whether to flip the plot so labels are on y axis. Useful for long level names or lots of levels.
+         Default tries to infer based on number of levels and label_rotation value.
         label_rotation: Amount to rotate level labels. Useful for long level names or lots of levels.
-        bar_color: Color to use for bars
-        interactive: Whether to modify to be used with interactive for ipywidgets
+        include_missing: Whether to include missing values as an additional level in the data
+        interactive: Whether to display plot and table for interactive use in a jupyter notebook
+        kwargs: Additional keyword arguments passed through to [sns.barplot](https://seaborn.pydata.org/generated/seaborn.barplot.html)
 
     Returns:
-        matplotlib Figure plot is drawn to
+        Summary table and matplotlib figure with countplot
 
     Example:
         .. plot::
@@ -72,38 +79,42 @@ def discrete_univariate_summary(
             data = sns.load_dataset('tips')
             intedact.discrete_univariate_summary(data, 'day', interactive=True)
     """
-    if interactive:
-        data = data.copy()
-    # handle missing data
-    num_missing = data[column].isnull().sum()
-    perc_missing = num_missing / data.shape[0]
+    data = data.copy()
 
-    fig, ax, gg = countplot(
+    # Get summary table
+    count_missing = data[column].isnull().sum()
+    perc_missing = 100 * count_missing / data.shape[0]
+    count_obs = data.shape[0] - count_missing
+    count_levels = data[column].nunique()
+    summary_table = pd.DataFrame(
+        {
+            "count_observed": [count_obs],
+            "count_levels": [count_levels],
+            "count_missing": [count_missing],
+            "percent_missing": [perc_missing],
+        }
+    )
+
+    # Plot countplot
+    fig, axs = plt.subplots(1, 1, figsize=(fig_width, fig_height))
+    ax = countplot(
         data,
         column,
-        level_order=level_order,
+        order=order,
         max_levels=max_levels,
+        percent_axis=percent_axis,
         label_counts=label_counts,
         flip_axis=flip_axis,
+        label_fontsize=label_fontsize,
+        include_missing=include_missing,
         label_rotation=label_rotation,
-        bar_color=bar_color,
     )
 
-    # warn user about 'Other' condensing and add info to title
-    num_levels = data[column].nunique()
-    if num_levels > max_levels:
-        addition = f" ({num_levels - max_levels} levels condensed into 'Other')"
-    else:
-        addition = ""
-    title = (
-        f"{data[column].size} observations over {num_levels} levels{addition}\n"
-        f"{num_missing} missing observations ({perc_missing}%)"
-    )
-    ax.set_title(title)
+    if interactive:
+        display(summary_table)
+        plt.show()
 
-    fig.set_size_inches((fig_width, fig_height))
-
-    return fig
+    return summary_table, fig
 
 
 def continuous_univariate_summary(
