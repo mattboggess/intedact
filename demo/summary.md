@@ -1,10 +1,10 @@
-# Brownsfields EDA Summary
-
-Summary of Dataset
+# Dataset Summary
 
 **Number of Observations**: 78527
 
 **Number of Variables**: 21
+
+# Missing Data
 
 
 ![alt text](./images/missing_matrix.png)
