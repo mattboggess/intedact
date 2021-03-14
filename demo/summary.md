@@ -1,12 +1,23 @@
 # Brownsfields EDA Summary
 
-Summary of Dataset
-
-# Table of Contents
-[Dataset Summary](#dataset-summary)
-[Missing Data](#missing-data)
+* [Dataset Summary](#dataset-summary)
+* [Missing Data](#missing-data)
+* [Univariate Summaries](#univariate-summaries)
+    * [Grant Recipient Name](#Grant-Recipient-Name)
+    * [Accomplishment Counted](#Accomplishment-Counted)
+    * [Cooperative Agreement Number](#Cooperative-Agreement-Number)
+    * [Type of Brownfields Grant](#Type-of-Brownfields-Grant)
+    * [ACRES Property ID](#ACRES-Property-ID)
+    * [Property Name](#Property-Name)
+    * [Property Address 1](#Property-Address-1)
+    * [Property City](#Property-City)
+    * [Property  State](#Property--State)
+    * [Property Zip Code](#Property-Zip-Code)
+    * [Assessment Start Date](#Assessment-Start-Date)
 
 # Dataset Summary
+
+Summary of Dataset
 
 **Number of Observations**: 78527
 
@@ -22,6 +33,8 @@ Summary of Dataset
 
 
 ![alt text](./images/missing_heatmap.png)
+
+# Univariate Summaries
 
 # Grant Recipient Name
 
