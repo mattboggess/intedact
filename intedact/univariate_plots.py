@@ -138,10 +138,9 @@ def countplot(
     data = data.copy()
 
     # Handle axis flip default
-    # TODO: Make more intelligent
     num_plot_levels = min(max_levels, data[column].nunique())
     if flip_axis is None:
-        flip_axis = num_plot_levels >= FLIP_LEVEL_COUNT and label_rotation == 0
+        flip_axis = num_plot_levels > 5 and label_rotation == 0
 
     # Reorder column levels
     data[column] = order_levels(
@@ -174,55 +173,14 @@ def countplot(
         )
 
     # Add label rotation
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=label_rotation)
+    if label_rotation != 0 and not flip_axis:
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=label_rotation)
 
     # Add a twin axis for percentage
     if percent_axis:
         add_percent_axis(ax, count_data["Count"].sum(), flip_axis=flip_axis)
 
     return ax
-
-
-def continuous_summary_stats(
-    data: pd.DataFrame,
-    column: str,
-    lower_quantile: float = 0,
-    upper_quantile: float = 1,
-) -> pd.DataFrame:
-    """
-    Computes summary statistics for a numerical pandas DataFrame column.
-
-    Computed statistics include:
-
-      - mean and median
-      - min and max
-      - 25% percentile
-      - 75% percentile
-      - standard deviation and interquartile range
-      - count and percentage of missing values
-
-    Args:
-        data: The dataframe with the column to summarize
-        column: The column in the dataframe to summarize
-        lower_quantile: Lower quantile of data to remove before plotting for ignoring outliers
-        upper_quantile: Upper quantile of data to remove before plotting for ignoring outliers
-
-    Returns:
-        pandas DataFrame with one row containing the summary statistics for the provided column
-    """
-    data = trim_quantiles(
-        data, column, lower_quantile=lower_quantile, upper_quantile=upper_quantile
-    )
-
-    num_missing = data[column].isnull().sum()
-    perc_missing = num_missing / data.shape[0]
-
-    table = pd.DataFrame(data[column].describe()).T
-    table["iqr"] = data[column].quantile(0.75) - data[column].quantile(0.25)
-    table["missing_count"] = num_missing
-    table["missing_percent"] = perc_missing
-    table = pd.DataFrame(table)
-    return table
 
 
 def histogram(

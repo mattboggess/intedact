@@ -7,16 +7,15 @@ from matplotlib import gridspec
 from IPython.display import display
 from typing import Union, List, Tuple
 from .utils import *
+from .data_utils import compute_univariate_summary_table
 from .univariate_plots import (
     histogram,
     boxplot,
     countplot,
-    continuous_summary_stats,
     time_series_countplot,
 )
 from .bivariate_plots import time_series_plot
 from .config import BAR_COLOR
-import warnings
 import calendar
 
 
@@ -82,18 +81,7 @@ def discrete_univariate_summary(
     data = data.copy()
 
     # Get summary table
-    count_missing = data[column].isnull().sum()
-    perc_missing = 100 * count_missing / data.shape[0]
-    count_obs = data.shape[0] - count_missing
-    count_levels = data[column].nunique()
-    summary_table = pd.DataFrame(
-        {
-            "count_observed": [count_obs],
-            "count_levels": [count_levels],
-            "count_missing": [count_missing],
-            "percent_missing": [perc_missing],
-        }
-    )
+    summary_table = compute_univariate_summary_table(data, column, "discrete")
 
     # Plot countplot
     fig, axs = plt.subplots(1, 1, figsize=(fig_width, fig_height))
@@ -108,6 +96,7 @@ def discrete_univariate_summary(
         label_fontsize=label_fontsize,
         include_missing=include_missing,
         label_rotation=label_rotation,
+        **kwargs,
     )
 
     if interactive:
@@ -122,12 +111,12 @@ def continuous_univariate_summary(
     column: str,
     fig_height: int = 4,
     fig_width: int = 8,
-    hist_bins: int = 0,
+    bins: Optional[int] = None,
     transform: str = "identity",
     lower_quantile: float = 0,
     upper_quantile: float = 1,
+    clip: float = 0,
     kde: bool = False,
-    bar_color: str = BAR_COLOR,
     interactive: bool = False,
 ) -> None:
     """
@@ -140,7 +129,7 @@ def continuous_univariate_summary(
         column: A string matching a column in the data to visualize
         fig_height: Height of the plot in inches
         fig_width: Width of the plot in inches
-        hist_bins: Number of bins to use for the histogram. Default is 0 which determines # of bins from the data
+        bins: Number of bins to use for the histogram. Default is 0 which determines # of bins from the data
         transform: Transformation to apply to the data for plotting:
 
             - 'identity': no transformation
@@ -150,7 +139,6 @@ def continuous_univariate_summary(
         lower_quantile: Lower quantile of data to remove before plotting for ignoring outliers
         upper_quantile: Upper quantile of data to remove before plotting for ignoring outliers
         kde: Whether to overlay a KDE plot on the histogram
-        bar_color: Color to use for bars
         interactive: Whether to modify to be used with interactive for ipywidgets
 
     Returns:
@@ -164,45 +152,40 @@ def continuous_univariate_summary(
             data = sns.load_dataset('tips')
             intedact.continuous_univariate_summary(data, 'total_bill', interactive=True)[0]
     """
-    if interactive:
-        data = data.copy()
+    data = data.copy()
 
-    # compute summary stats
-    table = continuous_summary_stats(data, column, lower_quantile, upper_quantile)
-    if interactive:
-        display(table)
+    # Get summary table
+    table = compute_univariate_summary_table(
+        data, column, "continuous", lower_quantile, upper_quantile
+    )
 
-    # make histogram and boxplot figure (empty figure hack for plotnine plotting with subplots)
-    # https://github.com/has2k1/plotnine/issues/373
-    fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
-    fig.set_size_inches(fig_width, fig_height * 2)
-    gs = gridspec.GridSpec(2, 1)
-    ax_hist = fig.add_subplot(gs[0])
-    ax_box = fig.add_subplot(gs[1])
-
+    f, axs = plt.subplots(2, 1, figsize=(fig_width, fig_height * 2))
     histogram(
         data,
         column,
-        fig,
-        ax=ax_hist,
-        hist_bins=hist_bins,
+        ax=axs[0],
+        bins=bins,
         transform=transform,
+        clip=clip,
         lower_quantile=lower_quantile,
         upper_quantile=upper_quantile,
         kde=kde,
     )
-
+    axs[0].set_xlabel("")
     boxplot(
         data,
         column,
-        fig,
-        ax=ax_box,
+        ax=axs[1],
         transform=transform,
         lower_quantile=lower_quantile,
         upper_quantile=upper_quantile,
     )
 
-    return fig, table
+    if interactive:
+        display(table)
+        plt.show()
+
+    return table, f
 
 
 def datetime_univariate_summary(
@@ -215,7 +198,6 @@ def datetime_univariate_summary(
     ts_type: str = "line",
     trend_line: str = "auto",
     label_counts: bool = True,
-    theme: str = None,
     interactive: bool = False,
 ) -> plt.Figure:
     """
@@ -253,7 +235,6 @@ def datetime_univariate_summary(
         trend_line: Trend line to plot over data. "None" produces no trend line. Other options are passed
             to `geom_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.geoms.geom_smooth.html>`_.
         label_counts: Whether to add count/percentage on bars in countplots where feasible
-        theme: plotnine theme to use for the plot, str must match available theme listed `here <https://plotnine.readthedocs.io/en/stable/api.html#themes>`_.
         interactive: Whether to display figures and tables in jupyter notebook for interactive use
 
     Returns:
@@ -268,102 +249,72 @@ def datetime_univariate_summary(
             data['created_at'] = pd.to_datetime(data.created_at)
             intedact.datetime_univariate_summary(data, 'created_at', ts_freq='1 week', delta_freq='1 hour')
     """
+    data = data.copy()
+
+    table = compute_univariate_summary_table(data, column, "datetime")
     if interactive:
-        data = data.copy()
+        display(table)
 
-    # handle missing data
-    num_missing = data[column].isnull().sum()
-    perc_missing = num_missing / data.shape[0]
-
-    # make histogram and boxplot figure (empty figure hack for plotting with subplots)
-    # https://github.com/has2k1/plotnine/issues/373
-    fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
-    fig.set_size_inches(fig_width, fig_height * 5)
-    grid = fig.add_gridspec(5, 2)
-
-    # compute extra columns with datetime attributes
+    # Compute extra columns with datetime attributes
     data["Month"] = data[column].dt.month_name()
     data["Day of Month"] = data[column].dt.day
     data["Year"] = data[column].dt.year
     data["Hour"] = data[column].dt.hour
     data["Day of Week"] = data[column].dt.day_name()
 
-    # compute time deltas
+    # Compute time deltas
     # TODO: Handle this more intelligently
     if delta_freq == "auto":
-        delta_freq = "1D"
+        delta_freq = "1 day"
     delta_freq_original = delta_freq
     delta_freq = convert_to_freq_string(delta_freq)
     dts = data[column].sort_values(ascending=True)
     data["deltas"] = (dts - dts.shift(1)) / pd.Timedelta(delta_freq)
 
-    # time series count plot
-    ax = fig.add_subplot(grid[0, :])
-    _, ax, _ = time_series_countplot(
-        data, column, fig, ax, ts_freq=ts_freq, ts_type=ts_type, trend_line=trend_line
-    )
-    ax.set_ylabel(f"Count (aggregated at {ts_freq})")
-    plt.title(
-        (
-            f"{data[column].size} observations ranging from {data[column].min()} to {data[column].max()}\n"
-            f"{num_missing} missing observations ({perc_missing}%)"
-        )
-    )
+    fig = plt.figure(figsize=(fig_width, fig_height * 4))
+    spec = gridspec.GridSpec(ncols=2, nrows=5, figure=fig)
 
-    # time series of time deltas
-    ax = fig.add_subplot(grid[1, :])
-    _, ax, _ = time_series_plot(
+    # time series count plot
+    ax = fig.add_subplot(spec[0, :])
+    ax = time_series_countplot(
         data,
         column,
-        "deltas",
-        fig,
         ax,
+        ts_freq=ts_freq,
         ts_type=ts_type,
         trend_line=trend_line,
     )
-    ax.set_ylabel(f"Time deltas between observations\nUnits of {delta_freq_original}")
 
-    # countplot by year
-    year_order = np.arange(data["Year"].min(), data["Year"].max() + 1, 1)
-    num_years = len(year_order)
-    if num_years <= 10:
-        label_rotation = 0
-        year_label_counts = label_counts
-    else:
-        label_rotation = 90
-        year_label_counts = False
-    data["Year"] = pd.Categorical(data["Year"], categories=year_order, ordered=True)
-    ax = fig.add_subplot(grid[2, :])
-    _, ax, _ = countplot(
+    # time series of time deltas
+    ax = fig.add_subplot(spec[1, :])
+    ax = time_series_plot(
         data,
-        "Year",
-        fig,
+        column,
+        "deltas",
         ax,
-        theme=theme,
-        label_counts=year_label_counts,
-        label_rotation=label_rotation,
+        ts_type=ts_type,
+        trend_line=None,
     )
+    ax.set_ylabel(f"Time deltas between observations\nUnits of {delta_freq_original}")
 
     # countplot by month
     data["Month"] = pd.Categorical(
         data["Month"], categories=list(calendar.month_name)[1:], ordered=True
     )
-    ax = fig.add_subplot(grid[3, 0])
-    _, ax, _ = countplot(
-        data, "Month", fig, ax, theme=theme, label_counts=label_counts, flip_axis=True
+    ax = fig.add_subplot(spec[2, 0])
+    ax = countplot(
+        data, "Month", ax, label_counts=label_counts, label_fontsize=10, flip_axis=True
     )
 
     # countplot by day of month
     data["Day of Month"] = pd.Categorical(
         data["Day of Month"], categories=np.arange(1, 32, 1), ordered=True
     )
-    ax = fig.add_subplot(grid[3, 1])
-    _, ax, _ = countplot(
+    ax = fig.add_subplot(spec[2, 1])
+    ax = countplot(
         data,
         "Day of Month",
-        fig,
         ax,
-        theme=theme,
         label_counts=False,
         flip_axis=True,
         max_levels=35,
@@ -373,13 +324,12 @@ def datetime_univariate_summary(
     data["Day of Week"] = pd.Categorical(
         data["Day of Week"], categories=list(calendar.day_name), ordered=True
     )
-    ax = fig.add_subplot(grid[4, 0])
-    _, ax, _ = countplot(
+    ax = fig.add_subplot(spec[3, 0])
+    ax = countplot(
         data,
         "Day of Week",
-        fig,
         ax,
-        theme=theme,
+        label_fontsize=10,
         label_counts=label_counts,
         flip_axis=True,
     )
@@ -388,13 +338,14 @@ def datetime_univariate_summary(
     data["Hour"] = pd.Categorical(
         data["Hour"], categories=np.arange(0, 24, 1), ordered=True
     )
-    ax = fig.add_subplot(grid[4, 1])
-    _, ax, _ = countplot(
-        data, "Hour", fig, ax, theme=theme, label_counts=False, flip_axis=True
-    )
+    ax = fig.add_subplot(spec[3, 1])
+    ax = countplot(data, "Hour", ax, label_counts=False, flip_axis=True)
 
     plt.tight_layout()
-    plt.show()
+    if interactive:
+        plt.show()
+
+    return table, fig
 
 
 def text_univariate_eda(
