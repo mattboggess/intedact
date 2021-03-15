@@ -2,6 +2,9 @@
 
 * [Dataset Summary](#dataset-summary)
 * [Missing Data](#missing-data)
+    * [Missing Data Matrix](#missing-data-matrix)
+    * [Missing Data Barplot](#missing-data-barplot)
+    * [Missing Data Heatmap](#missing-data-heatmap)
 * [Univariate Summaries](#univariate-summaries)
     * [Grant Recipient Name](#Grant-Recipient-Name)
     * [Accomplishment Counted](#Accomplishment-Counted)
@@ -17,19 +20,34 @@
 
 # Dataset Summary
 
-Summary of Dataset
+Dataset summary
 
 **Number of Observations**: 78527
 
 **Number of Variables**: 11
 
+
+![alt text](./images/data_types.png)
+
 # Missing Data
+
+## Missing Data Matrix
+
+hello1
 
 
 ![alt text](./images/missing_matrix.png)
 
+## Missing Data Barplot
+
+hello2
+
 
 ![alt text](./images/missing_bar.png)
+
+## Missing Data Heatmap
+
+hello3
 
 
 ![alt text](./images/missing_heatmap.png)
@@ -67,7 +85,7 @@ Summary of Dataset
 
 **Intedact Data Type**: discrete
 
-**Variable Description**: type of Brownfields Grant
+**Variable Description**: N/A
 
 
 ![alt text](./images/Type_of_Brownfields_Grant.png)
@@ -130,7 +148,7 @@ Summary of Dataset
 
 **Intedact Data Type**: datetime
 
-**Variable Description**: Amount of Assessment Funding.
+**Variable Description**: N/A
 
 
 ![alt text](./images/Assessment_Start_Date.png)
