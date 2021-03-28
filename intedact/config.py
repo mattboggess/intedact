@@ -133,7 +133,7 @@ WIDGET_PARAMS = {
         max=1000,
         step=1,
         value=100,
-        style={"description_widht": "20%"},
+        style={"description_width": "20%"},
     ),
     "kde": dict(description="Overlay Density on Histogram", value=False),
     "transform": dict(

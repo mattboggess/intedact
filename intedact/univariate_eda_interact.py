@@ -194,19 +194,20 @@ def column_univariate_eda_interact(
         return
 
     if data_dict is not None:
-        print("==" * 80)
         print(
             f"Column Description: {data_dict[column] if column in data_dict else 'N/A'}"
         )
 
-    print("==" * 80)
-    print("General Plot Controls:")
+    print("=====================")
+    print("General Plot Controls")
+    print("=====================")
     general_controls = widgets.HBox(
         widget.children[:4], layout=widgets.Layout(flex_flow="row wrap")
     )
     display(general_controls)
-    print("==" * 80)
-    print("Summary Specific Controls:")
+    print("=========================")
+    print("Summary Specific Controls")
+    print("=========================")
     widget.update()
 
     controls = widgets.HBox(
@@ -214,13 +215,11 @@ def column_univariate_eda_interact(
     )
     display(controls)
     output = widget.children[-1]
-    print("==" * 80)
     display(output)
     # display(widgets.VBox([controls, output]))
 
     # Handle EDA notes and summary configuration
     if notes_file is not None:
-        print("==" * 80)
         info_button = widgets.Button(
             description="Save Notes",
             disabled=False,
