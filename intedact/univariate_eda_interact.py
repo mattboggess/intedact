@@ -33,7 +33,7 @@ def univariate_eda_interact(
             disabled=False,
             button_style="info",
             icon="save",
-            layout=widgets.Layout(width="20%", height="30px"),
+            layout=widgets.widgets.Layout(width="20%", height="30px"),
             tooltip="Save summary figure to figure_dir/column.png if figure_dir is specified",
         )
     else:
@@ -42,15 +42,15 @@ def univariate_eda_interact(
     col_widget = widgets.Dropdown(**WIDGET_PARAMS["column"])
     col_widget.options = data.columns
 
-    widget = widgets.interactive(
+    widget = widgets.widgets.interactive(
         column_univariate_eda_interact,
-        data=widgets.fixed(data),
+        data=widgets.widgets.fixed(data),
         column=col_widget,
         summary_type=widgets.Dropdown(**WIDGET_PARAMS["summary_type"]),
-        data_dict=fixed(data_dict),
-        notes_file=fixed(notes_file),
-        figure_dir=fixed(figure_dir),
-        savefig_button=fixed(save_button),
+        data_dict=widgets.fixed(data_dict),
+        notes_file=widgets.fixed(notes_file),
+        figure_dir=widgets.fixed(figure_dir),
+        savefig_button=widgets.fixed(save_button),
     )
 
     if figure_dir is not None:
@@ -59,7 +59,7 @@ def univariate_eda_interact(
             widget.children[-1],
         ]
 
-    widget.layout = widgets.Layout(flex_flow="row wrap")
+    widget.layout = widgets.widgets.Layout(flex_flow="row wrap")
 
     def match_type(*args):
         type_widget.value = detect_column_type(data[col_widget.value])
@@ -95,8 +95,8 @@ def column_univariate_eda_interact(
         widget = widgets.interactive(
             discrete_univariate_summary,
             {"manual": manual_update},
-            data=widgets.fixed(data),
-            column=widgets.fixed(column),
+            data=widgets.widgets.fixed(data),
+            column=widgets.widgets.fixed(column),
             fig_height=fig_height_widget,
             fig_width=widgets.IntSlider(**WIDGET_PARAMS["fig_width"]),
             fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
@@ -109,7 +109,7 @@ def column_univariate_eda_interact(
             include_missing=widgets.Checkbox(**WIDGET_PARAMS["include_missing"]),
             flip_axis=flip_axis_widget,
             label_rotation=widgets.IntSlider(**WIDGET_PARAMS["label_rotation"]),
-            interactive=fixed(True),
+            interactive=widgets.fixed(True),
         )
     elif summary_type == "continuous":
         bins_widget = widgets.IntSlider(**WIDGET_PARAMS["bins"])
@@ -120,11 +120,11 @@ def column_univariate_eda_interact(
         lower_trim_widget.max = data.shape[0] - 1
         upper_trim_widget = widgets.BoundedIntText(**WIDGET_PARAMS["upper_trim"])
         upper_trim_widget.max = data.shape[0] - 1
-        widget = interactive(
+        widget = widgets.interactive(
             continuous_univariate_summary,
             {"manual": manual_update},
-            data=fixed(data),
-            column=fixed(column),
+            data=widgets.fixed(data),
+            column=widgets.fixed(column),
             fig_height=widgets.IntSlider(**WIDGET_PARAMS["fig_height"]),
             fig_width=widgets.IntSlider(**WIDGET_PARAMS["fig_width"]),
             fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
@@ -135,7 +135,7 @@ def column_univariate_eda_interact(
             upper_trim=upper_trim_widget,
             transform=widgets.Dropdown(**WIDGET_PARAMS["transform"]),
             kde=widgets.Checkbox(**WIDGET_PARAMS["kde"]),
-            interactive=fixed(True),
+            interactive=widgets.fixed(True),
         )
     # datetime variables
     elif summary_type == "datetime":
@@ -146,11 +146,11 @@ def column_univariate_eda_interact(
         lower_trim_widget.max = data.shape[0] - 1
         upper_trim_widget = widgets.BoundedIntText(**WIDGET_PARAMS["upper_trim"])
         upper_trim_widget.max = data.shape[0] - 1
-        widget = interactive(
+        widget = widgets.interactive(
             datetime_univariate_summary,
             {"manual": manual_update},
-            data=fixed(data),
-            column=fixed(column),
+            data=widgets.fixed(data),
+            column=widgets.fixed(column),
             fig_height=widgets.IntSlider(**WIDGET_PARAMS["fig_height"]),
             fig_width=widgets.IntSlider(**WIDGET_PARAMS["fig_width"]),
             fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
@@ -163,14 +163,14 @@ def column_univariate_eda_interact(
             date_labels=widgets.Text(**WIDGET_PARAMS["date_labels"]),
             lower_trim=lower_trim_widget,
             upper_trim=upper_trim_widget,
-            interactive=fixed(True),
+            interactive=widgets.fixed(True),
         )
     elif summary_type == "text":
-        widget = interactive(
+        widget = widgets.interactive(
             text_univariate_eda,
             {"manual": manual_update},
-            data=fixed(data),
-            column=fixed(column),
+            data=widgets.fixed(data),
+            column=widgets.fixed(column),
             fig_height=WIDGET_PARAMS["fig_height"]["widget_options"],
             fig_width=WIDGET_PARAMS["fig_width"]["widget_options"],
             hist_bins=WIDGET_PARAMS["hist_bins"]["widget_options"],
@@ -180,11 +180,11 @@ def column_univariate_eda_interact(
             top_n=WIDGET_PARAMS["top_n"]["widget_options"],
         )
     elif summary_type == "list":
-        widget = interactive(
+        widget = widgets.interactive(
             list_univariate_eda,
             {"manual": manual_update},
-            data=fixed(data),
-            column=fixed(column),
+            data=widgets.fixed(data),
+            column=widgets.fixed(column),
             fig_height=WIDGET_PARAMS["fig_height"]["widget_options"],
             fig_width=WIDGET_PARAMS["fig_width"]["widget_options"],
             top_entries=WIDGET_PARAMS["top_entries"]["widget_options"],
@@ -202,14 +202,16 @@ def column_univariate_eda_interact(
     print("==" * 80)
     print("General Plot Controls:")
     general_controls = widgets.HBox(
-        widget.children[:4], layout=Layout(flex_flow="row wrap")
+        widget.children[:4], layout=widgets.Layout(flex_flow="row wrap")
     )
     display(general_controls)
     print("==" * 80)
     print("Summary Specific Controls:")
     widget.update()
 
-    controls = widgets.HBox(widget.children[4:-1], layout=Layout(flex_flow="row wrap"))
+    controls = widgets.HBox(
+        widget.children[4:-1], layout=widgets.Layout(flex_flow="row wrap")
+    )
     display(controls)
     output = widget.children[-1]
     print("==" * 80)
@@ -224,7 +226,7 @@ def column_univariate_eda_interact(
             disabled=False,
             button_style="info",
             icon="save",
-            layout=widgets.Layout(width="15%", height="50px"),
+            layout=widgets.widgets.Layout(width="15%", height="50px"),
             tooltip=f"Save EDA notes to {notes_file}",
         )
         if not os.path.exists(notes_file):
@@ -260,9 +262,9 @@ def column_univariate_eda_interact(
         display(
             widgets.HBox(
                 [notes_entry, info_button],
-                layout=widgets.Layout(height="200px"),
+                layout=widgets.widgets.Layout(height="200px"),
             ),
-            layout=Layout(flex_flow="row wrap"),
+            layout=widgets.Layout(flex_flow="row wrap"),
         )
 
     # Add callback to save current figure if figure_dir is specified
