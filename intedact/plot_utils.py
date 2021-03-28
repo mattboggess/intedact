@@ -30,6 +30,7 @@ def add_barplot_annotations(
     flip_axis: bool,
     label_fontsize: Optional[int] = None,
     height_threshold: float = 0.75,
+    denominator: Optional[int] = None,
 ) -> plt.Axes:
     """
     Converts a conversational description of a period (e.g. 2 weeks) to a pandas frequency string (2W).
@@ -48,13 +49,16 @@ def add_barplot_annotations(
     Returns:
         Axis with annotations added
     """
+    if denominator is None:
+        denominator = data[column].sum()
+
     # TODO: Handle default annotation size
     for i, value in enumerate(data[column]):
 
         label = f"{value}"
         if flip_axis:
             if add_percent:
-                label += f" ({100 * value / data[column].sum():.2f}%)"
+                label += f" ({100 * value / denominator:.2f}%)"
             va = "center"
             if value > height_threshold * ax.get_xlim()[1]:
                 ha = "right"
@@ -68,7 +72,7 @@ def add_barplot_annotations(
             x = value + mod * ax.get_xlim()[1]
         else:
             if add_percent:
-                label += f"\n{100 * value / data[column].sum():.2f}%"
+                label += f"\n{100 * value / denominator:.2f}%"
             ha = "center"
             if value > height_threshold * ax.get_ylim()[1]:
                 va = "top"
@@ -129,6 +133,13 @@ def add_percent_axis(ax: plt.Axes, data_size, flip_axis: bool = False) -> plt.Ax
         ax_perc.yaxis.set_tick_params(labelsize=10)
     ax_perc.grid(False)
     return ax_perc
+
+
+def set_fontsize(ax, fontsize):
+    for item in [ax.xaxis.label, ax.yaxis.label]:
+        item.set_fontsize(float(fontsize) + 1)
+    for item in ax.get_xticklabels() + ax.get_yticklabels():
+        item.set_fontsize(fontsize)
 
 
 def transform_axis(
