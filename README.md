@@ -1,6 +1,6 @@
 # intedact
 
-Interactive univariate and bivariate EDA for pandas DataFrames right in your Jupyer notebook.
+Interactive EDA for pandas DataFrames right in your Jupyer notebook.
 
 # Installation
 
@@ -8,16 +8,19 @@ Development version:
 
     pip install --upgrade git+git://github.com/mattboggess/intedact.git#egg=intedact
 
-# Getting Started
+# Univariate EDA
 
-Simply import the `univariate_eda_interact` or `bivariate_eda_interact` functions:
+Univariate EDA refers to the process of visualizing and summarizing a single variable.
+intedact's univariate EDA allows you to produce summaries of single columns in a pandas dataframe
 
-    from intedact import univariate_eda_interact, bivariate_eda_interact
+For interactive univariate EDA simply import the `univariate_eda_interact` function in a jupyter notebook:
 
-Then simply pass in a dataframe to generate the interactive widgets interface:
-
+    from intedact import univariate_eda_interact
     univarate_eda_interact(df)
 
-Try it here: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mattboggess/intedact/master?filepath=demo/demo.ipynb)
+Try `univariate_eda_interact` here: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mattboggess/intedact/HEAD?filepath=demo%2Funivariate_eda_demo.ipynb)
 
-# Supported Column Types
+**Supported Summary Types:**
+* discrete: Summarize a categorical or discrete numerical column
+* continuous: Summarize a high dimensional numerical column
+* datetime: Summarize a datetime column

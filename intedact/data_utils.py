@@ -355,6 +355,39 @@ def agg_time_series(data, column, agg_freq):
     return agg_df, ylabel
 
 
+def detect_column_type(col_data, discrete_limit=50):
+
+    if is_datetime64_any_dtype(col_data):
+        return "datetime"
+    elif is_numeric_dtype(col_data):
+        if len(col_data.unique()) <= discrete_limit:
+            return "discrete"
+        else:
+            return "continuous"
+    elif col_data.dtype.name == "category":
+        return "discrete"
+    elif col_data.dtype.name == "string":
+        return "text"
+    elif col_data.dtype.name == "object":
+        test_value = col_data.dropna().iat[0]
+        if isinstance(test_value, (list, tuple, set)):
+            return "list"
+        # TODO: Probably need smarter detection
+        elif type(test_value) == str:
+            num_levels = col_data.nunique()
+            if num_levels > len(col_data) / 2:
+                if col_data.apply(lambda x: len(x.split(" "))).max() <= 3:
+                    return "discrete"
+                else:
+                    return "text"
+            else:
+                return "discrete"
+        else:
+            return "discrete"
+    else:
+        raise ValueError(f"Unsupported data type {col_data.dtype.name}")
+
+
 # Old
 
 
