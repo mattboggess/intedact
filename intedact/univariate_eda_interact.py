@@ -9,7 +9,6 @@ from .config import WIDGET_PARAMS, FLIP_LEVEL_COUNT
 from .data_utils import coerce_column_type, freedman_diaconis_bins
 from .data_utils import detect_column_type
 from .univariate_summaries import *
-from .bivariate_eda import *
 
 
 def univariate_eda_interact(
