@@ -1,10 +1,12 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
+import itertools
 import numpy as np
 import scipy.stats as stats
+from .config import TIME_UNITS
 from pandas.api.types import is_numeric_dtype, is_datetime64_any_dtype
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import matplotlib.dates as mdates
 from dateutil.rrule import (
     rrule,
@@ -19,69 +21,15 @@ from dateutil.rrule import (
 import re
 
 
-def compute_univariate_summary_table(
-    data: pd.DataFrame,
-    column: str,
-    data_type: str,
-    lower_quantile: float = 0,
-    upper_quantile: float = 1,
-) -> pd.DataFrame:
-    """
-    Computes summary statistics for a numerical pandas DataFrame column.
-
-    Computed statistics include:
-
-      - mean and median
-      - min and max
-      - 25% percentile
-      - 75% percentile
-      - standard deviation and interquartile range
-      - count and percentage of missing values
-
-    Args:
-        data: The dataframe with the column to summarize
-        column: The column in the dataframe to summarize
-        lower_quantile: Lower quantile of data to remove before plotting for ignoring outliers
-        upper_quantile: Upper quantile of data to remove before plotting for ignoring outliers
-
-    Returns:
-        pandas DataFrame with one row containing the summary statistics for the provided column
-    """
-    if data_type == "continuous":
-        data = trim_quantiles(
-            data, column, lower_quantile=lower_quantile, upper_quantile=upper_quantile
-        )
-
-    # Get summary table
-    count_missing = data[column].isnull().sum()
-    perc_missing = 100 * count_missing / data.shape[0]
-    count_obs = data.shape[0] - count_missing
-    count_levels = data[column].nunique()
-    counts_table = pd.DataFrame(
-        {
-            "count_observed": [count_obs],
-            "count_unique": [count_levels],
-            "count_missing": [count_missing],
-            "percent_missing": [perc_missing],
-        },
-        index=[column],
-    )
-
-    if data_type == "discrete":
-        return counts_table
-    elif data_type == "continuous":
-        stats_table = pd.DataFrame(data[column].describe()).T
-        stats_table["iqr"] = data[column].quantile(0.75) - data[column].quantile(0.25)
-        stats_table = stats_table[
-            ["min", "25%", "50%", "mean", "75%", "max", "std", "iqr"]
-        ]
-        return pd.concat([counts_table, stats_table], axis=1)
-    elif data_type == "datetime":
-        counts_table["min"] = data[column].min()
-        counts_table["max"] = data[column].max()
-        return counts_table
+def format_bytes(bytes):
+    if bytes // 1e9 > 1:
+        return f"{bytes / 1e9:.1f}. GB"
+    elif bytes // 1e6 > 1:
+        return f"{bytes / 1e6:.1f} MB"
+    elif bytes // 1e3 > 1:
+        return f"{bytes / 1e3:.1f} KB"
     else:
-        raise ValueError(f"Unsupported data type: {data_type}")
+        return f"{bytes} Bytes"
 
 
 def preprocess_transform(
@@ -126,7 +74,7 @@ def order_levels(
         column1: A string matching a column whose levels we want to order
         column2: A string matching a second optional column whose values we can use to order column1 instead of using
          counts
-        order_method: Order in which to sort the levels.
+        order: Order in which to sort the levels.
          - 'auto' sorts ordinal variables by provided ordering, nominal variables by
             descending frequency, and numeric variables in sorted order.
          - 'descending' sorts in descending frequency.
@@ -165,10 +113,10 @@ def order_levels(
         elif order == "random":
             order = list(value_counts.sample(frac=1).index)
         else:
-            raise ValueError(f"Unknown level order specification: {order_method}")
+            raise ValueError(f"Unknown level order specification: {order}")
 
     # restrict to max_levels levels (condense rest into Other)
-    num_levels = len(data[column1].unique())
+    num_levels = data[column1].nunique()
     if num_levels > max_levels:
         other_levels = order[max_levels - 1 :]
         order = order[: max_levels - 1] + ["Other"]
@@ -186,30 +134,6 @@ def order_levels(
     data[column1] = pd.Categorical(data[column1], categories=order, ordered=True)
 
     return data[column1]
-
-
-def preprocess_transformations(
-    data: pd.DataFrame, column: str, transform: str = "identity"
-) -> pd.DataFrame:
-    """
-    Preprocesses a data column to be compatible with the provided transformation.
-
-    Args:
-        data: pandas DataFrame holding the data
-        column: The dataframe column that is being transformed
-        transform: Transformation to apply to the column:
-         - 'identity': no transformation
-         - 'log': apply a logarithmic transformation with small constant added in case of zero values
-         - 'log_exclude0': apply a logarithmic transformation with zero values removed
-         - 'sqrt': apply a square root transformation
-    Returns:
-        Modified dataframe with the column data updated according to the transform specified
-    """
-    if transform == "log":
-        data[column] += 1e-6
-    elif transform == "log_exclude0":
-        data = data[data[column] > 0]
-    return data
 
 
 def freedman_diaconis_bins(a, log=False):
@@ -294,15 +218,38 @@ def convert_date_breaks(breaks_str: str) -> mdates.DateLocator:
     return mdates.RRuleLocator(mdates.rrulewrapper(period, interval=int(interval)))
 
 
-# Old
+def trim_values(
+    data: pd.DataFrame, column: str, lower_trim: int = 0, upper_trim: int = 0
+) -> pd.DataFrame:
+    """
+    Filters a dataframe by removing rows where the values for a specified column are above or below
+    provided quantile limits.
+
+    Args:
+        data: pandas DataFrame to perform EDA on
+        column: A string matching a column in the data to visualize
+        lower_trim: Number of values to trim from lower end of distribution
+        upper_trim: Number of values to trim from upper end of distribution
+
+    Returns:
+        pandas Dataframe filtered to remove rows where column values are beyond the specified quantiles
+    """
+    data = data.sort_values(column, ascending=True)
+    if upper_trim == 0:
+        data = data.iloc[lower_trim:, :]
+    else:
+        data = data.iloc[lower_trim:-upper_trim, :]
+    return data
 
 
-def match_axes(fig, ax, gg):
-    upper = max(ax.get_xlim()[1], ax.get_ylim()[1])
-    lower = min(ax.get_xlim()[0], ax.get_ylim()[0])
-    gg += p9.coord_fixed(ratio=1, xlim=(lower, upper), ylim=(lower, upper))
-    _ = gg._draw_using_figure(fig, [ax])
-    return fig, ax, gg
+def coerce_column_type(col_data, col_type):
+
+    if not is_datetime64_any_dtype(col_data) and col_type == "datetime":
+        return pd.to_datetime(col_data)
+    elif col_data.dtype.name == "category" and col_type == "text":
+        return col_data.astype("string")
+    else:
+        return col_data
 
 
 def iqr(a):
@@ -316,77 +263,104 @@ def iqr(a):
     return q3 - q1
 
 
-def trim_quantiles(
-    data: pd.DataFrame,
-    column: str,
-    lower_quantile: float = 0,
-    upper_quantile: float = 1,
-) -> pd.DataFrame:
+def compute_time_deltas(
+    col_data: pd.Series, delta_units: str, unit_th: float = 0.5
+) -> Tuple[pd.Series, str]:
     """
-    Filters a dataframe by removing rows where the values for a specified column are above or below
-    provided quantile limits.
+    Compute time deltas between successive observations for a datetime series.
 
     Args:
-        data: pandas DataFrame to perform EDA on
-        column: A string matching a column in the data to visualize
-        lower_quantile: Lower quantile of column data to remove below
-        upper_quantile: Upper quantile of column data to remove above
+        col_data: Datetime series to compute time differences for
+        delta_units: Units to compute time deltas in. 'auto' attempts to guess the best units.
+        unit_th: Threshold for median of units when guessing best units
 
     Returns:
-        pandas Dataframe filtered to remove rows where column values are beyond the specified quantiles
+        Computed time deltas series and units
     """
-    lower_quantile = data[column].quantile(lower_quantile)
-    upper_quantile = data[column].quantile(upper_quantile)
-    query = (data[column] >= lower_quantile) & (data[column] <= upper_quantile)
-    return data[query]
 
+    dts = col_data.sort_values(ascending=True)
+    deltas = dts - dts.shift(1)
 
-def detect_column_type(col_data, discrete_limit=50):
-
-    if is_datetime64_any_dtype(col_data):
-        return "datetime"
-    elif is_numeric_dtype(col_data):
-        if len(col_data.unique()) <= discrete_limit:
-            return "discrete"
+    def td_str(units):
+        if units == "months":
+            return "30 days"
+        elif units == "weeks":
+            return "7 days"
+        elif units == "years":
+            return "365 days"
         else:
-            return "continuous"
-    elif col_data.dtype.name == "category":
-        return "discrete"
-    elif col_data.dtype.name == "string":
-        return "text"
-    elif col_data.dtype.name == "object":
-        test_value = col_data.dropna().iat[0]
-        if isinstance(test_value, (list, tuple, set)):
-            return "list"
-        # TODO: Probably need smarter detection
-        elif type(test_value) == str:
-            num_levels = col_data.nunique()
-            if num_levels > len(col_data) / 2:
-                if col_data.apply(lambda x: len(x.split(" "))).max() <= 3:
-                    return "discrete"
-                else:
-                    return "text"
-            else:
-                return "discrete"
-        else:
-            return "discrete"
+            return f"1 {units}"
+
+    if delta_units == "auto":
+        for unit in TIME_UNITS[::-1]:
+            delta_units = unit
+            unit_str = td_str(delta_units)
+            med = (deltas / pd.Timedelta(unit_str)).median()
+            if med >= unit_th:
+                break
     else:
-        raise ValueError(f"Unsupported data type {col_data.dtype.name}")
+        unit_str = td_str(delta_units)
+    deltas = deltas / pd.Timedelta(unit_str)
+    return deltas, delta_units
 
 
-def coerce_column_type(col_data, col_type):
-
-    if not is_datetime64_any_dtype(col_data) and col_type == "datetime":
-        return pd.to_datetime(col_data)
-    elif col_data.dtype.name == "category" and col_type == "text":
-        return col_data.astype("string")
-    else:
-        return col_data
-
-
-def fmt_counts(counts, percentages):
+def agg_time_series(data, column, agg_freq):
     """
-    https://plotnine.readthedocs.io/en/stable/tutorials/miscellaneous-show-counts-and-percentages-for-bar-plots.html
+    Aggregate a time series at the provided aggregation frequency.
+
+    Args:
+        data: pandas Dataframe to agg
+        column: datetime column to aggregate
+        agg_freq: Frequency at which to aggregate. Either a '{quantity} {unit} string such as '1 month' or a
+         pandas frequency string.
+
+    Returns:
+        Tuple containing aggregated dataframe and ylabel with counts
     """
-    fmt = "{} ({:.1f}%)".format
-    return [fmt(c, p) for c, p in zip(counts, percentages)]
+
+    # Automatically set an intelligent aggregation frequency
+    if agg_freq == "auto":
+        range_secs = (data[column].max() - data[column].min()).total_seconds()
+        freqs = [
+            "1 second",
+            "1 month",
+            "1 hour",
+            "1 day",
+            "1 week",
+            "1 month",
+            "1 year",
+        ]
+        vals = [
+            1,
+            60,
+            3600,
+            3600 * 24,
+            3600 * 24 * 7,
+            3600 * 24 * 7 * 30,
+            3600 * 24 * 7 * 30 * 365,
+        ]
+        ix = np.argmin(np.abs([range_secs / 10 - v for v in vals]))
+        agg_freq = freqs[ix]
+    ylabel = f"Count (aggregated every {agg_freq})"
+    agg_freq = convert_to_freq_string(agg_freq)
+
+    # Resample and aggregate time series counts
+    agg_df = (
+        data.set_index(column)
+        .resample(agg_freq)
+        .agg("size")
+        .reset_index()
+        .rename({0: "Count"}, axis="columns")
+    )
+    return agg_df, ylabel
+
+
+# Old
+
+
+def match_axes(fig, ax, gg):
+    upper = max(ax.get_xlim()[1], ax.get_ylim()[1])
+    lower = min(ax.get_xlim()[0], ax.get_ylim()[0])
+    gg += p9.coord_fixed(ratio=1, xlim=(lower, upper), ylim=(lower, upper))
+    _ = gg._draw_using_figure(fig, [ax])
+    return fig, ax, gg

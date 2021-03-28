@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import plotnine as p9
 from typing import Tuple, Optional
-from .utils import (
+from .plot_utils import (
     convert_to_freq_string,
     trim_quantiles,
     preprocess_transformations,
@@ -12,6 +12,7 @@ from .utils import (
     add_trendline,
     convert_date_breaks,
 )
+from .data_utils import trim_values
 import seaborn as sns
 
 
@@ -271,10 +272,11 @@ def time_series_plot(
             data['created_at'] = pd.to_datetime(data.created_at)
             intedact.time_series(data, 'created_at', trend_line='auto');
     """
+
     if ts_type == "point":
-        ax = sns.scatterplot(data=data, ax=ax, x=column1, y=column2, **kwargs)
+        ax = sns.scatterplot(data=data, ax=ax, x=column1, y=column2)
     else:
-        ax = sns.lineplot(data=data, ax=ax, x=column1, y=column2, **kwargs)
+        ax = sns.lineplot(data=data, ax=ax, x=column1, y=column2)
 
     if trend_line is not None:
         ax = add_trendline(

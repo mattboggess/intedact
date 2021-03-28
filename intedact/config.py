@@ -1,349 +1,346 @@
-# Plot controls (fill color for histograms, bar, and boxplots that don't have fill mapped to column)
-BAR_COLOR = 'steelblue'
-FLIP_LEVEL_COUNT = 10
-THEME_DEFAULT = 'theme_bw'
+import ipywidgets as widgets
 
+FLIP_LEVEL_COUNT = 5
+
+TIME_UNITS = [
+    "nanoseconds",
+    "microseconds",
+    "milliseconds",
+    "seconds",
+    "months",
+    "hours",
+    "days",
+    "weeks",
+    "months",
+    "years",
+]
 
 # Column type groupings
 DISCRETE_TYPES = [
-    'discrete_numeric',
-    'unordered_categorical',
-    'ordered_categorical',
-    'unordered_categorical (inferred from object)'
+    "discrete_numeric",
+    "unordered_categorical",
+    "ordered_categorical",
+    "unordered_categorical (inferred from object)",
 ]
 
 # Widget control values
-WIDGET_VALUES = {
-    'manual_update': {
-        'description': "Update plots manually",
-        'width': '0%',
-        'widget_options': 'N/A'
+WIDGET_PARAMS = {
+    "manual_update": {
+        "description": "Update plots manually",
+        "width": "0%",
+        "widget": "N/A",
     },
-    'Run Interact': {
-        'description': "Update Plot",
-        'width': '0%',
-        'widget_options': 'N/A'
+    "Run Interact": {
+        "description": "Update Plot",
+        "width": "0%",
+        "widget": "N/A",
     },
-    'column': {
-        'description': "column: Column to be plotted",
-        'width': '22%',
-        'widget_options': 'N/A'
+    "column": dict(
+        description="Column: Column to be plotted",
+        style={"description_width": "22%"},
+    ),
+    "summary_type": dict(
+        description=(
+            "Summary Type: Type of univariate summary to display."
+            " Type is automatically inferred by default, but you can manually change the type to"
+            " try to produce a different summary if the column data is compatible."
+            " It is recommended you preprocess the columns to have the desired type prior to"
+            " running this function for greatest accuracy of automatic type inference.\n\n"
+            " The following types are available:\n"
+            "  - 'discrete': categorical or low dimensional numeric variables\n"
+            "  - 'continuous': high dimensional numeric variables \n"
+            "  - 'datetime': datetime columns (should be coerceable to datetime type) \n"
+            "  - 'text': column with strings that represent longer freeform text \n"
+            "  - 'list': column with variable length lists of items, should be pre-coerced such that elements are python lists/tuples/sets\n"
+        ),
+        style={"description_width": "36%"},
+        options=["discrete", "continuous", "datetime", "text", "list"],
+    ),
+    "fig_width": dict(
+        description="Figure Width: Width of figure in inches",
+        min=1,
+        max=50,
+        step=1,
+        value=12,
+        style={"description_width": "31%"},
+    ),
+    "fig_height": dict(
+        description="Figure Height: Height of figure in inches (multiplied if multiple subplots)",
+        min=1,
+        max=50,
+        step=1,
+        value=6,
+        style={"description_width": "33%"},
+    ),
+    "fontsize": dict(
+        description="Font Size: fontsize for axis and tick labels",
+        min=1,
+        max=40,
+        step=0.5,
+        value=12,
+        style={"description_width": "25%"},
+    ),
+    "color_palette": dict(
+        description="Color Palette:",
+        placeholder="Passed to sns.set_palette()",
+        value=None,
+    ),
+    "order": dict(
+        description=(
+            "Level Order: Order in which to sort the levels of the variable for plotting:\n"
+            "  - ** 'auto' **: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.\n"
+            "  - ** 'descending' **: sorts in descending frequency.\n"
+            "  - ** 'ascending' **: sorts in ascending frequency.\n"
+            "  - ** 'sorted' **: sorts according to sorted order of the levels themselves.\n"
+            "  - ** 'random' **: produces a random order.Useful if there are too many levels for one plot.\n"
+            "Or you can pass a list of level names in directly for your own custom order.\n"
+        ),
+        options=["auto", "descending", "ascending", "sorted", "random"],
+        value="auto",
+        style={"description_width": "30%"},
+    ),
+    "max_levels": dict(
+        description="Max Levels: Maximum number of levels to display before condensing remaining into 'Other'",
+        min=1,
+        max=100,
+        step=1,
+        value=30,
+        style={"description_width": "28%"},
+    ),
+    "flip_axis": dict(description="Flip Plot Orientation", value=True),
+    "label_counts": dict(description="Add Counts and Percentages", value=True),
+    "percent_axis": dict(description="Add a Percentage Axis", value=True),
+    "include_missing": dict(description="Plot Missing Values", value=False),
+    "label_rotation": dict(
+        description="Label Rotation: Degree to rotate axis labels (Ignored if axis is flipped)",
+        min=0,
+        max=90,
+        step=1,
+        value=0,
+        style={"description_width": "35%"},
+    ),
+    "label_fontsize": dict(
+        description="Label Font Size: Font size for the count and percentage annotations",
+        min=1,
+        max=30,
+        step=0.5,
+        value=12,
+        style={"description_width": "38%"},
+    ),
+    "bins": dict(
+        description="# Bins: Number of bins to use for the histogram",
+        min=1,
+        max=1000,
+        step=1,
+        value=100,
+        style={"description_widht": "20%"},
+    ),
+    "kde": dict(description="Overlay Density on Histogram", value=False),
+    "transform": dict(
+        description=(
+            "Transform: Transformation to apply to column for plotting \n"
+            "  - identity: No transformation\n"
+            "  - log: Log transform (see clip variable for handling 0's)\n"
+        ),
+        value="identity",
+        options=["identity", "log"],
+        style={"description_width": "27%"},
+    ),
+    "clip": dict(
+        description=(
+            "Positive Clip: Clip values below this value to this value (filter > 0 if 0)."
+            " Used for log transform."
+        ),
+        value=0,
+        min=0,
+        max=10,
+        step=1e-6,
+        style={"description_width": "31%"},
+    ),
+    "lower_trim": dict(
+        description=(
+            "Lower Trim: Remove X values from lower end of distribution. Use to remove outliers in data."
+        ),
+        value=0,
+        min=0,
+        max=10000,
+        step=1,
+        style={"description_width": "30%"},
+    ),
+    "upper_trim": dict(
+        description=(
+            "Upper Trim: Remove X values from upper end of distribution. Use to remove outliers in data."
+        ),
+        value=0,
+        min=0,
+        max=10000,
+        step=1,
+        style={"description_width": "30%"},
+    ),
+    "ts_freq": dict(
+        description=(
+            "Aggregation Frequency: Frequency at which to aggregate counts. Can either be a quantity followed by"
+            " a time unit (i.e. 6 months) or a pandas frequency string."
+        ),
+        value="auto",
+        style={"description_width": "52%"},
+    ),
+    "delta_units": dict(
+        description=(
+            "Time Delta Units: Units in which to report the time differences between successive observations."
+        ),
+        value="auto",
+        options=["auto"] + TIME_UNITS,
+        style={"description_width": "40%"},
+    ),
+    "trend_line": dict(
+        description=(
+            "Trend Line: Trend line to plot over data. 'none' will plot no trend line."
+            "Other options are passed to plotnine's geom_smooth."
+        ),
+        value="auto",
+        options=["auto", "none", "loess", "lm"],
+        style={"description_width": "27%"},
+    ),
+    "span": dict(
+        description=(
+            "Loess Span: Span parameter to control loess trend line smoothing."
+        ),
+        min=0,
+        max=1,
+        value=0.75,
+        style={"description_width": "32%"},
+    ),
+    "date_breaks": dict(
+        description=(
+            "Date Breaks: Frequency at which to add ticks to time series x axis. Format is"
+            " a quantity followed time unit (i.e. 6 months)."
+        ),
+        value="auto",
+        style={"description_width": "32%"},
+    ),
+    "date_labels": dict(
+        description=(
+            "Date Labels: Format for the date x axis labels. Format string passed to strftime"
+        ),
+        value="auto",
+        style={"description_width": "30%"},
+    ),
+    "ts_type": dict(
+        description="Time Series Type: 'point' plots a time series scatter plot and 'line' plots a line graph.",
+        options=["point", "line"],
+        value="line",
+        style={"description_width": "40%"},
+    ),
+    "top_ngrams": {
+        "description": "top ngrams: Maximum number of bars to plot for ngrams",
+        "width": "29%",
+        "widget": (1, 100, 1),
     },
-    'column1': {
-        'description': "column1: Column to be plotted as independent variable",
-        'width': '23%',
-        'widget_options': 'N/A'
+    "remove_punct": {
+        "description": "Ignore punctuation for ngrams",
+        "width": "0%",
+        "widget": "N/A",
     },
-    'column2': {
-        'description': "column2: Column to be plotted as dependent variable",
-        'width': '24%',
-        'widget_options': 'N/A'
+    "remove_stop": {
+        "description": "Ignore stop words for ngrams",
+        "width": "0%",
+        "widget": "N/A",
     },
-    'col_type': {
-        'description': ("column type: Column type that determines which univariate summary will be displayed."
-                        " Type is automatically inferred by default, but you can manually change the type to"
-                        " try to produce a different summary if the column data is compatible."
-                        " It is recommended you preprocess the columns to have the desired type prior to"
-                        " running this function for greatest accuracy of automatic type inference.\n\n"
-                        " The following types are available:\n"
-                        "  - 'discrete': categorical or low dimensional numeric variables\n"
-                        "  - 'continuous': high dimensional numeric variables \n"
-                        "  - 'datetime': datetime columns (should be coerceable to datetime type) \n"
-                        "  - 'text': column with strings that represent longer freeform text \n"
-                        "  - 'list': column with variable length lists of items, should be pre-coerced such that elements are python lists/tuples/sets\n"),
-        'width': '33%',
-        'widget_options': ['discrete', 'continuous', 'datetime', 'text', 'list']
+    "lower_case": {
+        "description": "Lower case text for ngrams",
+        "width": "0%",
+        "widget": "N/A",
     },
-    'col1_type': {
-        'description': ("column1 type: Column type for column1 that determines which bivariate summary will be displayed with col_type2."
-                        " Type is automatically inferred by default, but you can manually change the type to"
-                        " try to produce a different summary if the column data is compatible."
-                        " It is recommended you preprocess the columns to have the desired type prior to"
-                        " running this function for greatest accuracy of automatic type inference.\n\n"
-                        " The following types are available:\n"
-                        "  - 'discrete': categorical or low dimensional numeric variables\n"
-                        "  - 'continuous': high dimensional numeric variables \n"
-                        "  - 'datetime': datetime columns (should be coerceable to datetime type) \n"
-                        "  - 'text': columns with strings that represent longer freeform text \n"
-                        "  - 'list': columns with variable length lists of items, should be preprocessed such that elements are python lists/tuples/set objects\n"),
-        'width': '35%',
-        'widget_options': ['discrete', 'continuous', 'datetime', 'text', 'list']
-    },
-    'col2_type': {
-        'description': ("column2 type: Column type for column2 that determines which bivariate summary will be displayed with col_type1."
-                        " Type is automatically inferred by default, but you can manually change the type to"
-                        " try to produce a different summary if the column data is compatible." 
-                        " It is recommended you preprocess the columns to have the desired type prior to"
-                        " running this function for greatest accuracy of automatic type inference.\n\n"
-                        " The following types are available:\n"
-                        "  - 'discrete': categorical or low dimensional numeric variables\n"
-                        "  - 'continuous': high dimensional numeric variables \n"
-                        "  - 'datetime': datetime columns (should be coerceable to datetime type) \n"
-                        "  - 'text': column with strings that represent longer freeform text, not categorical data \n"
-                        "  - 'list': column with variable length lists of items, should be pre-coerced such that elements are python lists/tuples/sets\n"),
-        'width': '35%',
-        'widget_options': ['discrete', 'continuous', 'datetime', 'text', 'list']
-    },
-    'discrete_limit': {
-        'description': ("discrete limit: # of unique values a variable must have before it is considered "
-                        "continuous rather than discrete"),
-        'width': '33%',
-        'widget_options': (1, 100, 1)
-    },
-    'fig_width': {
-        'description': "fig width: width of figure in inches",
-        'width': '25%',
-        'widget_options': (1, 30, 1)
-    },
-    'fig_height': {
-        'description': "fig height: height of figure in inches (multiplied if multiple subplots)",
-        'width': '26%',
-        'widget_options': (1, 30, 1)
-    },
-    'level_order': {
-        'description':
-            ("level order: Order for arranging column levels on plot\n" 
-             "  - descending: Arrange levels from most frequent to least frequent\n"
-             "  - ascending: Arrange levels from least frequent to most frequent\n"
-             "  - sorted: Arrange levels in sorted order of the level values themselves\n"
-             "  - random: Randomly arrange levels\n"
-             "  - auto: order based on variable type (sorted for numeric variables, provided level order for"
-             " ordinal variables, descending for unordered categorical variables"),
-        'width': '30%',
-        'widget_options': ['auto', 'descending', 'ascending', 'sorted', 'random']
-    },
-    'level_order1': {
-        'description':
-            ("level order1: Order for arranging column1 levels on plot\n"
-             "  - descending: Arrange levels from most frequent to least frequent\n"
-             "  - ascending: Arrange levels from least frequent to most frequent\n"
-             "  - sorted: Arrange levels in sorted order of the level values themselves\n"
-             "  - random: Randomly arrange levels\n"
-             "  - auto: order based on variable type (sorted for numeric variables, provided level order for"
-             " ordinal variables, descending for unordered categorical variables"),
-        'width': '30%',
-        'widget_options': ['auto', 'descending', 'ascending', 'sorted', 'random']
-    },
-    'level_order2': {
-        'description':
-            ("level order2: Order for arranging column1 levels on plot\n"
-             "  - descending: Arrange levels from most frequent to least frequent\n"
-             "  - ascending: Arrange levels from least frequent to most frequent\n"
-             "  - sorted: Arrange levels in sorted order of the level values themselves\n"
-             "  - random: Randomly arrange levels\n"
-             "  - auto: order based on variable type (sorted for numeric variables, provided level order for"
-             " ordinal variables, descending for unordered categorical variables"),
-        'width': '30%',
-        'widget_options': ['auto', 'descending', 'ascending', 'sorted', 'random']
-    },
-    'max_levels': {
-        'description': "max levels: Maximum number of levels to display before condensing remaining into 'Other'",
-        'width': '28%',
-        'widget_options': (1, 100, 1)
-    },
-    'top_entries': {
-        'description': "top entries: Maximum number of most common entries/entry pairs to display in plots.",
-        'width': '30%',
-        'widget_options': (1, 100, 1)
-    },
-    'flip_axis': {
-        'description': "Flip plot orientation",
-        'width': '0%',
-        'widget_options': [True, False]
-    },
-    'label_counts': {
-        'description': "Add counts and percentages",
-        'width': '0%',
-        'widget_options': [True, False]
-    },
-    'label_rotation': {
-        'description': "label_rotation: Degree to rotate axis labels",
-        'width': '35%',
-        'widget_options': (0, 90, 1)
-    },
-    'hist_bins': {
-        'description': "hist bins: Number of bins to use for the histogram (0 uses geom_histogram default bins)",
-        'width': '25%',
-        'widget_options': (0, 100, 1)
-    },
-    'kde': {
-        'description': "Overlay density plot on histogram",
-        'width': '0%',
-        'widget_options': 'N/A'
-    },
-    'transform': {
-        'description':
-            ("transform: Transformation to apply to column for plotting \n"
-             "  - identity: No transformation\n"
-             "  - log: Log transform (add a small constant in case of 0's)\n"
-             "  - log_exclude0: Log transform with 0's filtered out\n" 
-             "  - sqrt: Square root transform"),
-        'width': '27%',
-        'widget_options': ['identity', 'log', 'log_exclude0', 'sqrt']
-    },
-    'transform1': {
-        'description':
-            ("transform1: Transformation to apply to column1 for plotting \n"
-             "  - identity: No transformation\n"
-             "  - log: Log transform (add a small constant in case of 0's)\n"
-             "  - log_exclude0: Log transform with 0's filtered out\n"
-             "  - sqrt: Square root transform"),
-        'width': '28%',
-        'widget_options': ['identity', 'log', 'log_exclude0', 'sqrt']
-    },
-    'transform2': {
-        'description':
-            ("transform2: Transformation to apply to column2 for plotting \n"
-             "  - identity: No transformation\n"
-             "  - log: Log transform (add a small constant in case of 0's)\n"
-             "  - log_exclude0: Log transform with 0's filtered out\n"
-             "  - sqrt: Square root transform"),
-        'width': '29%',
-        'widget_options': ['identity', 'log', 'log_exclude0', 'sqrt']
-    },
-    'lower_quantile': {
-        'description': "lower quantile: Lower quantile of data to remove.",
-        'width': '35%',
-        'widget_options': (0, 1, .01)
-    },
-    'upper_quantile': {
-        'description': "upper quantile: Upper quantile of data to remove.",
-        'width': '37%',
-        'widget_options': (0, 1, .01)
-    },
-    'lower_quantile1': {
-        'description': "lower quantile1: Lower quantile of column1 data to remove.",
-        'width': '37%',
-        'widget_options': (0, 1, .01)
-    },
-    'upper_quantile1': {
-        'description': "upper quantile1: Upper quantile of column1 data to remove.",
-        'width': '39%',
-        'widget_options': (0, 1, .01)
-    },
-    'lower_quantile2': {
-        'description': "lower quantile2: Lower quantile of column2 data to remove.",
-        'width': '37%',
-        'widget_options': (0, 1, .01)
-    },
-    'upper_quantile2': {
-        'description': "upper quantile2: Upper quantile of column2 data to remove.",
-        'width': '39%',
-        'widget_options': (0, 1, .01)
-    },
-    'ts_freq': {
-        'description': ("time series sampling frequency: pandas frequency string at which to resample and aggregate "
-                        "counts for time series plot (i.e. 1M means aggregate by month)"),
-        'width': '70%',
-        'widget_options': 'N/A'
-    },
-    'delta_freq': {
-        'description': ("time delta units: pandas frequency string to define time delta units. "
-                        "(i.e. 1D means compute time deltas in units of days)"),
-        'width': '38%',
-        'widget_options': 'N/A'
-    },
-    'top_ngrams': {
-        'description': "top ngrams: Maximum number of bars to plot for ngrams",
-        'width': '29%',
-        'widget_options': (1, 100, 1)
-    },
-    'remove_punct': {
-        'description': "Ignore punctuation for ngrams",
-        'width': '0%',
-        'widget_options': 'N/A'
-    },
-    'remove_stop': {
-        'description': "Ignore stop words for ngrams",
-        'width': '0%',
-        'widget_options': 'N/A'
-    },
-    'lower_case': {
-        'description': "Lower case text for ngrams",
-        'width': '0%',
-        'widget_options': 'N/A'
-    },
-    'plot_type_cc': {
-        'description': ("plot type: Type of plot to show\n"
+    "plot_type_cc": {
+        "description": (
+            "plot type: Type of plot to show\n"
             "  - 'auto': Defaults to scatter plot\n"
             "  - 'scatter': Draw a scatter plot using geom_scatter\n"
             "  - 'bin2d': Draw a 2d histogram using geom_bin2d\n"
-            "  - 'count': Draw a 2d count plot using geom_count"),
-        'width': '25%',
-        'widget_options': ['auto', 'scatter', 'bin2d', 'count']
+            "  - 'count': Draw a 2d count plot using geom_count"
+        ),
+        "width": "25%",
+        "widget": ["auto", "scatter", "bin2d", "count"],
     },
-    'plot_type_dc1': {
-        'description': ("plot type: Type of plot to show\n"
-                        "  - 'auto': Defaults to bar plot\n"
-                        "  - 'bar': Draw a bar plot\n"
-                        "  - 'point': Draw a point plot\n"),
-        'width': '25%',
-        'widget_options': ['auto', 'bar', 'point']
+    "plot_type_dc1": {
+        "description": (
+            "plot type: Type of plot to show\n"
+            "  - 'auto': Defaults to bar plot\n"
+            "  - 'bar': Draw a bar plot\n"
+            "  - 'point': Draw a point plot\n"
+        ),
+        "width": "25%",
+        "widget": ["auto", "bar", "point"],
     },
-    'plot_type_dc2': {
-        'description': ("plot type: Type of plot to show\n"
-                        "  - 'auto': Defaults to overlapping histograms \n"
-                        "  - 'histogram': Draw overlapping histograms \n"
-                        "  - 'density': Draw overlapping KDEs \n"),
-        'width': '25%',
-        'widget_options': ['auto', 'histogram', 'density']
+    "plot_type_dc2": {
+        "description": (
+            "plot type: Type of plot to show\n"
+            "  - 'auto': Defaults to overlapping histograms \n"
+            "  - 'histogram': Draw overlapping histograms \n"
+            "  - 'density': Draw overlapping KDEs \n"
+        ),
+        "width": "25%",
+        "widget": ["auto", "histogram", "density"],
     },
-    'plot_type_dcn': {
-        'description': ("plot type: Type of plot to show\n"
-                        "  - 'auto': Defaults to boxplot \n"
-                        "  - 'freqpoly': Draw overlapping densities/histograms as colored lines with geom_freqpoly \n"
-                        "  - 'boxplot': Draw boxplot per level of discrete variable \n"
-                        "  - 'violinplot': Draw violin per level of discrete variable \n"
-                        "  - 'facted_histogram': Draw faceted histograms stacked vertically in facets by level \n"
-                        "  - 'facted_density': Draw faceted densities stacked vertically in facets by level \n"),
-        'width': '25%',
-        'widget_options': ['auto', 'freqpoly', 'boxplot', 'violin', 'faceted_histogram', 'faceted_density']
+    "plot_type_dcn": {
+        "description": (
+            "plot type: Type of plot to show\n"
+            "  - 'auto': Defaults to boxplot \n"
+            "  - 'freqpoly': Draw overlapping densities/histograms as colored lines with geom_freqpoly \n"
+            "  - 'boxplot': Draw boxplot per level of discrete variable \n"
+            "  - 'violinplot': Draw violin per level of discrete variable \n"
+            "  - 'facted_histogram': Draw faceted histograms stacked vertically in facets by level \n"
+            "  - 'facted_density': Draw faceted densities stacked vertically in facets by level \n"
+        ),
+        "width": "25%",
+        "widget": [
+            "auto",
+            "freqpoly",
+            "boxplot",
+            "violin",
+            "faceted_histogram",
+            "faceted_density",
+        ],
     },
-    'trend_line': {
-        'description': ("trend line: Trend line to plot over data. 'none' will plot no trend line." 
-                        "Other options are passed to plotnine's geom_smooth."),
-        'width': '27%',
-        'widget_options': ['auto', 'none', 'loess', 'lm']
+    "equalize_axes": {
+        "description": "Match x and y axes",
+        "width": "30%",
+        "widget": "N/A",
     },
-    'equalize_axes': {
-        'description': "Match x and y axes",
-        'width': '30%',
-        'widget_options': 'N/A'
+    "reference_line": {
+        "description": "Plot a y = x reference line",
+        "width": "0%",
+        "widget": "N/A",
     },
-    'reference_line': {
-        'description': "Plot a y = x reference line",
-        'width': '0%',
-        'widget_options': 'N/A'
+    "plot_density": {
+        "description": "Overlay a bivariate KDE",
+        "width": "0%",
+        "widget": "N/A",
     },
-    'plot_density': {
-        'description': "Overlay a bivariate KDE",
-        'width': '0%',
-        'widget_options': 'N/A'
+    "alpha": {
+        "description": "alpha: Amount of transparency to use for points/histograms ranging from 0 (fully transparent) to 1 (opaque)",
+        "width": "18%",
+        "widget": (0, 1, 0.05),
     },
-    'alpha': {
-        'description': "alpha: Amount of transparency to use for points/histograms ranging from 0 (fully transparent) to 1 (opaque)",
-        'width': '18%',
-        'widget_options': (0, 1, .05)
+    "normalize": {
+        "description": "Normalize counts to percentages",
+        "width": "0%",
+        "widget": "N/A",
     },
-    'normalize': {
-        'description': "Normalize counts to percentages",
-        'width': '0%',
-        'widget_options': 'N/A'
+    "ref_lines": {
+        "description": "Add mean & median reference lines",
+        "width": "0%",
+        "widget": "N/A",
     },
-    'ref_lines': {
-        'description': "Add mean & median reference lines",
-        'width': '0%',
-        'widget_options': 'N/A'
+    "varwidth": {
+        "description": "Scale boxplot by sample size",
+        "width": "0%",
+        "widget": "N/A",
     },
-    'varwidth': {
-        'description': "Scale boxplot by sample size",
-        'width': '0%',
-        'widget_options': 'N/A'
+    "normalize_dist": {
+        "description": "Normalize distributions to densities",
+        "width": "0%",
+        "widget": "N/A",
     },
-    'normalize_dist': {
-        'description': "Normalize distributions to densities",
-        'width': '0%',
-        'widget_options': 'N/A'
-    }
 }
-

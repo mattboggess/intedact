@@ -1,12 +1,9 @@
 import pandas as pd
 import seaborn as sns
-from plotnine import *
 import ipywidgets as widgets
 import warnings
-import copy
 import json
 import os
-import subprocess
 
 from .config import WIDGET_PARAMS, FLIP_LEVEL_COUNT
 from .data_utils import coerce_column_type, freedman_diaconis_bins
@@ -95,7 +92,7 @@ def column_univariate_eda_interact(
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
         fig_height_widget.value = max(6, min(data[column].nunique(), 24) // 2)
         flip_axis_widget = widgets.Checkbox(**WIDGET_PARAMS["flip_axis"])
-        flip_axis_widget.value = data[column].nunique() > 5
+        flip_axis_widget.value = data[column].nunique() > FLIP_LEVEL_COUNT
         widget = widgets.interactive(
             discrete_univariate_summary,
             {"manual": manual_update},

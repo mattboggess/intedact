@@ -1,16 +1,20 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Tuple
 import seaborn as sns
-from .utils import (
-    freedman_diaconis_bins,
-    trim_quantiles,
-    order_levels,
+import numpy as np
+from .plot_utils import (
     add_percent_axis,
     transform_axis,
-    preprocess_transform,
-    convert_to_freq_string,
     add_barplot_annotations,
+    set_fontsize,
+)
+from .data_utils import (
+    trim_values,
+    order_levels,
+    freedman_diaconis_bins,
+    preprocess_transform,
+    agg_time_series,
 )
 from .config import FLIP_LEVEL_COUNT
 from .bivariate_plots import time_series_plot
@@ -20,8 +24,8 @@ def boxplot(
     data: pd.DataFrame,
     column: str,
     ax: Optional[plt.Axes] = None,
-    lower_quantile: int = 0,
-    upper_quantile: int = 1,
+    lower_trim: int = 0,
+    upper_trim: int = 0,
     transform: str = "identity",
     clip: float = 0,
     flip_axis: bool = True,
@@ -37,8 +41,8 @@ def boxplot(
         data: pandas DataFrame containing data to be plotted
         column: name of column to plot histogram of
         ax: matplotlib axes generated from blank ggplot to plot onto. If specified, must also specify fig
-        lower_quantile: Lower quantile of data to remove before plotting for ignoring outliers
-        upper_quantile: Upper quantile of data to remove before plotting for ignoring outliers
+        lower_trim: Number of values to trim from lower end of distribution
+        upper_trim: Number of values to trim from upper end of distribution
         transform: Transformation to apply to the data for plotting:
 
          - **'identity'**: no transformation
@@ -61,9 +65,7 @@ def boxplot(
     data = data.copy()
 
     # Remove upper and lower quantiles
-    data = trim_quantiles(
-        data, column, lower_quantile=lower_quantile, upper_quantile=upper_quantile
-    )
+    data = trim_values(data, column, lower_trim, upper_trim)
 
     # Clip/remove zeros for log transformation
     data = preprocess_transform(data, column, transform, clip=clip)
@@ -92,6 +94,7 @@ def countplot(
     label_counts: bool = True,
     label_fontsize: Optional[float] = None,
     include_missing: bool = False,
+    percent_denominator: Optional[int] = None,
     **kwargs,
 ) -> plt.Axes:
     """
@@ -136,8 +139,10 @@ def countplot(
             intedact.countplot(data, 'day')
     """
     data = data.copy()
+    plt.rcParams["font.size"] = 22
 
     # Handle axis flip default
+    num_levels = data[column].nunique()
     num_plot_levels = min(max_levels, data[column].nunique())
     if flip_axis is None:
         flip_axis = num_plot_levels > 5 and label_rotation == 0
@@ -159,7 +164,19 @@ def countplot(
     count_data = (
         data.groupby(column).size().reset_index().rename({0: "Count"}, axis="columns")
     )
-    ax = sns.barplot(x=x, y=y, data=count_data, ax=ax, order=order, **kwargs)
+    ax = sns.barplot(
+        x=x,
+        y=y,
+        color=sns.color_palette()[0],
+        data=count_data,
+        ax=ax,
+        order=order,
+    )
+    if num_levels > max_levels:
+        label = (
+            f"{column} ({num_levels - max_levels + 1} levels condensed into 'Other')"
+        )
+        ax.set_ylabel(label) if flip_axis else ax.set_xlabel(label)
 
     # Add annotations
     if label_counts:
@@ -170,6 +187,7 @@ def countplot(
             add_percent=True,
             flip_axis=flip_axis,
             label_fontsize=label_fontsize,
+            denominator=percent_denominator,
         )
 
     # Add label rotation
@@ -178,8 +196,14 @@ def countplot(
 
     # Add a twin axis for percentage
     if percent_axis:
-        add_percent_axis(ax, count_data["Count"].sum(), flip_axis=flip_axis)
+        if percent_denominator is None:
+            percent_denominator = count_data["Count"].sum()
+        ax_perc = add_percent_axis(ax, percent_denominator, flip_axis=flip_axis)
 
+    if "fontsize" in kwargs:
+        set_fontsize(ax, kwargs["fontsize"])
+        if percent_axis:
+            set_fontsize(ax_perc, kwargs["fontsize"])
     return ax
 
 
@@ -190,8 +214,8 @@ def histogram(
     bins: Optional[int] = None,
     transform: str = "identity",
     clip: float = 0,
-    lower_quantile: int = 0,
-    upper_quantile: int = 1,
+    lower_trim: int = 0,
+    upper_trim: int = 0,
     kde: bool = False,
     **kwargs,
 ) -> plt.Axes:
@@ -209,8 +233,8 @@ def histogram(
          - **'identity'**: no transformation
          - **'log'**: apply a logarithmic transformation to the data
         clip: Value to clip zero values to for log transformation. If 0 (default), zero values are simply removed.
-        lower_quantile: Lower quantile of data to remove before plotting for ignoring outliers
-        upper_quantile: Upper quantile of data to remove before plotting for ignoring outliers
+        lower_trim: Number of values to trim from lower end of distribution
+        upper_trim: Number of values to trim from upper end of distribution
         kde: Whether to overlay a KDE plot on the histogram
         kwargs: Additional keyword arguments passed through to [sns.histplot](https://seaborn.pydata.org/generated/seaborn.histplot.html)
 
@@ -228,9 +252,7 @@ def histogram(
     data = data.copy()
 
     # Remove upper and lower quantiles
-    data = trim_quantiles(
-        data, column, lower_quantile=lower_quantile, upper_quantile=upper_quantile
-    )
+    data = trim_values(data, column, lower_trim, upper_trim)
 
     # Clip/remove zeros for log transformation
     data = preprocess_transform(data, column, transform, clip=clip)
@@ -262,7 +284,8 @@ def time_series_countplot(
     date_breaks: Optional[str] = None,
     span: float = 0.75,
     ci_level: float = 0.95,
-    **kwargs,
+    lower_trim: int = 0,
+    upper_trim: int = 0,
 ) -> plt.Axes:
     """
     Plots a times series plot of datetime column where the y axis is counts of observations aggregated at a provided
@@ -284,6 +307,8 @@ def time_series_countplot(
         date_breaks: Date breaks string in form '{interval} {period}'. Interval must be an integer and period must be
           a time period ranging from seconds to years. (e.g. '1 year', '3 minutes')
         span: Span parameter to determine amount of smoothing for loess
+        lower_trim: Number of values to trim from lower end of distribution
+        upper_trim: Number of values to trim from upper end of distribution
         ci_level: Confidence level determining how wide to plot confidence intervals for smoothing.
 
     Returns:
@@ -298,24 +323,13 @@ def time_series_countplot(
             data['created_at'] = pd.to_datetime(data.created_at)
             intedact.time_series_countplot(data, 'created_at', ts_freq='1 week', trend_line='auto');
     """
-    # TODO: Handle auto aggregating more intelligently
-    if ts_freq == "auto":
-        ts_freq = "1 month"
-    ylabel = f"Count (aggregated every {ts_freq})"
-    ts_freq = convert_to_freq_string(ts_freq)
+    data = trim_values(data, column, lower_trim, upper_trim)
 
-    # Resample and aggregate time series counts
-    tmp = (
-        data.set_index(column)
-        .resample(ts_freq)
-        .agg("size")
-        .reset_index()
-        .rename({0: "Count"}, axis="columns")
-    )
+    agg_data, ylabel = agg_time_series(data, column, ts_freq)
 
     # Draw the time series plot
     ax = time_series_plot(
-        tmp,
+        agg_data,
         column,
         "Count",
         ax=ax,
@@ -325,7 +339,6 @@ def time_series_countplot(
         date_breaks=date_breaks,
         span=span,
         ci_level=ci_level,
-        **kwargs,
     )
 
     # Add a twin axis for percentage

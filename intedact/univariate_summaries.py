@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -6,8 +7,8 @@ from itertools import combinations
 from matplotlib import gridspec
 from IPython.display import display
 from typing import Union, List, Tuple
-from .utils import *
-from .data_utils import compute_univariate_summary_table
+from .plot_utils import *
+from .data_utils import trim_values, compute_time_deltas
 from .univariate_plots import (
     histogram,
     boxplot,
@@ -15,8 +16,72 @@ from .univariate_plots import (
     time_series_countplot,
 )
 from .bivariate_plots import time_series_plot
-from .config import BAR_COLOR
+from .config import TIME_UNITS
 import calendar
+
+FLIP_LEVEL_MINIMUM = 5
+
+
+def compute_univariate_summary_table(
+    data: pd.DataFrame, column: str, data_type: str, lower_trim=0, upper_trim=0
+) -> pd.DataFrame:
+    """
+    Computes summary statistics for a numerical pandas DataFrame column.
+
+    Computed statistics include:
+
+      - mean and median
+      - min and max
+      - 25% percentile
+      - 75% percentile
+      - standard deviation and interquartile range
+      - count and percentage of missing values
+
+    Args:
+        data: The dataframe with the column to summarize
+        column: The column in the dataframe to summarize
+        data_type: Type of column to use to determine summary values to return
+        lower_trim: Number of values to trim from lower end of distribution
+        upper_trim: Number of values to trim from upper end of distribution
+
+    Returns:
+        pandas DataFrame with one row containing the summary statistics for the provided column
+    """
+    data = trim_values(data, column, lower_trim, upper_trim)
+
+    # Get summary table
+    count_missing = data[column].isnull().sum()
+    perc_missing = 100 * count_missing / data.shape[0]
+    count_obs = data.shape[0] - count_missing
+    count_levels = data[column].nunique()
+    counts_table = pd.DataFrame(
+        {
+            "count_observed": [count_obs],
+            "count_unique": [count_levels],
+            "count_missing": [count_missing],
+            "percent_missing": [perc_missing],
+        },
+        index=[column],
+    )
+
+    if data_type == "datetime":
+        counts_table["min"] = data[column].min()
+        counts_table["25%"] = data[column].quantile(0.25)
+        counts_table["median"] = data[column].median()
+        counts_table["75%"] = data[column].quantile(0.75)
+        counts_table["max"] = data[column].max()
+        counts_table["iqr"] = data[column].quantile(0.75) - data[column].quantile(0.25)
+        return counts_table
+    elif data_type == "continuous" or data_type == "datetime":
+        stats_table = pd.DataFrame(data[column].describe()).T
+        stats_table["iqr"] = data[column].quantile(0.75) - data[column].quantile(0.25)
+        stats_table = stats_table[
+            ["min", "25%", "50%", "mean", "75%", "max", "std", "iqr"]
+        ]
+        stats_table = stats_table.rename({"50%": "median"}, axis="columns")
+        return pd.concat([counts_table, stats_table], axis=1)
+    else:
+        return counts_table
 
 
 def discrete_univariate_summary(
@@ -24,16 +89,17 @@ def discrete_univariate_summary(
     column: str,
     fig_height: int = 5,
     fig_width: int = 10,
+    fontsize: int = 15,
+    color_palette: str = None,
     order: Union[str, List] = "auto",
     max_levels: int = 30,
-    flip_axis: Optional[bool] = None,
     label_rotation: Optional[int] = None,
+    label_fontsize: Optional[float] = None,
+    flip_axis: Optional[bool] = None,
     percent_axis: bool = True,
     label_counts: bool = True,
-    label_fontsize: Optional[float] = None,
     include_missing: bool = False,
     interactive: bool = False,
-    **kwargs,
 ) -> Tuple[pd.DataFrame, plt.Figure]:
     """
     Creates a univariate EDA summary for a provided discrete data column in a pandas DataFrame.
@@ -46,6 +112,8 @@ def discrete_univariate_summary(
         column: column in the dataframe to plot
         fig_width: figure width in inches
         fig_height: figure height in inches
+        fontsize: Font size of axis and tick labels
+        color_palette: Seaborn color palette to use
         order: Order in which to sort the levels of the variable for plotting:
 
          - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
@@ -65,7 +133,6 @@ def discrete_univariate_summary(
         label_rotation: Amount to rotate level labels. Useful for long level names or lots of levels.
         include_missing: Whether to include missing values as an additional level in the data
         interactive: Whether to display plot and table for interactive use in a jupyter notebook
-        kwargs: Additional keyword arguments passed through to [sns.barplot](https://seaborn.pydata.org/generated/seaborn.barplot.html)
 
     Returns:
         Summary table and matplotlib figure with countplot
@@ -79,6 +146,13 @@ def discrete_univariate_summary(
             intedact.discrete_univariate_summary(data, 'day', interactive=True)
     """
     data = data.copy()
+    if flip_axis is None:
+        flip_axis = data[column].nunique() > FLIP_LEVEL_MINIMUM
+
+    if color_palette != "":
+        sns.set_palette(color_palette)
+    else:
+        sns.set_palette("tab10")
 
     # Get summary table
     summary_table = compute_univariate_summary_table(data, column, "discrete")
@@ -96,7 +170,7 @@ def discrete_univariate_summary(
         label_fontsize=label_fontsize,
         include_missing=include_missing,
         label_rotation=label_rotation,
-        **kwargs,
+        fontsize=fontsize,
     )
 
     if interactive:
@@ -111,12 +185,14 @@ def continuous_univariate_summary(
     column: str,
     fig_height: int = 4,
     fig_width: int = 8,
+    fontsize: int = 15,
+    color_palette: str = None,
     bins: Optional[int] = None,
     transform: str = "identity",
-    lower_quantile: float = 0,
-    upper_quantile: float = 1,
     clip: float = 0,
     kde: bool = False,
+    lower_trim: int = 0,
+    upper_trim: int = 0,
     interactive: bool = False,
 ) -> None:
     """
@@ -129,16 +205,18 @@ def continuous_univariate_summary(
         column: A string matching a column in the data to visualize
         fig_height: Height of the plot in inches
         fig_width: Width of the plot in inches
-        bins: Number of bins to use for the histogram. Default is 0 which determines # of bins from the data
+        fontsize: Font size of axis and tick labels
+        color_palette: Seaborn color palette to use
+        bins: Number of bins to use for the histogram. Default is to determines # of bins from the data
         transform: Transformation to apply to the data for plotting:
 
             - 'identity': no transformation
             - 'log': apply a logarithmic transformation with small constant added in case of zero values
             - 'log_exclude0': apply a logarithmic transformation with zero values removed
             - 'sqrt': apply a square root transformation
-        lower_quantile: Lower quantile of data to remove before plotting for ignoring outliers
-        upper_quantile: Upper quantile of data to remove before plotting for ignoring outliers
         kde: Whether to overlay a KDE plot on the histogram
+        lower_trim: Number of values to trim from lower end of distribution
+        upper_trim: Number of values to trim from upper end of distribution
         interactive: Whether to modify to be used with interactive for ipywidgets
 
     Returns:
@@ -154,9 +232,14 @@ def continuous_univariate_summary(
     """
     data = data.copy()
 
+    if color_palette != "":
+        sns.set_palette(color_palette)
+    else:
+        sns.set_palette("tab10")
+
     # Get summary table
     table = compute_univariate_summary_table(
-        data, column, "continuous", lower_quantile, upper_quantile
+        data, column, "continuous", lower_trim, upper_trim
     )
 
     f, axs = plt.subplots(2, 1, figsize=(fig_width, fig_height * 2))
@@ -167,8 +250,8 @@ def continuous_univariate_summary(
         bins=bins,
         transform=transform,
         clip=clip,
-        lower_quantile=lower_quantile,
-        upper_quantile=upper_quantile,
+        lower_trim=lower_trim,
+        upper_trim=upper_trim,
         kde=kde,
     )
     axs[0].set_xlabel("")
@@ -177,9 +260,11 @@ def continuous_univariate_summary(
         column,
         ax=axs[1],
         transform=transform,
-        lower_quantile=lower_quantile,
-        upper_quantile=upper_quantile,
+        lower_trim=lower_trim,
+        upper_trim=upper_trim,
     )
+    set_fontsize(axs[0], fontsize)
+    set_fontsize(axs[1], fontsize)
 
     if interactive:
         display(table)
@@ -193,11 +278,16 @@ def datetime_univariate_summary(
     column: str,
     fig_height: int = 4,
     fig_width: int = 8,
+    fontsize: int = 15,
+    color_palette: str = None,
     ts_freq: str = "auto",
-    delta_freq: str = "auto",
+    delta_units: str = "auto",
     ts_type: str = "line",
     trend_line: str = "auto",
-    label_counts: bool = True,
+    date_labels: Optional[str] = None,
+    date_breaks: Optional[str] = None,
+    lower_trim: int = 0,
+    upper_trim: int = 0,
     interactive: bool = False,
 ) -> plt.Figure:
     """
@@ -221,12 +311,14 @@ def datetime_univariate_summary(
         column: A string matching a column in the data
         fig_height: Height of the plot in inches
         fig_width: Width of the plot in inches
+        fontsize: Font size of axis and tick labels
+        color_palette: Seaborn color palette to use
         ts_freq: String describing the frequency at which to aggregate data in one of two formats:
 
             - A `pandas offset string <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`_.
             - A human readable string in the same format passed to date breaks (e.g. "4 months")
             Default is to attempt to intelligently determine a good aggregation frequency.
-        delta_freq: String describing the units in which to compute time deltas between successive observations in one of two formats:
+        delta_units: String describing the units in which to compute time deltas between successive observations in one of two formats:
 
             - A `pandas offset string <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`_.
             - A human readable string in the same format passed to date breaks (e.g. "4 months")
@@ -234,7 +326,12 @@ def datetime_univariate_summary(
         ts_type: 'line' plots a line graph while 'point' plots points for observations
         trend_line: Trend line to plot over data. "None" produces no trend line. Other options are passed
             to `geom_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.geoms.geom_smooth.html>`_.
-        label_counts: Whether to add count/percentage on bars in countplots where feasible
+        date_labels: strftime date formatting string that will be used to set the format of the x axis tick labels
+        date_breaks: Date breaks string in form '{interval} {period}'. Interval must be an integer and period must be
+          a time period ranging from seconds to years. (e.g. '1 year', '3 minutes')
+        lower_trim: Number of values to trim from lower end of distribution
+        upper_trim: Number of values to trim from upper end of distribution
+        span: Span parameter to determine amount of smoothing for loess trend line
         interactive: Whether to display figures and tables in jupyter notebook for interactive use
 
     Returns:
@@ -250,10 +347,19 @@ def datetime_univariate_summary(
             intedact.datetime_univariate_summary(data, 'created_at', ts_freq='1 week', delta_freq='1 hour')
     """
     data = data.copy()
+    data = trim_values(data, column, lower_trim, upper_trim)
 
-    table = compute_univariate_summary_table(data, column, "datetime")
-    if interactive:
-        display(table)
+    if trend_line == "none":
+        trend_line = None
+    if date_breaks == "auto":
+        date_breaks = None
+    if date_labels == "auto":
+        date_labels = None
+
+    if color_palette != "":
+        sns.set_palette(color_palette)
+    else:
+        sns.set_palette("tab10")
 
     # Compute extra columns with datetime attributes
     data["Month"] = data[column].dt.month_name()
@@ -263,13 +369,17 @@ def datetime_univariate_summary(
     data["Day of Week"] = data[column].dt.day_name()
 
     # Compute time deltas
-    # TODO: Handle this more intelligently
-    if delta_freq == "auto":
-        delta_freq = "1 day"
-    delta_freq_original = delta_freq
-    delta_freq = convert_to_freq_string(delta_freq)
-    dts = data[column].sort_values(ascending=True)
-    data["deltas"] = (dts - dts.shift(1)) / pd.Timedelta(delta_freq)
+    data["deltas"], delta_units = compute_time_deltas(data[column], delta_units)
+
+    # Compute sumary table
+    table = compute_univariate_summary_table(data, column, "datetime")
+    delta_table = compute_univariate_summary_table(data, "deltas", "continuous")
+    delta_table["count_missing"] = np.nan
+    delta_table["percent_missing"] = np.nan
+    delta_table.index = [f"Time Deltas ({delta_units})"]
+    table = pd.concat([table, delta_table], axis=0)
+    if interactive:
+        display(table)
 
     fig = plt.figure(figsize=(fig_width, fig_height * 4))
     spec = gridspec.GridSpec(ncols=2, nrows=5, figure=fig)
@@ -283,19 +393,21 @@ def datetime_univariate_summary(
         ts_freq=ts_freq,
         ts_type=ts_type,
         trend_line=trend_line,
+        date_breaks=date_breaks,
+        date_labels=date_labels,
     )
+    set_fontsize(ax, fontsize)
 
-    # time series of time deltas
-    ax = fig.add_subplot(spec[1, :])
-    ax = time_series_plot(
-        data,
-        column,
-        "deltas",
-        ax,
-        ts_type=ts_type,
-        trend_line=None,
-    )
-    ax.set_ylabel(f"Time deltas between observations\nUnits of {delta_freq_original}")
+    # Summary plots of time deltas
+    ax = fig.add_subplot(spec[1, 0])
+    ax = histogram(data, "deltas", ax=ax)
+    ax.set_xlabel(f"{delta_units.title()} between observations")
+    set_fontsize(ax, fontsize)
+
+    ax = fig.add_subplot(spec[1, 1])
+    ax = boxplot(data, "deltas", ax=ax)
+    ax.set_xlabel(f"{delta_units.title()} between observations")
+    set_fontsize(ax, fontsize)
 
     # countplot by month
     data["Month"] = pd.Categorical(
@@ -303,7 +415,12 @@ def datetime_univariate_summary(
     )
     ax = fig.add_subplot(spec[2, 0])
     ax = countplot(
-        data, "Month", ax, label_counts=label_counts, label_fontsize=10, flip_axis=True
+        data,
+        "Month",
+        ax,
+        label_fontsize=10,
+        flip_axis=True,
+        fontsize=fontsize,
     )
 
     # countplot by day of month
@@ -318,7 +435,9 @@ def datetime_univariate_summary(
         label_counts=False,
         flip_axis=True,
         max_levels=35,
+        fontsize=fontsize,
     )
+    ax.set_yticklabels(ax.get_yticklabels(), fontsize=9)
 
     # countplot by day of week
     data["Day of Week"] = pd.Categorical(
@@ -330,8 +449,8 @@ def datetime_univariate_summary(
         "Day of Week",
         ax,
         label_fontsize=10,
-        label_counts=label_counts,
         flip_axis=True,
+        fontsize=fontsize,
     )
 
     # countplot by hour of day
@@ -339,7 +458,10 @@ def datetime_univariate_summary(
         data["Hour"], categories=np.arange(0, 24, 1), ordered=True
     )
     ax = fig.add_subplot(spec[3, 1])
-    ax = countplot(data, "Hour", ax, label_counts=False, flip_axis=True)
+    ax = countplot(
+        data, "Hour", ax, label_counts=False, flip_axis=True, fontsize=fontsize
+    )
+    ax.set_yticklabels(ax.get_yticklabels(), fontsize=9)
 
     plt.tight_layout()
     if interactive:
