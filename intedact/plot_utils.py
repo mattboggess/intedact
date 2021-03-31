@@ -6,6 +6,7 @@ import scipy.stats as stats
 from pandas.api.types import is_numeric_dtype, is_datetime64_any_dtype
 from typing import List, Optional
 import matplotlib.dates as mdates
+from plotnine.stats.smoothers import predictdf
 from dateutil.rrule import (
     rrule,
     YEARLY,
@@ -177,9 +178,6 @@ def transform_axis(
     return ax
 
 
-from plotnine.stats.smoothers import predictdf
-
-
 def add_trendline(
     data: pd.DataFrame,
     x: str,
@@ -270,6 +268,7 @@ def add_trendline(
         xseq = np.linspace(rangee[0], rangee[1], n)
 
     df = predictdf(data, xseq, **params)
+    print(df)
 
     ax.plot(data[x], df["y"], color="black", linewidth=2)
     ax.fill_between(
