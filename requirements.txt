@@ -6,4 +6,5 @@ numpy
 matplotlib
 plotnine==0.7.1
 ipython
+scikit-misc
 -e git+git://github.com/mattboggess/intedact.git#egg=intedact
