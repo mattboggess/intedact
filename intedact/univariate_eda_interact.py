@@ -9,6 +9,7 @@ from .config import WIDGET_PARAMS, FLIP_LEVEL_COUNT
 from .data_utils import coerce_column_type, freedman_diaconis_bins
 from .data_utils import detect_column_type
 from .univariate_summaries import *
+from IPython.display import display
 
 
 def univariate_eda_interact(
@@ -20,6 +21,21 @@ def univariate_eda_interact(
     pd.set_option("precision", 2)
     sns.set(style="whitegrid")
     warnings.simplefilter("ignore")
+
+    style = """
+        <style>
+           .jupyter-widgets-output-area .output_scroll {
+                height: unset !important;
+                border-radius: unset !important;
+                -webkit-box-shadow: unset !important;
+                box-shadow: unset !important;
+            }
+            .jupyter-widgets-output-area  {
+                height: auto !important;
+            }
+        </style>
+        """
+    display(widgets.HTML(style))
 
     if data_dict_file:
         with open(data_dict_file, "r") as fid:

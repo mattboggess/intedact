@@ -4,5 +4,6 @@ nltk
 pandas
 numpy
 matplotlib
-plotnine
+plotnine==0.7.1
+ipython
 -e git+git://github.com/mattboggess/intedact.git#egg=intedact
