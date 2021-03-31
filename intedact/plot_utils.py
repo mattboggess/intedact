@@ -268,7 +268,6 @@ def add_trendline(
         xseq = np.linspace(rangee[0], rangee[1], n)
 
     df = predictdf(data, xseq, **params)
-    print(df)
 
     ax.plot(data[x], df["y"], color="black", linewidth=2)
     ax.fill_between(
