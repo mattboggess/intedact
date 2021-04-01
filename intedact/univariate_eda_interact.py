@@ -47,6 +47,7 @@ def univariate_eda_interact(
         data=widgets.widgets.fixed(data),
         column=col_widget,
         summary_type=widgets.Dropdown(**WIDGET_PARAMS["summary_type"]),
+        auto_update=widgets.Checkbox(**WIDGET_PARAMS["auto_update"]),
         data_dict=widgets.fixed(data_dict),
         notes_file=widgets.fixed(notes_file),
         figure_dir=widgets.fixed(figure_dir),
@@ -62,10 +63,13 @@ def univariate_eda_interact(
     widget.layout = widgets.widgets.Layout(flex_flow="row wrap")
 
     def match_type(*args):
-        type_widget.value = detect_column_type(data[col_widget.value])
+        summary_type = detect_column_type(data[col_widget.value])
+        type_widget.value = summary_type
+        auto_widget.value = summary_type not in ["text"]
 
     col_widget = widget.children[0]
     type_widget = widget.children[1]
+    auto_widget = widget.children[2]
     col_widget.observe(match_type, "value")
     type_widget.value = detect_column_type(data[data.columns[0]])
 
@@ -76,7 +80,7 @@ def column_univariate_eda_interact(
     data,
     column,
     summary_type="discrete",
-    manual_update=False,
+    auto_update=True,
     data_dict: str = None,
     notes_file: str = None,
     figure_dir: str = None,
@@ -94,7 +98,7 @@ def column_univariate_eda_interact(
         flip_axis_widget.value = data[column].nunique() > FLIP_LEVEL_COUNT
         widget = widgets.interactive(
             discrete_univariate_summary,
-            {"manual": manual_update},
+            {"manual": not auto_update},
             data=widgets.widgets.fixed(data),
             column=widgets.widgets.fixed(column),
             fig_height=fig_height_widget,
@@ -122,7 +126,7 @@ def column_univariate_eda_interact(
         upper_trim_widget.max = data.shape[0] - 1
         widget = widgets.interactive(
             continuous_univariate_summary,
-            {"manual": manual_update},
+            {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
             fig_height=widgets.IntSlider(**WIDGET_PARAMS["fig_height"]),
@@ -148,7 +152,7 @@ def column_univariate_eda_interact(
         upper_trim_widget.max = data.shape[0] - 1
         widget = widgets.interactive(
             datetime_univariate_summary,
-            {"manual": manual_update},
+            {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
             fig_height=widgets.IntSlider(**WIDGET_PARAMS["fig_height"]),
@@ -166,23 +170,28 @@ def column_univariate_eda_interact(
             interactive=widgets.fixed(True),
         )
     elif summary_type == "text":
+        fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
+        fig_width_widget.value = 16
         widget = widgets.interactive(
-            text_univariate_eda,
-            {"manual": manual_update},
+            text_univariate_summary,
+            {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
-            fig_height=WIDGET_PARAMS["fig_height"]["widget_options"],
-            fig_width=WIDGET_PARAMS["fig_width"]["widget_options"],
-            hist_bins=WIDGET_PARAMS["hist_bins"]["widget_options"],
-            lower_quantile=WIDGET_PARAMS["lower_quantile"]["widget_options"],
-            upper_quantile=WIDGET_PARAMS["upper_quantile"]["widget_options"],
-            transform=WIDGET_PARAMS["transform"]["widget_options"],
-            top_n=WIDGET_PARAMS["top_n"]["widget_options"],
+            fig_height=widgets.IntSlider(**WIDGET_PARAMS["fig_height"]),
+            fig_width=fig_width_widget,
+            fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
+            color_palette=color_palette_widget,
+            top_ngrams=widgets.IntSlider(**WIDGET_PARAMS["top_ngrams"]),
+            compute_ngrams=widgets.Checkbox(**WIDGET_PARAMS["compute_ngrams"]),
+            lower_case=widgets.Checkbox(**WIDGET_PARAMS["lower_case"]),
+            remove_punct=widgets.Checkbox(**WIDGET_PARAMS["remove_punct"]),
+            remove_stop=widgets.Checkbox(**WIDGET_PARAMS["remove_stop"]),
+            interactive=widgets.fixed(True),
         )
     elif summary_type == "list":
         widget = widgets.interactive(
             list_univariate_eda,
-            {"manual": manual_update},
+            {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
             fig_height=WIDGET_PARAMS["fig_height"]["widget_options"],

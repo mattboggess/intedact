@@ -3,16 +3,14 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import plotnine as p9
 from typing import Tuple, Optional
-from .plot_utils import (
+from .data_utils import (
     convert_to_freq_string,
-    trim_quantiles,
-    preprocess_transformations,
-    transform_axis,
     match_axes,
-    add_trendline,
     convert_date_breaks,
+    trim_values,
 )
-from .data_utils import trim_values
+
+from .plot_utils import add_trendline, transform_axis
 import seaborn as sns
 
 

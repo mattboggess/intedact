@@ -3,6 +3,7 @@ from .univariate_summaries import (
     discrete_univariate_summary,
     continuous_univariate_summary,
     datetime_univariate_summary,
+    text_univariate_summary,
 )
 from .univariate_plots import (
     histogram,

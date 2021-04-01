@@ -65,6 +65,7 @@ def order_levels(
     order: str = "auto",
     max_levels: int = 30,
     include_missing: bool = False,
+    add_other: bool = True,
 ) -> List[str]:
     """
     Orders the levels of a discrete data column and condenses excess levels into Other category.
@@ -118,11 +119,14 @@ def order_levels(
     # restrict to max_levels levels (condense rest into Other)
     num_levels = data[column1].nunique()
     if num_levels > max_levels:
-        other_levels = order[max_levels - 1 :]
-        order = order[: max_levels - 1] + ["Other"]
-        if data[column1].dtype.name == "category":
-            data[column1].cat.add_categories(["Other"], inplace=True)
-        data[column1][data[column1].isin(other_levels)] = "Other"
+        if add_other:
+            other_levels = order[max_levels - 1 :]
+            order = order[: max_levels - 1] + ["Other"]
+            if data[column1].dtype.name == "category":
+                data[column1].cat.add_categories(["Other"], inplace=True)
+            data[column1][data[column1].isin(other_levels)] = "Other"
+        else:
+            order = order[:max_levels]
 
     if include_missing:
         if data[column1].dtype.name == "category":

@@ -2,18 +2,20 @@ import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
 import numpy as np
+from collections import Counter
 import seaborn as sns
 from itertools import combinations
 from matplotlib import gridspec
 from IPython.display import display
 from typing import Union, List, Tuple
 from .plot_utils import *
-from .data_utils import trim_values, compute_time_deltas
+from .data_utils import trim_values, compute_time_deltas, convert_to_freq_string
 from .univariate_plots import (
     histogram,
     boxplot,
     countplot,
     time_series_countplot,
+    plot_ngrams,
 )
 from .bivariate_plots import time_series_plot
 from .config import TIME_UNITS
@@ -371,11 +373,11 @@ def datetime_univariate_summary(
     # Compute time deltas
     data["deltas"], delta_units = compute_time_deltas(data[column], delta_units)
 
-    # Compute sumary table
+    # Compute summary table
     table = compute_univariate_summary_table(data, column, "datetime")
-    delta_table = compute_univariate_summary_table(data, "deltas", "continuous")
-    delta_table["count_missing"] = np.nan
-    delta_table["percent_missing"] = np.nan
+    delta_table = compute_univariate_summary_table(
+        data.iloc[1:, :], "deltas", "continuous"
+    )
     delta_table.index = [f"Time Deltas ({delta_units})"]
     table = pd.concat([table, delta_table], axis=0)
     if interactive:
@@ -470,19 +472,19 @@ def datetime_univariate_summary(
     return table, fig
 
 
-def text_univariate_eda(
+def text_univariate_summary(
     data,
     column,
-    fig_height=4,
-    fig_width=8,
+    fig_height=6,
+    fig_width=18,
+    fontsize: int = 15,
+    color_palette: Optional[str] = None,
     top_ngrams=10,
-    transform="identity",
-    hist_bins=0,
-    lower_quantile=0,
-    upper_quantile=1,
+    compute_ngrams=False,
     remove_punct=True,
     remove_stop=True,
     lower_case=True,
+    interactive=False,
 ):
     """
     Creates a univariate EDA summary for a provided text variable column in a pandas DataFrame.
@@ -493,15 +495,11 @@ def text_univariate_eda(
       - countplots with top_ngrams unigrams, bigrams, and trigrams
       - title with total # of tokens, vocab size, and corpus size
 
-    Parameters
-    ----------
-    data: pandas.DataFrame
-        Dataset to perform EDA on
-    column: str
-        A string matching a column in the data
-    fig_height: int, optional
-        Height of the plot
-    fig_width: int, optional
+    Args:
+        data: Dataset to perform EDA on
+        column: A string matching a column in the data
+        fig_height: Height of the plot
+        fig_width: int, optional
         Width of the plot
     top_ngrams: int, optional
         Maximum number of ngrams to plot for the top most frequent unigrams and bigrams
@@ -528,22 +526,22 @@ def text_univariate_eda(
     None
         No return value. Directly displays the resulting matplotlib figure and table.
     """
-    from nltk import word_tokenize, ngrams
+    from nltk import word_tokenize
     from nltk.corpus import stopwords
 
+    if color_palette != "":
+        sns.set_palette(color_palette)
+    else:
+        sns.set_palette("tab10")
+
     data = data.copy()
-    # handle missing data
-    num_missing = data[column].isnull().sum()
-    perc_missing = num_missing / data.shape[0]
-    data.dropna(subset=[column], inplace=True)
+    data = data.dropna(subset=[column])
 
-    # tokenize and compute number of tokens
-    data["characters_per_document"] = data[column].apply(lambda x: len(x))
+    # Compute number of characters per document
+    data["# Characters / Document"] = data[column].apply(lambda x: len(x))
+
+    # Tokenize the text
     data["tokens"] = data[column].apply(lambda x: [w for w in word_tokenize(x)])
-    data["tokens_per_document"] = data["tokens"].apply(lambda x: len(x))
-    tokens = [x for y in data["tokens"] for x in y]
-
-    # filters for ngram computations
     if lower_case:
         data["tokens"] = data["tokens"].apply(lambda x: [w.lower() for w in x])
     if remove_stop:
@@ -553,131 +551,66 @@ def text_univariate_eda(
         )
     if remove_punct:
         data["tokens"] = data["tokens"].apply(lambda x: [w for w in x if w.isalnum()])
+    data["# Tokens / Document"] = data["tokens"].apply(lambda x: len(x))
 
-    fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
-    fig.set_size_inches(fig_width, fig_height * 3)
-    gs = gridspec.GridSpec(3, 2)
+    # Compute summary table
+    table = compute_univariate_summary_table(data, column, "discrete")
+    table["vocab_size"] = len(set([x for y in data["tokens"] for x in y]))
+    tokens_table = compute_univariate_summary_table(
+        data, "# Tokens / Document", "continuous"
+    )
+    char_table = compute_univariate_summary_table(
+        data, "# Characters / Document", "continuous"
+    )
+    table = pd.concat([table, tokens_table, char_table], axis=0)
+    if interactive:
+        display(table)
 
-    # histogram of tokens per document
-    ax_tok = fig.add_subplot(gs[2, 0])
-    data = preprocess_numeric_variables(
-        data,
-        "tokens_per_document",
-        lq1=lower_quantile,
-        hq1=upper_quantile,
-        transform1=transform,
-    )
-    if hist_bins == 0:
-        hist_bins = freedman_diaconis_bins(data["tokens_per_document"], transform)
-    gg_hist = ggplot(data, aes(x="tokens_per_document")) + geom_histogram(
-        bins=hist_bins, color="black", fill=BAR_COLOR
-    )
-    if transform in ["log", "log_exclude0"]:
-        gg_hist += scale_x_log10()
-    elif transform == "sqrt":
-        gg_hist += scale_x_sqrt()
-    _ = gg_hist._draw_using_figure(fig, [ax_tok])
-    ax_tok.set_xlabel("# Tokens / Document")
-    ax_tok.set_ylabel("count")
+    if compute_ngrams:
+        fig = plt.figure(figsize=(fig_width, fig_height * 3))
+        spec = gridspec.GridSpec(ncols=2, nrows=3, figure=fig)
+        num_docs = data.shape[0]
 
-    # histogram of characters per document
-    ax_char = fig.add_subplot(gs[2, 1])
-    data = preprocess_numeric_variables(
-        data,
-        "characters_per_document",
-        lq1=lower_quantile,
-        hq1=upper_quantile,
-        transform1=transform,
-    )
-    if hist_bins == 0:
-        hist_bins = freedman_diaconis_bins(data["characters_per_document"], transform)
-    gg_hist = ggplot(data, aes(x="characters_per_document")) + geom_histogram(
-        bins=hist_bins, color="black", fill=BAR_COLOR
-    )
-    if transform in ["log", "log_exclude0"]:
-        gg_hist += scale_x_log10()
-    elif transform == "sqrt":
-        gg_hist += scale_x_sqrt()
-    _ = gg_hist._draw_using_figure(fig, [ax_char])
-    ax_char.set_xlabel("# Characters / Document")
+        ax = fig.add_subplot(spec[0, 0])
+        ax = plot_ngrams(
+            data["tokens"], num_docs, ngram_type="tokens", lim_ngrams=top_ngrams, ax=ax
+        )
 
-    # plot most frequent unigrams
-    ax_unigram = fig.add_subplot(gs[0, 0])
-    unigrams = pd.DataFrame({"unigrams": [x for y in data["tokens"] for x in set(y)]})
-    unigrams["unigrams"] = pd.Categorical(
-        unigrams["unigrams"],
-        list(unigrams["unigrams"].value_counts().sort_values(ascending=False).index)[
-            :top_ngrams
-        ][::-1],
-    )
-    unigrams = unigrams.dropna()
-    gg_uni = (
-        ggplot(unigrams, aes(x="unigrams"))
-        + geom_bar(fill=BAR_COLOR, color="black")
-        + coord_flip()
-    )
-    _ = gg_uni._draw_using_figure(fig, [ax_unigram])
-    ax_unigram.set_ylabel("Most Common Unigrams")
-    add_percent_axis(ax_unigram, data.shape[0], flip_axis=True)
+        ax = fig.add_subplot(spec[1, 0])
+        ax = plot_ngrams(
+            data["tokens"], num_docs, ngram_type="bigrams", lim_ngrams=top_ngrams, ax=ax
+        )
 
-    # boxplot of observations per document
-    ax_obs = fig.add_subplot(gs[0, 1])
-    tmp = pd.DataFrame({"observations_per_document": list(data[column].value_counts())})
-    tmp = preprocess_numeric_variables(
-        tmp,
-        "observations_per_document",
-        lq1=lower_quantile,
-        hq1=upper_quantile,
-        transform1=transform,
-    )
-    if hist_bins == 0:
-        hist_bins = freedman_diaconis_bins(tmp["observations_per_document"], transform)
-    gg_box = (
-        ggplot(tmp, aes(x=[""], y="observations_per_document"))
-        + geom_boxplot(color="black", fill=BAR_COLOR)
-        + coord_flip()
-    )
-    if transform in ["log", "log_exclude0"]:
-        gg_box += scale_y_log10()
-    elif transform == "sqrt":
-        gg_box += scale_y_sqrt()
-    _ = gg_box._draw_using_figure(fig, [ax_obs])
-    ax_obs.set_ylabel("# Observations / Document")
+        ax = fig.add_subplot(spec[2, 0])
+        ax = plot_ngrams(
+            data["tokens"],
+            num_docs,
+            ngram_type="trigrams",
+            lim_ngrams=top_ngrams,
+            ax=ax,
+        )
 
-    # plot most frequent bigrams
-    ax_bigram = fig.add_subplot(gs[1, :])
-    bigrams = pd.DataFrame(
-        {"bigrams": [x for y in data["tokens"] for x in set(ngrams(y, 2))]}
-    )
-    bigrams["bigrams"] = pd.Categorical(
-        bigrams["bigrams"],
-        list(bigrams["bigrams"].value_counts().sort_values(ascending=False).index)[
-            :top_ngrams
-        ][::-1],
-    )
-    bigrams = bigrams.dropna()
-    gg_bi = (
-        ggplot(bigrams, aes(x="bigrams"))
-        + geom_bar(fill=BAR_COLOR, color="black")
-        + coord_flip()
-    )
-    _ = gg_bi._draw_using_figure(fig, [ax_bigram])
-    ax_bigram.set_ylabel("Most Common Bigrams")
-    add_percent_axis(ax_bigram, data.shape[0], flip_axis=True)
+    else:
+        fig = plt.figure(figsize=(fig_width, fig_height))
+        spec = gridspec.GridSpec(ncols=3, nrows=1, figure=fig)
 
-    num_tokens = len(tokens)
-    vocab_size = len(set(tokens))
-    corpus_size = data[column].size
-    plt.suptitle(
-        (
-            f"{num_tokens} tokens with a vocabulary size of {vocab_size} in a corpus of {corpus_size} documents\n"
-            f"{num_missing} missing observations ({perc_missing}%)"
-        ),
-        fontsize=12,
-    )
+    # histogram of tokens characters per document
+    ax = fig.add_subplot(spec[0, 1] if compute_ngrams else spec[0, 0])
+    ax = histogram(data, "# Tokens / Document", ax=ax)
 
-    plt.subplots_adjust(top=0.93)
-    plt.show()
+    # histogram of tokens characters per document
+    ax = fig.add_subplot(spec[1, 1] if compute_ngrams else spec[0, 1])
+    ax = histogram(data, "# Characters / Document", ax=ax)
+
+    # histogram of tokens characters per document
+    ax = fig.add_subplot(spec[2, 1] if compute_ngrams else spec[0, 2])
+    tmp = pd.DataFrame({"# Obs / Document": list(data[column].value_counts())})
+    ax = boxplot(tmp, "# Obs / Document", ax=ax)
+
+    plt.tight_layout()
+    if interactive:
+        plt.show()
+    return fig
 
 
 def list_univariate_eda(data, column, fig_height=4, fig_width=8, top_entries=10):

@@ -30,7 +30,7 @@ WIDGET_PARAMS = {
         "width": "0%",
         "widget": "N/A",
     },
-    "Run Interact": {
+    "Update Summary": {
         "description": "Update Plot",
         "width": "0%",
         "widget": "N/A",
@@ -56,6 +56,7 @@ WIDGET_PARAMS = {
         style={"description_width": "36%"},
         options=["discrete", "continuous", "datetime", "text", "list"],
     ),
+    "auto_update": dict(description="Auto Update Summaries", value=True),
     "fig_width": dict(
         description="Figure Width: Width of figure in inches",
         min=1,
@@ -232,26 +233,18 @@ WIDGET_PARAMS = {
         value="line",
         style={"description_width": "40%"},
     ),
-    "top_ngrams": {
-        "description": "top ngrams: Maximum number of bars to plot for ngrams",
-        "width": "29%",
-        "widget": (1, 100, 1),
-    },
-    "remove_punct": {
-        "description": "Ignore punctuation for ngrams",
-        "width": "0%",
-        "widget": "N/A",
-    },
-    "remove_stop": {
-        "description": "Ignore stop words for ngrams",
-        "width": "0%",
-        "widget": "N/A",
-    },
-    "lower_case": {
-        "description": "Lower case text for ngrams",
-        "width": "0%",
-        "widget": "N/A",
-    },
+    "top_ngrams": dict(
+        description="Top Ngrams: Maximum number of bars to plot for ngrams",
+        style={"description_width": "29%"},
+        min=1,
+        max=100,
+        step=1,
+        value=20,
+    ),
+    "remove_punct": dict(description="Remove punctuation tokens", value=True),
+    "remove_stop": dict(description="Remove stop word tokens", value=True),
+    "lower_case": dict(description="Lower case tokens", value=True),
+    "compute_ngrams": dict(description="Plot most common ngrams", value=False),
     "plot_type_cc": {
         "description": (
             "plot type: Type of plot to show\n"

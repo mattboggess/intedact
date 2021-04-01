@@ -95,6 +95,7 @@ def countplot(
     label_fontsize: Optional[float] = None,
     include_missing: bool = False,
     percent_denominator: Optional[int] = None,
+    add_other: bool = True,
     **kwargs,
 ) -> plt.Axes:
     """
@@ -155,6 +156,7 @@ def countplot(
         order=order,
         max_levels=max_levels,
         include_missing=include_missing,
+        add_other=add_other,
     )
     order = list(data[column].cat.categories)
 
@@ -345,4 +347,31 @@ def time_series_countplot(
     add_percent_axis(ax, len(data[column]), flip_axis=False)
 
     ax.set_ylabel(ylabel)
+    return ax
+
+
+def plot_ngrams(tokens, num_docs, ngram_type="tokens", lim_ngrams=20, ax=None):
+
+    if ngram_type == "tokens":
+        values = [x for y in tokens for x in set(y)]
+    elif ngram_type == "bigrams":
+        values = [x for y in tokens for x in set(zip(y, y[1:]))]
+    elif ngram_type == "trigrams":
+        values = [x for y in tokens for x in set(zip(y, y[1:], y[2:]))]
+
+    tmp = pd.DataFrame({"value": values})
+
+    ax = countplot(
+        tmp,
+        "value",
+        ax=ax,
+        max_levels=lim_ngrams,
+        flip_axis=True,
+        label_fontsize=8,
+        percent_denominator=num_docs,
+        add_other=False,
+    )
+    ax.set_ylabel(f"Most Common {ngram_type.title()}")
+    ax.set_xlabel("# Documents")
+
     return ax
