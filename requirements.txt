@@ -7,4 +7,5 @@ matplotlib
 plotnine==0.7.1
 ipython
 scikit-misc
+tldextract
 -e git+git://github.com/mattboggess/intedact.git#egg=intedact

@@ -140,7 +140,6 @@ def countplot(
             intedact.countplot(data, 'day')
     """
     data = data.copy()
-    plt.rcParams["font.size"] = 22
 
     # Handle axis flip default
     num_levels = data[column].nunique()
@@ -174,7 +173,7 @@ def countplot(
         ax=ax,
         order=order,
     )
-    if num_levels > max_levels:
+    if num_levels > max_levels and add_other:
         label = (
             f"{column} ({num_levels - max_levels + 1} levels condensed into 'Other')"
         )
@@ -350,7 +349,9 @@ def time_series_countplot(
     return ax
 
 
-def plot_ngrams(tokens, num_docs, ngram_type="tokens", lim_ngrams=20, ax=None):
+def plot_ngrams(
+    tokens, num_docs, ngram_type="tokens", lim_ngrams=20, ax=None, fontsize=None
+):
 
     if ngram_type == "tokens":
         values = [x for y in tokens for x in set(y)]
@@ -368,6 +369,7 @@ def plot_ngrams(tokens, num_docs, ngram_type="tokens", lim_ngrams=20, ax=None):
         max_levels=lim_ngrams,
         flip_axis=True,
         label_fontsize=8,
+        fontsize=fontsize,
         percent_denominator=num_docs,
         add_other=False,
     )

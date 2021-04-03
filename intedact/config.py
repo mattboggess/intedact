@@ -47,14 +47,15 @@ WIDGET_PARAMS = {
             " It is recommended you preprocess the columns to have the desired type prior to"
             " running this function for greatest accuracy of automatic type inference.\n\n"
             " The following types are available:\n"
-            "  - 'discrete': categorical or low dimensional numeric variables\n"
-            "  - 'continuous': high dimensional numeric variables \n"
+            "  - 'categorical': categorical or low cardinality numeric variables\n"
+            "  - 'numeric': high cardinality numeric variables \n"
             "  - 'datetime': datetime columns (should be coerceable to datetime type) \n"
             "  - 'text': column with strings that represent longer freeform text \n"
-            "  - 'list': column with variable length lists of items, should be pre-coerced such that elements are python lists/tuples/sets\n"
+            "  - 'collection': column with variable length collections of items, should be pre-coerced such that elements are python lists/tuples/sets\n"
+            "  - 'url': column with strings that represent urls\n"
         ),
         style={"description_width": "36%"},
-        options=["discrete", "continuous", "datetime", "text", "list"],
+        options=["categorical", "numeric", "datetime", "text", "collection", "url"],
     ),
     "auto_update": dict(description="Auto Update Summaries", value=True),
     "fig_width": dict(
@@ -245,6 +246,16 @@ WIDGET_PARAMS = {
     "remove_stop": dict(description="Remove stop word tokens", value=True),
     "lower_case": dict(description="Lower case tokens", value=True),
     "compute_ngrams": dict(description="Plot most common ngrams", value=False),
+    "top_entries": dict(
+        description="Max Entries: Maximum number of bars to show for barplots",
+        style={"description_width": "25%"},
+        min=1,
+        max=100,
+        step=1,
+        value=20,
+    ),
+    "sort_collections": dict(description="Sort Collections", value=True),
+    "remove_duplicates": dict(description="Remove Duplicate Entries", value=True),
     "plot_type_cc": {
         "description": (
             "plot type: Type of plot to show\n"

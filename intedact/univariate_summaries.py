@@ -20,6 +20,7 @@ from .univariate_plots import (
 from .bivariate_plots import time_series_plot
 from .config import TIME_UNITS
 import calendar
+import tldextract
 
 FLIP_LEVEL_MINIMUM = 5
 
@@ -30,7 +31,7 @@ def compute_univariate_summary_table(
     """
     Computes summary statistics for a numerical pandas DataFrame column.
 
-    Computed statistics include:
+    Computed statistics include some subset of the following depending on data type:
 
       - mean and median
       - min and max
@@ -74,7 +75,7 @@ def compute_univariate_summary_table(
         counts_table["max"] = data[column].max()
         counts_table["iqr"] = data[column].quantile(0.75) - data[column].quantile(0.25)
         return counts_table
-    elif data_type == "continuous" or data_type == "datetime":
+    elif data_type in ["numeric", "datetime"]:
         stats_table = pd.DataFrame(data[column].describe()).T
         stats_table["iqr"] = data[column].quantile(0.75) - data[column].quantile(0.25)
         stats_table = stats_table[
@@ -86,7 +87,7 @@ def compute_univariate_summary_table(
         return counts_table
 
 
-def discrete_univariate_summary(
+def categorical_univariate_summary(
     data: pd.DataFrame,
     column: str,
     fig_height: int = 5,
@@ -104,7 +105,7 @@ def discrete_univariate_summary(
     interactive: bool = False,
 ) -> Tuple[pd.DataFrame, plt.Figure]:
     """
-    Creates a univariate EDA summary for a provided discrete data column in a pandas DataFrame.
+    Creates a univariate EDA summary for a provided categorical data column in a pandas DataFrame.
 
     Summary consists of a count plot with twin axes for counts and percentages for each level of the
     variable and a small summary table.
@@ -145,7 +146,7 @@ def discrete_univariate_summary(
             import seaborn as sns
             import intedact
             data = sns.load_dataset('tips')
-            intedact.discrete_univariate_summary(data, 'day', interactive=True)
+            intedact.categorical_univariate_summary(data, 'day', interactive=True)
     """
     data = data.copy()
     if flip_axis is None:
@@ -157,7 +158,7 @@ def discrete_univariate_summary(
         sns.set_palette("tab10")
 
     # Get summary table
-    summary_table = compute_univariate_summary_table(data, column, "discrete")
+    summary_table = compute_univariate_summary_table(data, column, "categorical")
 
     # Plot countplot
     fig, axs = plt.subplots(1, 1, figsize=(fig_width, fig_height))
@@ -182,7 +183,7 @@ def discrete_univariate_summary(
     return summary_table, fig
 
 
-def continuous_univariate_summary(
+def numeric_univariate_summary(
     data: pd.DataFrame,
     column: str,
     fig_height: int = 4,
@@ -196,9 +197,9 @@ def continuous_univariate_summary(
     lower_trim: int = 0,
     upper_trim: int = 0,
     interactive: bool = False,
-) -> None:
+) -> Tuple[pd.DataFrame, plt.Figure]:
     """
-    Creates a univariate EDA summary for a provided continuous data column in a pandas DataFrame.
+    Creates a univariate EDA summary for a provided high cardinality numeric data column in a pandas DataFrame.
 
     Summary consists of a histogram, boxplot, and small table of summary statistics.
 
@@ -230,7 +231,7 @@ def continuous_univariate_summary(
             import seaborn as sns
             import intedact
             data = sns.load_dataset('tips')
-            intedact.continuous_univariate_summary(data, 'total_bill', interactive=True)[0]
+            intedact.numeric_univariate_summary(data, 'total_bill', interactive=True)[0]
     """
     data = data.copy()
 
@@ -241,7 +242,7 @@ def continuous_univariate_summary(
 
     # Get summary table
     table = compute_univariate_summary_table(
-        data, column, "continuous", lower_trim, upper_trim
+        data, column, "numeric", lower_trim, upper_trim
     )
 
     f, axs = plt.subplots(2, 1, figsize=(fig_width, fig_height * 2))
@@ -291,7 +292,7 @@ def datetime_univariate_summary(
     lower_trim: int = 0,
     upper_trim: int = 0,
     interactive: bool = False,
-) -> plt.Figure:
+) -> Tuple[pd.DataFrame, plt.Figure]:
     """
     Creates a univariate EDA summary for a provided datetime data column in a pandas DataFrame.
 
@@ -333,11 +334,10 @@ def datetime_univariate_summary(
           a time period ranging from seconds to years. (e.g. '1 year', '3 minutes')
         lower_trim: Number of values to trim from lower end of distribution
         upper_trim: Number of values to trim from upper end of distribution
-        span: Span parameter to determine amount of smoothing for loess trend line
         interactive: Whether to display figures and tables in jupyter notebook for interactive use
 
     Returns:
-        matplotlib Figure plot is drawn to
+        Tuple containing matplotlib Figure drawn and summary stats DataFrame
 
     Examples:
         .. plot::
@@ -376,7 +376,7 @@ def datetime_univariate_summary(
     # Compute summary table
     table = compute_univariate_summary_table(data, column, "datetime")
     delta_table = compute_univariate_summary_table(
-        data.iloc[1:, :], "deltas", "continuous"
+        data.iloc[1:, :], "deltas", "numeric"
     )
     delta_table.index = [f"Time Deltas ({delta_units})"]
     table = pd.concat([table, delta_table], axis=0)
@@ -473,58 +473,44 @@ def datetime_univariate_summary(
 
 
 def text_univariate_summary(
-    data,
-    column,
-    fig_height=6,
-    fig_width=18,
+    data: pd.DataFrame,
+    column: str,
+    fig_height: int = 6,
+    fig_width: int = 18,
     fontsize: int = 15,
     color_palette: Optional[str] = None,
-    top_ngrams=10,
-    compute_ngrams=False,
-    remove_punct=True,
-    remove_stop=True,
-    lower_case=True,
-    interactive=False,
-):
+    top_ngrams: int = 10,
+    compute_ngrams: bool = True,
+    remove_punct: bool = True,
+    remove_stop: bool = True,
+    lower_case: bool = True,
+    interactive: bool = False,
+) -> Tuple[pd.DataFrame, plt.Figure]:
     """
-    Creates a univariate EDA summary for a provided text variable column in a pandas DataFrame.
+    Creates a univariate EDA summary for a provided text variable column in a pandas DataFrame. Currently only
+    supports English.
 
     For the provided column produces:
       - histograms of token and character counts across entries
       - boxplot of document frequencies
-      - countplots with top_ngrams unigrams, bigrams, and trigrams
-      - title with total # of tokens, vocab size, and corpus size
+      - countplots with top unigrams, bigrams, and trigrams
 
     Args:
         data: Dataset to perform EDA on
         column: A string matching a column in the data
-        fig_height: Height of the plot
-        fig_width: int, optional
-        Width of the plot
-    top_ngrams: int, optional
-        Maximum number of ngrams to plot for the top most frequent unigrams and bigrams
-    hist_bins: int, optional (Default is 0 which translates to automatically determined bins)
-        Number of bins to use for the histograms
-    transform: str, ['identity', 'log', 'log_exclude0']
-        Transformation to apply to the histogram/boxplot variables for plotting:
-          - 'identity': no transformation
-          - 'log': apply a logarithmic transformation with small constant added in case of 0
-          - 'log_exclude0': apply a logarithmic transformation with zero removed
-    lower_quantile: float, optional [0, 1]
-        Lower quantile of data to remove before plotting histogram/boxplots for ignoring outliers
-    upper_quantile: float, optional [0, 1]
-        Upper quantile of data to remove before plotting histograms/boxplots for ignoring outliers
-    remove_stop: bool, optional
-        Whether to remove stop words from consideration for ngrams
-    remove_punct: bool, optional
-        Whether to remove punctuation from consideration for ngrams
-    lower_case: bool, optional
-        Whether to lower case text when forming tokens for ngrams
+        fig_height: Height of the plot in inches
+        fig_width: Width of the plot in inches
+        fontsize: Font size of axis and tick labels
+        color_palette: Seaborn color palette to use
+        top_ngrams: Maximum number of ngrams to plot for the top most frequent unigrams to trigrams
+        compute_ngrams: Whether to compute and display most common ngrams
+        remove_punct: Whether to remove punctuation during tokenization
+        remove_stop: Whether to remove stop words during tokenization
+        lower_case: Whether to lower case text for tokenization
+        interactive: Whether to display figures and tables in jupyter notebook for interactive use
 
-    Returns
-    -------
-    None
-        No return value. Directly displays the resulting matplotlib figure and table.
+    Returns:
+        Tuple containing matplotlib Figure drawn and summary stats DataFrame
     """
     from nltk import word_tokenize
     from nltk.corpus import stopwords
@@ -554,13 +540,13 @@ def text_univariate_summary(
     data["# Tokens / Document"] = data["tokens"].apply(lambda x: len(x))
 
     # Compute summary table
-    table = compute_univariate_summary_table(data, column, "discrete")
+    table = compute_univariate_summary_table(data, column, "categorical")
     table["vocab_size"] = len(set([x for y in data["tokens"] for x in y]))
     tokens_table = compute_univariate_summary_table(
-        data, "# Tokens / Document", "continuous"
+        data, "# Tokens / Document", "numeric"
     )
     char_table = compute_univariate_summary_table(
-        data, "# Characters / Document", "continuous"
+        data, "# Characters / Document", "numeric"
     )
     table = pd.concat([table, tokens_table, char_table], axis=0)
     if interactive:
@@ -573,12 +559,22 @@ def text_univariate_summary(
 
         ax = fig.add_subplot(spec[0, 0])
         ax = plot_ngrams(
-            data["tokens"], num_docs, ngram_type="tokens", lim_ngrams=top_ngrams, ax=ax
+            data["tokens"],
+            num_docs,
+            ngram_type="tokens",
+            lim_ngrams=top_ngrams,
+            ax=ax,
+            fontsize=fontsize,
         )
 
         ax = fig.add_subplot(spec[1, 0])
         ax = plot_ngrams(
-            data["tokens"], num_docs, ngram_type="bigrams", lim_ngrams=top_ngrams, ax=ax
+            data["tokens"],
+            num_docs,
+            ngram_type="bigrams",
+            lim_ngrams=top_ngrams,
+            ax=ax,
+            fontsize=fontsize,
         )
 
         ax = fig.add_subplot(spec[2, 0])
@@ -588,6 +584,7 @@ def text_univariate_summary(
             ngram_type="trigrams",
             lim_ngrams=top_ngrams,
             ax=ax,
+            fontsize=fontsize,
         )
 
     else:
@@ -597,15 +594,18 @@ def text_univariate_summary(
     # histogram of tokens characters per document
     ax = fig.add_subplot(spec[0, 1] if compute_ngrams else spec[0, 0])
     ax = histogram(data, "# Tokens / Document", ax=ax)
+    set_fontsize(ax, fontsize)
 
     # histogram of tokens characters per document
     ax = fig.add_subplot(spec[1, 1] if compute_ngrams else spec[0, 1])
     ax = histogram(data, "# Characters / Document", ax=ax)
+    set_fontsize(ax, fontsize)
 
     # histogram of tokens characters per document
     ax = fig.add_subplot(spec[2, 1] if compute_ngrams else spec[0, 2])
     tmp = pd.DataFrame({"# Obs / Document": list(data[column].value_counts())})
     ax = boxplot(tmp, "# Obs / Document", ax=ax)
+    set_fontsize(ax, fontsize)
 
     plt.tight_layout()
     if interactive:
@@ -613,103 +613,234 @@ def text_univariate_summary(
     return fig
 
 
-def list_univariate_eda(data, column, fig_height=4, fig_width=8, top_entries=10):
+def collection_univariate_summary(
+    data: pd.DataFrame,
+    column: str,
+    fig_height: int = 6,
+    fig_width: int = 12,
+    fontsize: int = 15,
+    color_palette: str = None,
+    top_entries: int = 10,
+    sort_collections: bool = False,
+    remove_duplicates: bool = False,
+    interactive: bool = False,
+) -> Tuple[pd.DataFrame, plt.Figure]:
     """
-    Creates a univariate EDA summary for a provided list column in a pandas DataFrame.
+    Creates a univariate EDA summary for a provided collections column in a pandas DataFrame.
 
     The provided column should be an object type containing lists, tuples, or sets.
 
-    Parameters
-    ----------
-    data: pandas.DataFrame
-        Dataset to perform EDA on
-    column: str
-        A string matching a column in the data
-    fig_height: int, optional
-        Height of the plot
-    fig_width: int, optional
-        Width of the plot
-    top_entries: int, optional
-        Maximum number of entries to plot for the top most frequent single entries and pairs.
+    Args:
+        data: Dataset to perform EDA on
+        column: A string matching a column in the data
+        fig_height: Height of the plot in inches
+        fig_width: Width of the plot in inches
+        fontsize: Font size of axis and tick labels
+        color_palette: Seaborn color palette to use
+        top_entries: Max number of entries to show for countplots
+        sort_collections: Whether to sort collections and ignore original order
+        remove_duplicates: Whether to remove duplicate entries from collections
+        interactive: Whether to display figures and tables in jupyter notebook for interactive use
 
-    Returns
-    -------
-    None
-        No return value. Directly displays the resulting matplotlib figure.
+    Returns:
+        Tuple containing matplotlib Figure drawn and summary stats DataFrame
     """
     data = data.copy()
-    # handle missing data
-    num_missing = data[column].isnull().sum()
-    perc_missing = num_missing / data.shape[0]
-    data.dropna(subset=[column], inplace=True)
+    if color_palette != "":
+        sns.set_palette(color_palette)
+    else:
+        sns.set_palette("tab10")
 
-    fig = (ggplot() + geom_blank(data=data) + theme_void()).draw()
-    fig.set_size_inches(fig_width, fig_height * 3)
-    gs = gridspec.GridSpec(3, 2)
+    # Compute derived transforms
+    data[column] = data[column].apply(lambda x: tuple(x))
+    data["# Entries / Collection"] = data[column].apply(lambda x: len(x))
+    tmp = data.explode(column)
 
-    # plot most common entries
-    ax_single = fig.add_subplot(gs[0, :])
-    entries = [i for e in data[column] for i in e]
-    singletons = pd.DataFrame({"single": entries})
-    order = list(
-        singletons["single"].value_counts().sort_values(ascending=False).index
-    )[:top_entries][::-1]
-    singletons["single"] = pd.Categorical(singletons["single"], order)
-    singletons = singletons.dropna()
-
-    gg_s = (
-        ggplot(singletons, aes(x="single"))
-        + geom_bar(fill=BAR_COLOR, color="black")
-        + coord_flip()
+    # Compute Summary Table
+    table = compute_univariate_summary_table(data, column, "categorical")
+    table["count_unique_entries"] = tmp[~tmp[column].isnull()][column].nunique()
+    num_table = compute_univariate_summary_table(
+        data, "# Entries / Collection", "numeric"
     )
-    _ = gg_s._draw_using_figure(fig, [ax_single])
-    ax_single.set_ylabel("Most Common Entries")
-    add_percent_axis(ax_single, data.shape[0], flip_axis=True)
+    table = pd.concat([table, num_table])
 
-    # plot most common entries
-    ax_double = fig.add_subplot(gs[1, :])
-    pairs = [comb for coll in data[column] for comb in combinations(coll, 2)]
-    pairs = pd.DataFrame({"pair": pairs})
-    order = list(pairs["pair"].value_counts().sort_values(ascending=False).index)[
-        :top_entries
-    ][::-1]
-    pairs["pair"] = pd.Categorical(pairs["pair"], order)
-    pairs = pairs.dropna()
+    fig = plt.figure(figsize=(fig_width, fig_height * 2))
+    spec = gridspec.GridSpec(ncols=2, nrows=2, figure=fig)
 
-    gg_s = (
-        ggplot(pairs, aes(x="pair"))
-        + geom_bar(fill=BAR_COLOR, color="black")
-        + coord_flip()
+    # Remove duplicates and sort collections
+    if remove_duplicates:
+        data[column] = data[column].apply(lambda x: tuple(set(x)))
+    if sort_collections:
+        data[column] = data[column].apply(lambda x: tuple(sorted(x)))
+
+    # Plot most common collections
+    ax = fig.add_subplot(spec[0, :])
+    ax = countplot(
+        data,
+        column,
+        ax=ax,
+        flip_axis=True,
+        max_levels=top_entries,
+        add_other=False,
+        label_fontsize=10,
+        fontsize=fontsize,
     )
-    _ = gg_s._draw_using_figure(fig, [ax_double])
-    ax_double.set_ylabel("Most Common Entry Pairs")
-    ax_double.set_xlabel("# Observations")
-    add_percent_axis(ax_double, data.shape[0], flip_axis=True)
 
-    # plot number of elements
-    data["num_entries"] = data[column].apply(lambda x: len(x))
-    ax_num = fig.add_subplot(gs[2, 0])
-    gg_hour = ggplot(data, aes(x="num_entries")) + geom_histogram(
-        bins=data["num_entries"].max(), fill=BAR_COLOR, color="black"
+    # Plot most common individual entries
+    ax = fig.add_subplot(spec[1, 0])
+    ax = countplot(
+        tmp,
+        column,
+        ax=ax,
+        flip_axis=True,
+        max_levels=top_entries,
+        add_other=False,
+        label_fontsize=10,
+        percent_denominator=data.shape[0],
+        fontsize=fontsize,
     )
-    _ = gg_hour._draw_using_figure(fig, [ax_num])
-    ax_num.set_ylabel("count")
-    ax_num.set_xlabel("# Entries / Observation")
-    ax_num.set_xticks(np.arange(0, data["num_entries"].max() + 1))
-    ax_num.set_xticklabels(np.arange(0, data["num_entries"].max() + 1))
-    add_percent_axis(ax_num, data.shape[0], flip_axis=False)
+    ax.set_ylabel("Most Common Entries")
+    set_fontsize(ax, fontsize)
 
-    ax_obs = fig.add_subplot(gs[2, 1])
-    tmp = pd.DataFrame({"obs": list(data[column].value_counts())})
-    gg_box = (
-        ggplot(tmp, aes(x=[""], y="obs"))
-        + geom_boxplot(color="black", fill=BAR_COLOR)
-        + coord_flip()
-    )
-    _ = gg_box._draw_using_figure(fig, [ax_obs])
-    ax_obs.set_xlabel("# Observations / Unique List")
+    # Plot most common individual entries
+    ax = fig.add_subplot(spec[1, 1])
+    if data["# Entries / Collection"].nunique() <= 20:
+        ax = countplot(
+            data,
+            "# Entries / Collection",
+            ax=ax,
+            flip_axis=True,
+            max_levels=20,
+            add_other=False,
+            label_fontsize=10,
+            fontsize=fontsize,
+        )
+    else:
+        ax = histogram(
+            data,
+            "# Entries / Collection",
+            ax=ax,
+        )
+    set_fontsize(ax, fontsize)
 
-    ax_single.set_title(
-        f"{len(set(entries))} unique entries with {len(entries)} total entries across {data[column].size} observations"
+    plt.tight_layout()
+    if interactive:
+        display(table)
+        plt.show()
+
+    return table, fig
+
+
+def url_univariate_summary(
+    data: pd.DataFrame,
+    column: str,
+    fig_height: int = 6,
+    fig_width: int = 12,
+    fontsize: int = 15,
+    top_entries: str = 20,
+    color_palette: str = None,
+    interactive: bool = False,
+):
+    """
+    Creates a univariate EDA summary for a provided url column in a pandas DataFrame. The provided column should be
+    a string/object column containing urls.
+
+    Args:
+        data: Dataset to perform EDA on
+        column: A string matching a column in the data
+        fig_height: Height of the plot in inches
+        fig_width: Width of the plot in inches
+        fontsize: Font size of axis and tick labels
+        color_palette: Seaborn color palette to use
+        top_entries: Max number of entries to show for countplots
+        interactive: Whether to display figures and tables in jupyter notebook for interactive use
+
+    Returns:
+        Tuple containing matplotlib Figure drawn and summary stats DataFrame
+    """
+    data = data.copy()
+    if color_palette != "":
+        sns.set_palette(color_palette)
+    else:
+        sns.set_palette("tab10")
+
+    # Compute Derived Information
+    data["is_https"] = data[column].str.startswith("https")
+    data["parse"] = data[column].apply(lambda x: tldextract.extract(x))
+    data["Domain"] = data["parse"].apply(lambda x: x.domain)
+    data["Domain Suffix"] = data["parse"].apply(lambda x: x.suffix)
+    data["File Type"] = data[column].str.extract("\.([a-z]{3})$")
+    data["File Type"] = data.apply(
+        lambda x: x["File Type"] if x["File Type"] != x["Domain Suffix"] else np.nan,
+        axis=1,
+    ).fillna("No File Detected")
+
+    # Compute Summary Table
+    table = compute_univariate_summary_table(data, column, "categorical")
+    table["percent_https"] = data["is_https"].mean() * 100
+    table["count_unique_domains"] = data["Domain"].nunique()
+    table["count_unique_domain_suffixes"] = data["Domain Suffix"].nunique()
+    table["count_unique_file_types"] = data[data["File Type"] != "No File Detected"][
+        "File Type"
+    ].nunique()
+
+    fig = plt.figure(figsize=(fig_width, fig_height * 2))
+    spec = gridspec.GridSpec(ncols=2, nrows=3, figure=fig)
+
+    # Plot most common urls
+    ax = fig.add_subplot(spec[0, :])
+    ax = countplot(
+        data,
+        column,
+        ax=ax,
+        flip_axis=True,
+        max_levels=top_entries,
+        label_fontsize=10,
+        fontsize=fontsize,
     )
-    plt.show()
+    ax.set_yticklabels(
+        [x._text[:50] + "..." for x in ax.get_yticklabels() if x != "Other"]
+    )
+
+    # Plot most common domains
+    ax = fig.add_subplot(spec[1, :])
+    ax = countplot(
+        data,
+        "Domain",
+        ax=ax,
+        flip_axis=True,
+        max_levels=top_entries,
+        label_fontsize=10,
+        fontsize=fontsize,
+    )
+
+    # Plot most common domain suffixes
+    ax = fig.add_subplot(spec[2, 0])
+    ax = countplot(
+        data,
+        "Domain Suffix",
+        ax=ax,
+        flip_axis=True,
+        max_levels=top_entries,
+        label_fontsize=10,
+        fontsize=fontsize,
+    )
+
+    # Plot most common file types
+    ax = fig.add_subplot(spec[2, 1])
+    ax = countplot(
+        data,
+        "File Type",
+        ax=ax,
+        flip_axis=True,
+        max_levels=top_entries,
+        label_fontsize=10,
+        fontsize=fontsize,
+    )
+
+    plt.tight_layout()
+    if interactive:
+        display(table)
+        plt.show()
+
+    return data

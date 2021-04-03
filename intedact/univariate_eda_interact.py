@@ -77,27 +77,27 @@ def univariate_eda_interact(
 
 
 def column_univariate_eda_interact(
-    data,
-    column,
-    summary_type="discrete",
-    auto_update=True,
+    data: pd.DataFrame,
+    column: str,
+    summary_type: str = "categorical",
+    auto_update: bool = True,
     data_dict: str = None,
     notes_file: str = None,
     figure_dir: str = None,
-    savefig_button=None,
-):
+    savefig_button: Optional[widgets.Button] = None,
+) -> None:
     data = data.copy()
 
     data[column] = coerce_column_type(data[column], summary_type)
 
     color_palette_widget = widgets.Text(**WIDGET_PARAMS["color_palette"])
-    if summary_type == "discrete":
+    if summary_type == "categorical":
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
         fig_height_widget.value = max(6, min(data[column].nunique(), 24) // 2)
         flip_axis_widget = widgets.Checkbox(**WIDGET_PARAMS["flip_axis"])
         flip_axis_widget.value = data[column].nunique() > FLIP_LEVEL_COUNT
         widget = widgets.interactive(
-            discrete_univariate_summary,
+            categorical_univariate_summary,
             {"manual": not auto_update},
             data=widgets.widgets.fixed(data),
             column=widgets.widgets.fixed(column),
@@ -115,7 +115,7 @@ def column_univariate_eda_interact(
             label_rotation=widgets.IntSlider(**WIDGET_PARAMS["label_rotation"]),
             interactive=widgets.fixed(True),
         )
-    elif summary_type == "continuous":
+    elif summary_type == "numeric":
         bins_widget = widgets.IntSlider(**WIDGET_PARAMS["bins"])
         bins_widget.value = freedman_diaconis_bins(
             data[~data[column].isna()][column], log=False
@@ -125,7 +125,7 @@ def column_univariate_eda_interact(
         upper_trim_widget = widgets.BoundedIntText(**WIDGET_PARAMS["upper_trim"])
         upper_trim_widget.max = data.shape[0] - 1
         widget = widgets.interactive(
-            continuous_univariate_summary,
+            numeric_univariate_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
@@ -170,7 +170,7 @@ def column_univariate_eda_interact(
             interactive=widgets.fixed(True),
         )
     elif summary_type == "text":
-        fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
+        fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
         fig_width_widget.value = 16
         widget = widgets.interactive(
             text_univariate_summary,
@@ -188,15 +188,39 @@ def column_univariate_eda_interact(
             remove_stop=widgets.Checkbox(**WIDGET_PARAMS["remove_stop"]),
             interactive=widgets.fixed(True),
         )
-    elif summary_type == "list":
+    elif summary_type == "collection":
+        fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
+        fig_width_widget.value = 16
         widget = widgets.interactive(
-            list_univariate_eda,
+            collection_univariate_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
-            fig_height=WIDGET_PARAMS["fig_height"]["widget_options"],
-            fig_width=WIDGET_PARAMS["fig_width"]["widget_options"],
-            top_entries=WIDGET_PARAMS["top_entries"]["widget_options"],
+            fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
+            color_palette=color_palette_widget,
+            fig_height=widgets.IntSlider(**WIDGET_PARAMS["fig_height"]),
+            fig_width=fig_width_widget,
+            top_entries=widgets.IntSlider(**WIDGET_PARAMS["top_entries"]),
+            remove_duplicates=widgets.Checkbox(**WIDGET_PARAMS["remove_duplicates"]),
+            sort_collections=widgets.Checkbox(**WIDGET_PARAMS["sort_collections"]),
+            interactive=widgets.fixed(True),
+        )
+    elif summary_type == "url":
+        fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
+        fig_height_widget.value = 8
+        fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
+        fig_width_widget.value = 16
+        widget = widgets.interactive(
+            url_univariate_summary,
+            {"manual": not auto_update},
+            data=widgets.fixed(data),
+            column=widgets.fixed(column),
+            fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
+            color_palette=color_palette_widget,
+            fig_height=fig_height_widget,
+            fig_width=fig_width_widget,
+            top_entries=widgets.IntSlider(**WIDGET_PARAMS["top_entries"]),
+            interactive=widgets.fixed(True),
         )
     else:
         print("No EDA support for this variable type")
@@ -214,6 +238,7 @@ def column_univariate_eda_interact(
         widget.children[:4], layout=widgets.Layout(flex_flow="row wrap")
     )
     display(general_controls)
+
     print("=========================")
     print("Summary Specific Controls")
     print("=========================")
@@ -223,9 +248,12 @@ def column_univariate_eda_interact(
         widget.children[4:-1], layout=widgets.Layout(flex_flow="row wrap")
     )
     display(controls)
+
+    print("==============")
+    print("Summary Output")
+    print("==============")
     output = widget.children[-1]
     display(output)
-    # display(widgets.VBox([controls, output]))
 
     # Handle EDA notes and summary configuration
     if notes_file is not None:
