@@ -737,8 +737,8 @@ def url_univariate_summary(
     fig_height: int = 6,
     fig_width: int = 12,
     fontsize: int = 15,
-    top_entries: str = 20,
     color_palette: str = None,
+    top_entries: str = 20,
     interactive: bool = False,
 ):
     """
