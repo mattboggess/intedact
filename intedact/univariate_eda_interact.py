@@ -46,7 +46,7 @@ def univariate_eda_interact(
         column_univariate_eda_interact,
         data=widgets.widgets.fixed(data),
         column=col_widget,
-        summary_type=widgets.Dropdown(**WIDGET_PARAMS["summary_type"]),
+        summary_type=widgets.Dropdown(**WIDGET_PARAMS["univariate_summary_type"]),
         auto_update=widgets.Checkbox(**WIDGET_PARAMS["auto_update"]),
         data_dict=widgets.fixed(data_dict),
         notes_file=widgets.fixed(notes_file),

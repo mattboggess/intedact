@@ -308,9 +308,9 @@ def time_series_countplot(
         date_breaks: Date breaks string in form '{interval} {period}'. Interval must be an integer and period must be
           a time period ranging from seconds to years. (e.g. '1 year', '3 minutes')
         span: Span parameter to determine amount of smoothing for loess
+        ci_level: Confidence level determining how wide to plot confidence intervals for smoothing.
         lower_trim: Number of values to trim from lower end of distribution
         upper_trim: Number of values to trim from upper end of distribution
-        ci_level: Confidence level determining how wide to plot confidence intervals for smoothing.
 
     Returns:
         Matplotlib axes with time series drawn

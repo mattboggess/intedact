@@ -359,7 +359,7 @@ def agg_time_series(data, column, agg_freq):
     return agg_df, ylabel
 
 
-def detect_column_type(col_data, discrete_limit=50):
+def detect_column_type(col_data, discrete_limit=50, bivariate=False):
     col_data = col_data.dropna()
 
     if is_datetime64_any_dtype(col_data):

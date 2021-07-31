@@ -39,7 +39,15 @@ WIDGET_PARAMS = {
         description="Column: Column to be plotted",
         style={"description_width": "22%"},
     ),
-    "summary_type": dict(
+    "column1": dict(
+        description="Column1: Column to be plotted on x-axis",
+        style={"description_width": "22%"},
+    ),
+    "column2": dict(
+        description="Column2: Column to be plotted on y-axis",
+        style={"description_width": "22%"},
+    ),
+    "univariate_summary_type": dict(
         description=(
             "Summary Type: Type of univariate summary to display."
             " Type is automatically inferred by default, but you can manually change the type to"
@@ -56,6 +64,24 @@ WIDGET_PARAMS = {
         ),
         style={"description_width": "36%"},
         options=["categorical", "numeric", "datetime", "text", "collection", "url"],
+    ),
+    "bivariate_summary_type": dict(
+        description=(
+            "Summary Type: Type of bivariate summary to display."
+            " Type is automatically inferred by default, but you can manually change the type to"
+            " try to produce a different summary if the column data is compatible."
+            " It is recommended you preprocess the columns to have the desired type prior to"
+            " running this function for greatest accuracy of automatic type inference.\n\n"
+            " The following types are available:\n"
+            "  - 'numeric-numeric': For pairs of high cardinality numeric variables \n"
+        ),
+        style={"description_width": "36%"},
+        options=[
+            "numeric-numeric",
+            "categorical-categorical",
+            "categorical-numeric",
+            "numeric-categorical",
+        ],
     ),
     "auto_update": dict(description="Auto Update Summaries", value=True),
     "fig_width": dict(
@@ -138,9 +164,30 @@ WIDGET_PARAMS = {
         style={"description_width": "20%"},
     ),
     "kde": dict(description="Overlay Density on Histogram", value=False),
+    "plot_kde": dict(description="Overlay 2D Density", value=False),
     "transform": dict(
         description=(
             "Transform: Transformation to apply to column for plotting \n"
+            "  - identity: No transformation\n"
+            "  - log: Log transform (see clip variable for handling 0's)\n"
+        ),
+        value="identity",
+        options=["identity", "log"],
+        style={"description_width": "27%"},
+    ),
+    "transform1": dict(
+        description=(
+            "Transform1: Transformation to apply to column1 for plotting \n"
+            "  - identity: No transformation\n"
+            "  - log: Log transform (see clip variable for handling 0's)\n"
+        ),
+        value="identity",
+        options=["identity", "log"],
+        style={"description_width": "27%"},
+    ),
+    "transform2": dict(
+        description=(
+            "Transform2: Transformation to apply to column2 for plotting \n"
             "  - identity: No transformation\n"
             "  - log: Log transform (see clip variable for handling 0's)\n"
         ),
@@ -172,6 +219,46 @@ WIDGET_PARAMS = {
     "upper_trim": dict(
         description=(
             "Upper Trim: Remove X values from upper end of distribution. Use to remove outliers in data."
+        ),
+        value=0,
+        min=0,
+        max=10000,
+        step=1,
+        style={"description_width": "30%"},
+    ),
+    "lower_trim1": dict(
+        description=(
+            "Lower Trim1: Remove values from lower end of distribution for column1. Use to remove outliers in data."
+        ),
+        value=0,
+        min=0,
+        max=10000,
+        step=1,
+        style={"description_width": "30%"},
+    ),
+    "upper_trim1": dict(
+        description=(
+            "Upper Trim1: Remove values from upper end of distribution for column1. Use to remove outliers in data."
+        ),
+        value=0,
+        min=0,
+        max=10000,
+        step=1,
+        style={"description_width": "30%"},
+    ),
+    "lower_trim2": dict(
+        description=(
+            "Lower Trim2: Remove values from lower end of distribution for column2. Use to remove outliers in data."
+        ),
+        value=0,
+        min=0,
+        max=10000,
+        step=1,
+        style={"description_width": "30%"},
+    ),
+    "upper_trim2": dict(
+        description=(
+            "Upper Trim2: Remove values from upper end of distribution for column2. Use to remove outliers in data."
         ),
         value=0,
         min=0,
@@ -242,6 +329,7 @@ WIDGET_PARAMS = {
         step=1,
         value=20,
     ),
+    "reference_line": dict(description="Plot a y = x reference line", value=False),
     "remove_punct": dict(description="Remove punctuation tokens", value=True),
     "remove_stop": dict(description="Remove stop word tokens", value=True),
     "lower_case": dict(description="Lower case tokens", value=True),
@@ -253,6 +341,14 @@ WIDGET_PARAMS = {
         max=100,
         step=1,
         value=20,
+    ),
+    "alpha": dict(
+        description="alpha: Amount of transparency to use ranging from 0 (fully transparent) to 1 (opaque)",
+        style={"description_width": "18%"},
+        min=0,
+        max=1,
+        step=0.05,
+        value=1,
     ),
     "sort_collections": dict(description="Sort Collections", value=True),
     "remove_duplicates": dict(description="Remove Duplicate Entries", value=True),
@@ -312,20 +408,10 @@ WIDGET_PARAMS = {
         "width": "30%",
         "widget": "N/A",
     },
-    "reference_line": {
-        "description": "Plot a y = x reference line",
-        "width": "0%",
-        "widget": "N/A",
-    },
     "plot_density": {
         "description": "Overlay a bivariate KDE",
         "width": "0%",
         "widget": "N/A",
-    },
-    "alpha": {
-        "description": "alpha: Amount of transparency to use for points/histograms ranging from 0 (fully transparent) to 1 (opaque)",
-        "width": "18%",
-        "widget": (0, 1, 0.05),
     },
     "normalize": {
         "description": "Normalize counts to percentages",
