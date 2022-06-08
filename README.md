@@ -1,5 +1,6 @@
 # intedact: Interactive EDA
 
+[![PyPI Version](https://img.shields.io/pypi/v/seaborn.svg)](https://pypi.org/project/seaborn/)
 [![Read the Docs](https://readthedocs.org/projects/intedact/badge/?version=latest)](https://intedact.readthedocs.io/en/latest/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/mattboggess/intedact/blob/master/LICENSE)
 
