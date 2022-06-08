@@ -36,7 +36,7 @@ For interactive univariate EDA simply import the `univariate_eda_interact` funct
         data, notes_file="optional_file_to_save_notes_to.json", figure_dir="optional_directory_to_save_plots_to"
     )
 
-<img src="https://github.com/mattboggess/intedact/blob/master/demo/univariate_eda_demo.gif"/>
+<img src="https://github.com/mattboggess/intedact/raw/master/demo/univariate_eda_demo.gif"/>
 
 At the top level, one selects the column and the summary type for that column to display. To explore the full dataset,
 just toggle through each of the column names. Current supported summary types:
