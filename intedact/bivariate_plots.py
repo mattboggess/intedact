@@ -1,20 +1,21 @@
-#TODO: WIP
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import plotnine as p9
-from typing import Tuple, Optional
-from .data_utils import (
-    preprocess_transform,
-    convert_to_freq_string,
-    match_axes,
-    convert_date_breaks,
-    trim_values,
-)
+# TODO: WIP
+from typing import Optional
+from typing import Tuple
 
-from .plot_utils import add_trendline, transform_axis
-import seaborn as sns
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import plotnine as p9
+import seaborn as sns
+
+from .data_utils import convert_date_breaks
+from .data_utils import convert_to_freq_string
+from .data_utils import match_axes
+from .data_utils import preprocess_transform
+from .data_utils import trim_values
+from .plot_utils import add_trendline
+from .plot_utils import transform_axis
 
 
 def histogram2d(

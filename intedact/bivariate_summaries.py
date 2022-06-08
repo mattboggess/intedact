@@ -1,25 +1,30 @@
-#TODO: WIP
-import matplotlib.pyplot as plt
-import matplotlib
-import pandas as pd
-import numpy as np
+# TODO: WIP
+import calendar
 from collections import Counter
+from itertools import combinations
+from typing import List
+from typing import Tuple
+from typing import Union
 
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import scipy.stats
 import seaborn as sns
-from itertools import combinations
-from matplotlib import gridspec
+import tldextract
 from IPython.display import display
-from typing import Union, List, Tuple
-from .plot_utils import *
-from .data_utils import trim_values, compute_time_deltas, convert_to_freq_string
+from matplotlib import gridspec
+
 from .bivariate_plots import (
     scatterplot,
 )
 from .bivariate_plots import time_series_plot
 from .config import TIME_UNITS
-import calendar
-import tldextract
+from .data_utils import compute_time_deltas
+from .data_utils import convert_to_freq_string
+from .data_utils import trim_values
+from .plot_utils import *
 
 
 def numeric_numeric_bivariate_summary(

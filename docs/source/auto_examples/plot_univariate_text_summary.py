@@ -12,8 +12,8 @@ The text summary computes the following:
 - Countplots for the most common unigrams, bigrams, and trigams
 - A table with summary statistics for the text metadata
 """
-
 import warnings
+
 warnings.filterwarnings("ignore")
 
 import pandas as pd
@@ -24,7 +24,7 @@ import intedact
 #
 data = pd.read_csv(
     "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv",
-    sep="\t"
+    sep="\t",
 )
 
 table, fig = intedact.text_univariate_summary(data, "summary", fontsize=10)
@@ -36,6 +36,13 @@ table
 # turn all of these off.
 #
 
-table, fig = intedact.text_univariate_summary(data, "summary", fontsize=10, remove_stop=False, remove_punct=False, lower_case=False)
+table, fig = intedact.text_univariate_summary(
+    data,
+    "summary",
+    fontsize=10,
+    remove_stop=False,
+    remove_punct=False,
+    lower_case=False,
+)
 fig.show()
 table

@@ -1,24 +1,27 @@
-import pandas as pd
+import itertools
+import re
+from typing import List
+from typing import Optional
+from typing import Tuple
+
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
-import itertools
 import numpy as np
+import pandas as pd
 import scipy.stats as stats
+from dateutil.rrule import DAILY
+from dateutil.rrule import HOURLY
+from dateutil.rrule import MINUTELY
+from dateutil.rrule import MONTHLY
+from dateutil.rrule import rrule
+from dateutil.rrule import SECONDLY
+from dateutil.rrule import WEEKLY
+from dateutil.rrule import YEARLY
+from pandas.api.types import is_datetime64_any_dtype
+from pandas.api.types import is_numeric_dtype
+
 from .config import TIME_UNITS
-from pandas.api.types import is_numeric_dtype, is_datetime64_any_dtype
-from typing import List, Optional, Tuple
-import matplotlib.dates as mdates
-from dateutil.rrule import (
-    rrule,
-    YEARLY,
-    MONTHLY,
-    WEEKLY,
-    DAILY,
-    HOURLY,
-    MINUTELY,
-    SECONDLY,
-)
-import re
 
 
 def format_bytes(bytes):
@@ -223,7 +226,10 @@ def convert_date_breaks(breaks_str: str) -> mdates.DateLocator:
 
 
 def trim_values(
-    data: pd.DataFrame, column: str, lower_quantile: float = 0, upper_quantile: float = 1
+    data: pd.DataFrame,
+    column: str,
+    lower_quantile: float = 0,
+    upper_quantile: float = 1,
 ) -> pd.DataFrame:
     """
     Filters a dataframe by removing rows where the values for a specified column are above or below

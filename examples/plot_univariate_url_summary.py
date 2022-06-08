@@ -12,8 +12,8 @@ The URL summary computes the following:
 - Countplot for the file types of the urls
 - A table with summary statistics for the url metadata
 """
-
 import warnings
+
 warnings.filterwarnings("ignore")
 
 import pandas as pd
@@ -24,7 +24,7 @@ import intedact
 #
 data = pd.read_csv(
     "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv",
-    sep="\t"
+    sep="\t",
 )
 
 table, fig = intedact.url_univariate_summary(data, "source", fontsize=10)

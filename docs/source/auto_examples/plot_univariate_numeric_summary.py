@@ -10,8 +10,8 @@ The numeric summary computes the following:
 - A boxplot
 - A table with summary statistics
 """
-
 import warnings
+
 warnings.filterwarnings("ignore")
 
 import pandas as pd
@@ -34,7 +34,12 @@ table
 # - kde overlay
 # - custom bin count
 
-data = pd.read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv", sep="\t")
-table, fig = intedact.numeric_univariate_summary(data, 'price', bins=20, kde=True, transform="log", upper_quantile=.95, fontsize=10)
+data = pd.read_csv(
+    "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv",
+    sep="\t",
+)
+table, fig = intedact.numeric_univariate_summary(
+    data, "price", bins=20, kde=True, transform="log", upper_quantile=0.95, fontsize=10
+)
 fig.show()
 table

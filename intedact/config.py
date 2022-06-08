@@ -213,7 +213,7 @@ WIDGET_PARAMS = {
         value=0,
         min=0,
         max=1,
-        step=.0001,
+        step=0.0001,
         style={"description_width": "30%"},
     ),
     "upper_quantile": dict(
@@ -223,7 +223,7 @@ WIDGET_PARAMS = {
         value=1,
         min=0,
         max=1,
-        step=.0001,
+        step=0.0001,
         style={"description_width": "30%"},
     ),
     "lower_trim1": dict(

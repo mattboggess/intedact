@@ -1,15 +1,18 @@
-#TODO: WIP
-import pandas as pd
-import seaborn as sns
-import ipywidgets as widgets
-import warnings
+# TODO: WIP
 import json
 import os
+import warnings
 
-from .config import WIDGET_PARAMS, FLIP_LEVEL_COUNT
-from .data_utils import coerce_column_type, freedman_diaconis_bins
-from .data_utils import detect_column_type
+import ipywidgets as widgets
+import pandas as pd
+import seaborn as sns
+
 from .bivariate_summaries import *
+from .config import FLIP_LEVEL_COUNT
+from .config import WIDGET_PARAMS
+from .data_utils import coerce_column_type
+from .data_utils import detect_column_type
+from .data_utils import freedman_diaconis_bins
 
 
 def bivariate_eda_interact(

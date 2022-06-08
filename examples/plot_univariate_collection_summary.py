@@ -12,8 +12,8 @@ The collection summary computes the following:
   - Counts for the number of entries in each collection
 - A table with summary statistics for the overall collections and the number of entries per collection
 """
-
 import warnings
+
 warnings.filterwarnings("ignore")
 
 import pandas as pd
@@ -26,10 +26,12 @@ import intedact
 #
 data = pd.read_csv(
     "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv",
-    sep="\t"
+    sep="\t",
 )
 data["article_violated"] = data["article_violated"].apply(lambda x: x.split("|"))
 
-table, fig = intedact.collection_univariate_summary(data, "article_violated", fontsize=10)
+table, fig = intedact.collection_univariate_summary(
+    data, "article_violated", fontsize=10
+)
 fig.show()
 table

@@ -1,13 +1,16 @@
-import pandas as pd
-import seaborn as sns
-import ipywidgets as widgets
-import warnings
 import json
 import os
+import warnings
 
-from .config import WIDGET_PARAMS, FLIP_LEVEL_COUNT
-from .data_utils import coerce_column_type, freedman_diaconis_bins
+import ipywidgets as widgets
+import pandas as pd
+import seaborn as sns
+
+from .config import FLIP_LEVEL_COUNT
+from .config import WIDGET_PARAMS
+from .data_utils import coerce_column_type
 from .data_utils import detect_column_type
+from .data_utils import freedman_diaconis_bins
 from .univariate_summaries import *
 
 
@@ -120,8 +123,12 @@ def column_univariate_eda_interact(
         bins_widget.value = freedman_diaconis_bins(
             data[~data[column].isna()][column], log=False
         )
-        lower_quantile_widget = widgets.BoundedFloatText(**WIDGET_PARAMS["lower_quantile"])
-        upper_quantile_widget = widgets.BoundedFloatText(**WIDGET_PARAMS["upper_quantile"])
+        lower_quantile_widget = widgets.BoundedFloatText(
+            **WIDGET_PARAMS["lower_quantile"]
+        )
+        upper_quantile_widget = widgets.BoundedFloatText(
+            **WIDGET_PARAMS["upper_quantile"]
+        )
         widget = widgets.interactive(
             numeric_univariate_summary,
             {"manual": not auto_update},
@@ -144,8 +151,12 @@ def column_univariate_eda_interact(
         print(
             "See here for valid frequency strings: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects"
         )
-        lower_quantile_widget = widgets.BoundedFloatText(**WIDGET_PARAMS["lower_quantile"])
-        upper_quantile_widget = widgets.BoundedFloatText(**WIDGET_PARAMS["upper_quantile"])
+        lower_quantile_widget = widgets.BoundedFloatText(
+            **WIDGET_PARAMS["lower_quantile"]
+        )
+        upper_quantile_widget = widgets.BoundedFloatText(
+            **WIDGET_PARAMS["upper_quantile"]
+        )
         widget = widgets.interactive(
             datetime_univariate_summary,
             {"manual": not auto_update},
