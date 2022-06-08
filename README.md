@@ -54,7 +54,6 @@ try to automatically set good default parameters, but sometimes you need to make
 See the documentation for [examples](https://intedact.readthedocs.io/en/latest/auto_examples/index.html) of how to statically call the individual univariate summary functions.
 
 
-
 ## Bivariate EDA
 
 Work in progress. Stay tuned!
