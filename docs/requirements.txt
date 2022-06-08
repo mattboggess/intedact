@@ -1,10 +1,13 @@
 sphinx_autorun==1.1.1
 sphinx-gallery==0.10.1
 sphinx_rtd_theme
-matplotlib==3.5.2
-seaborn==0.11.2
-pandas==1.3.5
+matplotlib
+seaborn
+pandas
 plotnine==0.7.1
 sphinx_exec_directive
 ipywidgets
 numpy
+tldextract
+scikit-misc
+ipython
