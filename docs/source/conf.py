@@ -50,9 +50,9 @@ autosummary_generate = True
 add_module_names = False
 
 # The short X.Y version.
-from pathlib import Path
-sys.path.insert(0, Path(__file__).resolve().parents[1])
-import intedact
+#from pathlib import Path
+#sys.path.insert(0, Path(__file__).resolve().parents[1])
+#import intedact
 
 #import commonmark
 #
