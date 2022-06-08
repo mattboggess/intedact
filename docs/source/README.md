@@ -8,6 +8,8 @@ produce the best summaries by default.
 
 [Full documentation here](//intedact.readthedocs.io/en/latest/index.html)
 
+Try intedact here: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mattboggess/intedact/HEAD?filepath=demo%2Funivariate_eda_demo.ipynb)
+
 # Getting Started 
 
 ## Installation
@@ -34,7 +36,7 @@ For interactive univariate EDA simply import the `univariate_eda_interact` funct
         data, notes_file="optional_file_to_save_notes_to.json", figure_dir="optional_directory_to_save_plots_to"
     )
 
-GIF HERE
+![](demo/univariate_eda_demo.mp4)
 
 At the top level, one selects the column and the summary type for that column to display. To explore the full dataset,
 just toggle through each of the column names. Current supported summary types:
@@ -49,9 +51,8 @@ just toggle through each of the column names. Current supported summary types:
 For each column, one can then adjust parameters for the given summary type to fit your particular dataset. These summaries
 try to automatically set good default parameters, but sometimes you need to make adjustments to get the full picture.
 
-See the documentation for examples of how to statically call the individual univariate summary functions.
+See the documentation for [examples](https://intedact.readthedocs.io/en/latest/auto_examples/index.html) of how to statically call the individual univariate summary functions.
 
-Try `univariate_eda_interact` here: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mattboggess/intedact/HEAD?filepath=demo%2Funivariate_eda_demo.ipynb)
 
 
 ## Bivariate EDA
