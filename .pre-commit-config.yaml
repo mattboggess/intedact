@@ -1,0 +1,19 @@
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0  # Use the ref you want to point at
+    hooks:
+      - id: trailing-whitespace
+
+  - repo: https://github.com/psf/black
+    rev: 20.8b1
+    hooks:
+      - id: black
+        entry: black
+
+  - repo: https://github.com/asottile/reorder_python_imports
+    rev: v2.3.5
+
+    hooks:
+      - id: reorder-python-imports
+        exclude: __init__.py
