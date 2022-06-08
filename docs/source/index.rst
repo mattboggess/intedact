@@ -4,7 +4,7 @@ Welcome to intedact's documentation!
 
 
 .. toctree::
-   About <../../README.md>
+   About <README.md>
    auto_examples/index
    :maxdepth: 2
    :caption: About
@@ -13,7 +13,7 @@ Welcome to intedact's documentation!
    univariate_plots
    univariate_summaries
    :maxdepth: 2
-   :caption: Library Documentation
+   :caption: API Documentation
 
 
 Indices and tables
