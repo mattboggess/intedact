@@ -35,8 +35,8 @@ The URL summary computes the following:
 
 .. code-block:: default
 
-
     import warnings
+
     warnings.filterwarnings("ignore")
 
     import pandas as pd
@@ -60,7 +60,7 @@ Here we take a look at the source URL's for countries GDPR violations recordings
 
     data = pd.read_csv(
         "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv",
-        sep="\t"
+        sep="\t",
     )
 
     table, fig = intedact.url_univariate_summary(data, "source", fontsize=10)
@@ -129,7 +129,7 @@ Here we take a look at the source URL's for countries GDPR violations recordings
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.732 seconds)
+   **Total running time of the script:** ( 0 minutes  1.052 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_url_summary.py:

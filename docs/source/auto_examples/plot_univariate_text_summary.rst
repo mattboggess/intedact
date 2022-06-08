@@ -31,36 +31,52 @@ The text summary computes the following:
 - Countplots for the most common unigrams, bigrams, and trigams
 - A table with summary statistics for the text metadata
 
-.. GENERATED FROM PYTHON SOURCE LINES 15-22
+.. GENERATED FROM PYTHON SOURCE LINES 15-25
 
 .. code-block:: default
 
-
     import warnings
+
     warnings.filterwarnings("ignore")
 
     import pandas as pd
     import intedact
+    import nltk
+    nltk.download('punkt')
+    nltk.download('stopwords')
 
 
 
 
 
+.. rst-class:: sphx-glr-script-out
+
+ Out:
+
+ .. code-block:: none
+
+    [nltk_data] Downloading package punkt to /Users/mboggess/nltk_data...
+    [nltk_data]   Package punkt is already up-to-date!
+    [nltk_data] Downloading package stopwords to
+    [nltk_data]     /Users/mboggess/nltk_data...
+    [nltk_data]   Package stopwords is already up-to-date!
+
+    True
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 23-25
+.. GENERATED FROM PYTHON SOURCE LINES 26-28
 
 Here we take a look at the summaries for GDPR violations.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 25-34
+.. GENERATED FROM PYTHON SOURCE LINES 28-37
 
 .. code-block:: default
 
     data = pd.read_csv(
         "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv",
-        sep="\t"
+        sep="\t",
     )
 
     table, fig = intedact.text_univariate_summary(data, "summary", fontsize=10)
@@ -169,18 +185,25 @@ Here we take a look at the summaries for GDPR violations.
     <br />
     <br />
 
-.. GENERATED FROM PYTHON SOURCE LINES 35-38
+.. GENERATED FROM PYTHON SOURCE LINES 38-41
 
 By default, the summary does a lot of text cleaning: removing punctuation and stop words, lower casing. We can
 turn all of these off.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 38-42
+.. GENERATED FROM PYTHON SOURCE LINES 41-52
 
 .. code-block:: default
 
 
-    table, fig = intedact.text_univariate_summary(data, "summary", fontsize=10, remove_stop=False, remove_punct=False, lower_case=False)
+    table, fig = intedact.text_univariate_summary(
+        data,
+        "summary",
+        fontsize=10,
+        remove_stop=False,
+        remove_punct=False,
+        lower_case=False,
+    )
     fig.show()
     table
 
@@ -288,7 +311,7 @@ turn all of these off.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.235 seconds)
+   **Total running time of the script:** ( 0 minutes  1.389 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_text_summary.py:

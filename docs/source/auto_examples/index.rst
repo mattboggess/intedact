@@ -52,27 +52,6 @@ Examples of Summaries
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Example of univariate eda summary for a text variable">
-
-.. only:: html
-
- .. figure:: /auto_examples/images/thumb/sphx_glr_plot_univariate_text_summary_thumb.png
-     :alt: Univariate Text Summary
-
-     :ref:`sphx_glr_auto_examples_plot_univariate_text_summary.py`
-
-.. raw:: html
-
-    </div>
-
-
-.. toctree::
-   :hidden:
-
-   /auto_examples/plot_univariate_text_summary
-
-.. raw:: html
-
     <div class="sphx-glr-thumbcontainer" tooltip="Example of univariate eda summary for a numeric variable.">
 
 .. only:: html
@@ -91,6 +70,27 @@ Examples of Summaries
    :hidden:
 
    /auto_examples/plot_univariate_numeric_summary
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Example of univariate eda summary for a text variable">
+
+.. only:: html
+
+ .. figure:: /auto_examples/images/thumb/sphx_glr_plot_univariate_text_summary_thumb.png
+     :alt: Univariate Text Summary
+
+     :ref:`sphx_glr_auto_examples_plot_univariate_text_summary.py`
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/plot_univariate_text_summary
 
 .. raw:: html
 

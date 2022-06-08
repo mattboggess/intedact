@@ -33,8 +33,8 @@ The numeric summary computes the following:
 
 .. code-block:: default
 
-
     import warnings
+
     warnings.filterwarnings("ignore")
 
     import pandas as pd
@@ -139,13 +139,18 @@ Next we take a look at some GDPR violation prices to showcase the other paramete
 - kde overlay
 - custom bin count
 
-.. GENERATED FROM PYTHON SOURCE LINES 36-41
+.. GENERATED FROM PYTHON SOURCE LINES 36-46
 
 .. code-block:: default
 
 
-    data = pd.read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv", sep="\t")
-    table, fig = intedact.numeric_univariate_summary(data, 'price', bins=20, kde=True, transform="log", upper_quantile=.95, fontsize=10)
+    data = pd.read_csv(
+        "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv",
+        sep="\t",
+    )
+    table, fig = intedact.numeric_univariate_summary(
+        data, "price", bins=20, kde=True, transform="log", upper_quantile=0.95, fontsize=10
+    )
     fig.show()
     table
 
@@ -219,7 +224,7 @@ Next we take a look at some GDPR violation prices to showcase the other paramete
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.111 seconds)
+   **Total running time of the script:** ( 0 minutes  0.497 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_numeric_summary.py:

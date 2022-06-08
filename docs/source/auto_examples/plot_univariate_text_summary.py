@@ -18,6 +18,10 @@ warnings.filterwarnings("ignore")
 
 import pandas as pd
 import intedact
+import nltk
+
+nltk.download("punkt")
+nltk.download("stopwords")
 
 # %%
 # Here we take a look at the summaries for GDPR violations.

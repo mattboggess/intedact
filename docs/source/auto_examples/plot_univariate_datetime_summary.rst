@@ -30,19 +30,23 @@ The datetime summary computes the following:
 - Barplots showing counts by day of week, month, hour of day, day of month
 - A table with summary statistics for the time differences and time series itself
 
-.. GENERATED FROM PYTHON SOURCE LINES 14-26
+.. GENERATED FROM PYTHON SOURCE LINES 14-30
 
 .. code-block:: default
 
+    import warnings
 
     import pandas as pd
+
     import intedact
-    import warnings
+
     warnings.filterwarnings("ignore")
 
-    data = pd.read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/tidytuesday_tweets/data.csv")
-    data['created_at'] = pd.to_datetime(data.created_at)
-    table, fig = intedact.datetime_univariate_summary(data, 'created_at', fontsize=10)
+    data = pd.read_csv(
+        "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/tidytuesday_tweets/data.csv"
+    )
+    data["created_at"] = pd.to_datetime(data.created_at)
+    table, fig = intedact.datetime_univariate_summary(data, "created_at", fontsize=10)
     fig.show()
     table
 
@@ -129,18 +133,20 @@ The datetime summary computes the following:
     <br />
     <br />
 
-.. GENERATED FROM PYTHON SOURCE LINES 27-30
+.. GENERATED FROM PYTHON SOURCE LINES 31-34
 
 By default, the summary tries to infer reasonable units for the time differences and time series. We can change
 these by using time unit strings for the `ts_freq` and `delta_units` parameters.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 30-35
+.. GENERATED FROM PYTHON SOURCE LINES 34-41
 
 .. code-block:: default
 
 
-    table, fig = intedact.datetime_univariate_summary(data, 'created_at', ts_freq='1 day', delta_units='1 minute', fontsize=10)
+    table, fig = intedact.datetime_univariate_summary(
+        data, "created_at", ts_freq="1 day", delta_units="1 minute", fontsize=10
+    )
     fig.show()
     table
 
@@ -227,16 +233,23 @@ these by using time unit strings for the `ts_freq` and `delta_units` parameters.
     <br />
     <br />
 
-.. GENERATED FROM PYTHON SOURCE LINES 36-38
+.. GENERATED FROM PYTHON SOURCE LINES 42-44
 
 Example of changing plot type, removing trend line, and removing outliers.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 38-41
+.. GENERATED FROM PYTHON SOURCE LINES 44-54
 
 .. code-block:: default
 
-    table, fig = intedact.datetime_univariate_summary(data, 'created_at', ts_type='point', trend_line=None, upper_quantile=.99, fontsize=10)
+    table, fig = intedact.datetime_univariate_summary(
+        data,
+        "created_at",
+        ts_type="point",
+        trend_line=None,
+        upper_quantile=0.99,
+        fontsize=10,
+    )
     fig.show()
     table
 
@@ -325,7 +338,7 @@ Example of changing plot type, removing trend line, and removing outliers.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  3.580 seconds)
+   **Total running time of the script:** ( 0 minutes  5.201 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_datetime_summary.py:

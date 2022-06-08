@@ -32,8 +32,8 @@ The categorical summary computes the following:
 
 .. code-block:: default
 
-
     import warnings
+
     warnings.filterwarnings("ignore")
 
     import pandas as pd
@@ -55,12 +55,15 @@ By default, the plot will try to order and orient the columns appropriately. Her
 and the plot was flipped horizontally due to the number of levels in the variable.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 26-31
+.. GENERATED FROM PYTHON SOURCE LINES 26-34
 
 .. code-block:: default
 
-    data = pd.read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv", sep="\t")
-    table, fig = intedact.categorical_univariate_summary(data, 'name', fontsize=10)
+    data = pd.read_csv(
+        "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv",
+        sep="\t",
+    )
+    table, fig = intedact.categorical_univariate_summary(data, "name", fontsize=10)
     fig.show()
     table
 
@@ -116,17 +119,19 @@ and the plot was flipped horizontally due to the number of levels in the variabl
     <br />
     <br />
 
-.. GENERATED FROM PYTHON SOURCE LINES 32-35
+.. GENERATED FROM PYTHON SOURCE LINES 35-38
 
 We can do additional things such as condense extra columns into an "Other" column, add a bar for missing values,
 and change the sort order to sort alphabetically.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 35-39
+.. GENERATED FROM PYTHON SOURCE LINES 38-44
 
 .. code-block:: default
 
-    table, fig = intedact.categorical_univariate_summary(data, 'name', include_missing=True, order="sorted", max_levels=10, fontsize=10)
+    table, fig = intedact.categorical_univariate_summary(
+        data, "name", include_missing=True, order="sorted", max_levels=10, fontsize=10
+    )
     fig.show()
     table
 
@@ -182,20 +187,26 @@ and change the sort order to sort alphabetically.
     <br />
     <br />
 
-.. GENERATED FROM PYTHON SOURCE LINES 40-43
+.. GENERATED FROM PYTHON SOURCE LINES 45-48
 
 To handle ordinal variable sorting, one must convert the column to an ordered categorical data type. Here's an example
 of this for the diamonds dataset.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 43-49
+.. GENERATED FROM PYTHON SOURCE LINES 48-60
 
 .. code-block:: default
 
 
     data = sns.load_dataset("diamonds")
-    data["clarity"] = pd.Categorical(data["clarity"], categories=["I1", "SI1", "SI2", "VS2", "VS1", "VVS2", "VVS1", "IF"], ordered=True)
-    table, fig = intedact.categorical_univariate_summary(data, "clarity", flip_axis=False, fontsize=10)
+    data["clarity"] = pd.Categorical(
+        data["clarity"],
+        categories=["I1", "SI1", "SI2", "VS2", "VS1", "VVS2", "VVS1", "IF"],
+        ordered=True,
+    )
+    table, fig = intedact.categorical_univariate_summary(
+        data, "clarity", flip_axis=False, fontsize=10
+    )
     fig.show()
     table
 
@@ -253,7 +264,7 @@ of this for the diamonds dataset.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.543 seconds)
+   **Total running time of the script:** ( 0 minutes  0.475 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_categorical_summary.py:

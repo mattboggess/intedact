@@ -35,8 +35,8 @@ The collection summary computes the following:
 
 .. code-block:: default
 
-
     import warnings
+
     warnings.filterwarnings("ignore")
 
     import pandas as pd
@@ -56,17 +56,19 @@ a list and not a string. One can also choose whether to sort the values (ignore 
 remove duplicates (only consider unique entries)
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 27-36
+.. GENERATED FROM PYTHON SOURCE LINES 27-38
 
 .. code-block:: default
 
     data = pd.read_csv(
         "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv",
-        sep="\t"
+        sep="\t",
     )
     data["article_violated"] = data["article_violated"].apply(lambda x: x.split("|"))
 
-    table, fig = intedact.collection_univariate_summary(data, "article_violated", fontsize=10)
+    table, fig = intedact.collection_univariate_summary(
+        data, "article_violated", fontsize=10
+    )
     fig.show()
     table
 
@@ -158,7 +160,7 @@ remove duplicates (only consider unique entries)
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.446 seconds)
+   **Total running time of the script:** ( 0 minutes  0.386 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_collection_summary.py:
