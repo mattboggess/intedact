@@ -23,8 +23,8 @@ setuptools.setup(
     description="Interactive EDA visualizations in your jupyter notebook",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/mattboggess/intedact",
-    download_url="",
+    url="https://intedact.readthedocs.io/en/latest/index.html",
+    download_url="https://github.com/mattboggess/intedact",
     keywords=[
         "eda",
         "data visualization",

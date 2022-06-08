@@ -13,3 +13,5 @@ from .univariate_plots import (
     countplot,
     time_series_countplot,
 )
+
+__version__ = "0.0.1"
