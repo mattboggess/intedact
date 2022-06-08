@@ -15,7 +15,7 @@ setuptools.setup(
         "nltk",
         "ipywidgets",
         "ipython",
-        "scikit-misc"
+        "scikit-misc",
     ],
     version="0.0.1",
     author="Matthew Boggess",
@@ -25,7 +25,14 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/mattboggess/intedact",
     download_url="",
-    keywords=["eda", "data visualization", "data science", "pandas", "data analysis", "python"],
+    keywords=[
+        "eda",
+        "data visualization",
+        "data science",
+        "pandas",
+        "data analysis",
+        "python",
+    ],
     classifiers=[],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )
