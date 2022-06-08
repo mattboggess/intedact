@@ -338,7 +338,7 @@ Example of changing plot type, removing trend line, and removing outliers.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  5.201 seconds)
+   **Total running time of the script:** ( 0 minutes  5.162 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_datetime_summary.py:

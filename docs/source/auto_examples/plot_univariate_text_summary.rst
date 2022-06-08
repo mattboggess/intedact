@@ -312,7 +312,7 @@ turn all of these off.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.458 seconds)
+   **Total running time of the script:** ( 0 minutes  1.678 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_text_summary.py:
