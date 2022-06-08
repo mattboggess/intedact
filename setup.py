@@ -4,19 +4,28 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="intedact", # Replace with your own username
+    name="intedact",
+    packages=["intedact"],
+    install_requires=[
+        "numpy",
+        "plotnine==0.7.1",
+        "matplotlib",
+        "seaborn",
+        "tldextract",
+        "nltk",
+        "ipywidgets",
+        "ipython",
+        "scikit-misc"
+    ],
     version="0.0.1",
     author="Matthew Boggess",
     author_email="mattboggess7@gmail.com",
-    description="Lighweight, interactive univariate and bivariate EDA visualizations.",
+    description="Interactive EDA visualizations in your jupyter notebook",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/mattboggess/intedact",
-    packages=setuptools.find_packages(),
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ],
+    download_url="",
+    keywords=["eda", "data visualization", "data science", "pandas", "data analysis", "python"],
+    classifiers=[],
     python_requires='>=3.6',
 )

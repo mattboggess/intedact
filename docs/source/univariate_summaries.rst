@@ -1,7 +1,7 @@
 Univariate Summary Functions
-============================
+=============================
 
-Univariate summaries to visualize different types of single variables.
+Functions for creating univariate EDA summaries.
 
 .. currentmodule:: intedact.univariate_summaries
 
@@ -10,6 +10,9 @@ Univariate summaries to visualize different types of single variables.
    :template: function.rst
    :toctree: functions
 
-   continuous_univariate_summary
-   discrete_univariate_summary
+   categorical_univariate_summary
+   numeric_univariate_summary
    datetime_univariate_summary
+   text_univariate_summary
+   collection_univariate_summary
+   url_univariate_summary

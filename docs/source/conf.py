@@ -18,11 +18,11 @@ sys.path.insert(0, os.path.abspath('../..'))
 # -- Project information -----------------------------------------------------
 
 project = 'intedact'
-copyright = '2021, Matt Boggess'
+copyright = '2022, Matt Boggess'
 author = 'Matt Boggess'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.0'
+release = '0.0.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -31,7 +31,12 @@ release = '1.0.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.napoleon', 'recommonmark', 'sphinx_autorun',
-              'matplotlib.sphinxext.plot_directive', 'sphinx.ext.autosummary']
+              'matplotlib.sphinxext.plot_directive', 'sphinx.ext.autosummary', 'sphinx_exec_directive', 'sphinx_gallery.gen_gallery']
+
+sphinx_gallery_conf = {
+     'examples_dirs': '../../examples',   # path to your example scripts
+     'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

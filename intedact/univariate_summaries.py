@@ -26,7 +26,7 @@ FLIP_LEVEL_MINIMUM = 5
 
 
 def compute_univariate_summary_table(
-    data: pd.DataFrame, column: str, data_type: str, lower_trim=0, upper_trim=0
+    data: pd.DataFrame, column: str, data_type: str, lower_quantile=0, upper_quantile=1
 ) -> pd.DataFrame:
     """
     Computes summary statistics for a numerical pandas DataFrame column.
@@ -44,13 +44,14 @@ def compute_univariate_summary_table(
         data: The dataframe with the column to summarize
         column: The column in the dataframe to summarize
         data_type: Type of column to use to determine summary values to return
-        lower_trim: Number of values to trim from lower end of distribution
-        upper_trim: Number of values to trim from upper end of distribution
+        lower_quantile: Lower quantile to filter data above
+        upper_quantile: Upper quantile to filter data below
 
     Returns:
         pandas DataFrame with one row containing the summary statistics for the provided column
     """
-    data = trim_values(data, column, lower_trim, upper_trim)
+    if data_type in ["numeric", "datetime"]:
+        data = trim_values(data, column, lower_quantile, upper_quantile)
 
     # Get summary table
     count_missing = data[column].isnull().sum()
@@ -139,14 +140,6 @@ def categorical_univariate_summary(
 
     Returns:
         Summary table and matplotlib figure with countplot
-
-    Example:
-        .. plot::
-
-            import seaborn as sns
-            import intedact
-            data = sns.load_dataset('tips')
-            intedact.categorical_univariate_summary(data, 'day', interactive=True)
     """
     data = data.copy()
     if flip_axis is None:
@@ -194,8 +187,8 @@ def numeric_univariate_summary(
     transform: str = "identity",
     clip: float = 0,
     kde: bool = False,
-    lower_trim: int = 0,
-    upper_trim: int = 0,
+    lower_quantile: float = 0,
+    upper_quantile: float = 1,
     interactive: bool = False,
 ) -> Tuple[pd.DataFrame, plt.Figure]:
     """
@@ -218,20 +211,9 @@ def numeric_univariate_summary(
             - 'log_exclude0': apply a logarithmic transformation with zero values removed
             - 'sqrt': apply a square root transformation
         kde: Whether to overlay a KDE plot on the histogram
-        lower_trim: Number of values to trim from lower end of distribution
-        upper_trim: Number of values to trim from upper end of distribution
+        lower_quantile: Lower quantile to filter data above
+        upper_quantile: Upper quantile to filter data below
         interactive: Whether to modify to be used with interactive for ipywidgets
-
-    Returns:
-        Tuple containing matplotlib Figure drawn and summary stats DataFrame
-
-    Example:
-        .. plot::
-
-            import seaborn as sns
-            import intedact
-            data = sns.load_dataset('tips')
-            intedact.numeric_univariate_summary(data, 'total_bill', interactive=True)[0]
     """
     data = data.copy()
 
@@ -242,7 +224,7 @@ def numeric_univariate_summary(
 
     # Get summary table
     table = compute_univariate_summary_table(
-        data, column, "numeric", lower_trim, upper_trim
+        data, column, "numeric", lower_quantile, upper_quantile
     )
 
     f, axs = plt.subplots(2, 1, figsize=(fig_width, fig_height * 2))
@@ -253,8 +235,8 @@ def numeric_univariate_summary(
         bins=bins,
         transform=transform,
         clip=clip,
-        lower_trim=lower_trim,
-        upper_trim=upper_trim,
+        lower_quantile=lower_quantile,
+        upper_quantile=upper_quantile,
         kde=kde,
     )
     axs[0].set_xlabel("")
@@ -263,8 +245,8 @@ def numeric_univariate_summary(
         column,
         ax=axs[1],
         transform=transform,
-        lower_trim=lower_trim,
-        upper_trim=upper_trim,
+        lower_quantile=lower_quantile,
+        upper_quantile=upper_quantile,
     )
     set_fontsize(axs[0], fontsize)
     set_fontsize(axs[1], fontsize)
@@ -289,8 +271,8 @@ def datetime_univariate_summary(
     trend_line: str = "auto",
     date_labels: Optional[str] = None,
     date_breaks: Optional[str] = None,
-    lower_trim: int = 0,
-    upper_trim: int = 0,
+    lower_quantile: float = 0,
+    upper_quantile: float = 1,
     interactive: bool = False,
 ) -> Tuple[pd.DataFrame, plt.Figure]:
     """
@@ -332,24 +314,15 @@ def datetime_univariate_summary(
         date_labels: strftime date formatting string that will be used to set the format of the x axis tick labels
         date_breaks: Date breaks string in form '{interval} {period}'. Interval must be an integer and period must be
           a time period ranging from seconds to years. (e.g. '1 year', '3 minutes')
-        lower_trim: Number of values to trim from lower end of distribution
-        upper_trim: Number of values to trim from upper end of distribution
+        lower_quantile: Lower quantile to filter data above
+        upper_quantile: Upper quantile to filter data below
         interactive: Whether to display figures and tables in jupyter notebook for interactive use
 
     Returns:
         Tuple containing matplotlib Figure drawn and summary stats DataFrame
-
-    Examples:
-        .. plot::
-
-            import pandas as pd
-            import intedact
-            data = pd.read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/tidytuesday_tweets/data.csv")
-            data['created_at'] = pd.to_datetime(data.created_at)
-            intedact.datetime_univariate_summary(data, 'created_at', ts_freq='1 week', delta_freq='1 hour')
     """
     data = data.copy()
-    data = trim_values(data, column, lower_trim, upper_trim)
+    data = trim_values(data, column, lower_quantile, upper_quantile)
 
     if trend_line == "none":
         trend_line = None
@@ -384,7 +357,7 @@ def datetime_univariate_summary(
         display(table)
 
     fig = plt.figure(figsize=(fig_width, fig_height * 4))
-    spec = gridspec.GridSpec(ncols=2, nrows=5, figure=fig)
+    spec = gridspec.GridSpec(ncols=2, nrows=4, figure=fig)
 
     # time series count plot
     ax = fig.add_subplot(spec[0, :])
@@ -610,7 +583,7 @@ def text_univariate_summary(
     plt.tight_layout()
     if interactive:
         plt.show()
-    return fig
+    return table, fig
 
 
 def collection_univariate_summary(
@@ -843,4 +816,4 @@ def url_univariate_summary(
         display(table)
         plt.show()
 
-    return data
+    return table, fig

@@ -1,6 +1,6 @@
-﻿continuous\_univariate\_summary
+﻿collection\_univariate\_summary
 ===============================
 
 .. currentmodule:: intedact.univariate_summaries
 
-.. autofunction:: continuous_univariate_summary
+.. autofunction:: collection_univariate_summary

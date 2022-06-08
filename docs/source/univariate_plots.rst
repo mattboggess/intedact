@@ -11,7 +11,6 @@ Functions for creating single plots of single variables.
    :toctree: functions
 
    boxplot
-   continuous_summary_stats
    countplot
    histogram
    time_series_countplot

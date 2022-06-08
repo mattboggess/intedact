@@ -13,6 +13,3 @@ from .univariate_plots import (
     countplot,
     time_series_countplot,
 )
-from .bivariate_eda_interact import bivariate_eda_interact
-from .bivariate_plots import time_series_plot, scatterplot, histogram2d
-from .bivariate_summaries import numeric_numeric_bivariate_summary

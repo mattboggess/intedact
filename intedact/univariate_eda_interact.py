@@ -17,7 +17,7 @@ def univariate_eda_interact(
     notes_file: str = None,
     data_dict_file: str = None,
 ):
-    pd.set_option("precision", 2)
+    pd.set_option("display.precision", 2)
     sns.set(style="whitegrid")
     warnings.simplefilter("ignore")
 
@@ -120,10 +120,8 @@ def column_univariate_eda_interact(
         bins_widget.value = freedman_diaconis_bins(
             data[~data[column].isna()][column], log=False
         )
-        lower_trim_widget = widgets.BoundedIntText(**WIDGET_PARAMS["lower_trim"])
-        lower_trim_widget.max = data.shape[0] - 1
-        upper_trim_widget = widgets.BoundedIntText(**WIDGET_PARAMS["upper_trim"])
-        upper_trim_widget.max = data.shape[0] - 1
+        lower_quantile_widget = widgets.BoundedFloatText(**WIDGET_PARAMS["lower_quantile"])
+        upper_quantile_widget = widgets.BoundedFloatText(**WIDGET_PARAMS["upper_quantile"])
         widget = widgets.interactive(
             numeric_univariate_summary,
             {"manual": not auto_update},
@@ -135,8 +133,8 @@ def column_univariate_eda_interact(
             color_palette=color_palette_widget,
             bins=bins_widget,
             clip=widgets.BoundedFloatText(**WIDGET_PARAMS["clip"]),
-            lower_trim=lower_trim_widget,
-            upper_trim=upper_trim_widget,
+            lower_quantile=lower_quantile_widget,
+            upper_quantile=upper_quantile_widget,
             transform=widgets.Dropdown(**WIDGET_PARAMS["transform"]),
             kde=widgets.Checkbox(**WIDGET_PARAMS["kde"]),
             interactive=widgets.fixed(True),
@@ -146,10 +144,8 @@ def column_univariate_eda_interact(
         print(
             "See here for valid frequency strings: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects"
         )
-        lower_trim_widget = widgets.BoundedIntText(**WIDGET_PARAMS["lower_trim"])
-        lower_trim_widget.max = data.shape[0] - 1
-        upper_trim_widget = widgets.BoundedIntText(**WIDGET_PARAMS["upper_trim"])
-        upper_trim_widget.max = data.shape[0] - 1
+        lower_quantile_widget = widgets.BoundedFloatText(**WIDGET_PARAMS["lower_quantile"])
+        upper_quantile_widget = widgets.BoundedFloatText(**WIDGET_PARAMS["upper_quantile"])
         widget = widgets.interactive(
             datetime_univariate_summary,
             {"manual": not auto_update},
@@ -165,8 +161,8 @@ def column_univariate_eda_interact(
             trend_line=widgets.Dropdown(**WIDGET_PARAMS["trend_line"]),
             date_breaks=widgets.Text(**WIDGET_PARAMS["date_breaks"]),
             date_labels=widgets.Text(**WIDGET_PARAMS["date_labels"]),
-            lower_trim=lower_trim_widget,
-            upper_trim=upper_trim_widget,
+            lower_quantile=lower_quantile_widget,
+            upper_quantile=upper_quantile_widget,
             interactive=widgets.fixed(True),
         )
     elif summary_type == "text":
@@ -275,7 +271,7 @@ def column_univariate_eda_interact(
 
         notes_entry = widgets.Textarea(
             value=notes[column],
-            placeholder="Take EDA Notes Here",
+            placeholder="Take EDA Notes Here. Make sure to click Save Notes before navigating away.",
             description="EDA Notes:",
             layout=dict(width="80%", height="auto"),
             disabled=False,

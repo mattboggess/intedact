@@ -4,13 +4,16 @@ Welcome to intedact's documentation!
 
 
 .. toctree::
-   About <README.md>
-   univariate_summaries
-   univariate_plots
-   bivariate_plots
+   About <../../README.md>
+   auto_examples/index
    :maxdepth: 2
-   :caption: Contents:
+   :caption: About
 
+.. toctree::
+   univariate_plots
+   univariate_summaries
+   :maxdepth: 2
+   :caption: Library Documentation
 
 
 Indices and tables

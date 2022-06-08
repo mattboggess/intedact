@@ -24,8 +24,8 @@ def boxplot(
     data: pd.DataFrame,
     column: str,
     ax: Optional[plt.Axes] = None,
-    lower_trim: int = 0,
-    upper_trim: int = 0,
+    lower_quantile: float = 0,
+    upper_quantile: float = 1,
     transform: str = "identity",
     clip: float = 0,
     flip_axis: bool = True,
@@ -41,8 +41,8 @@ def boxplot(
         data: pandas DataFrame containing data to be plotted
         column: name of column to plot histogram of
         ax: matplotlib axes generated from blank ggplot to plot onto. If specified, must also specify fig
-        lower_trim: Number of values to trim from lower end of distribution
-        upper_trim: Number of values to trim from upper end of distribution
+        lower_quantile: Lower quantile to filter data above
+        upper_quantile: Upper quantile to filter data below
         transform: Transformation to apply to the data for plotting:
 
          - **'identity'**: no transformation
@@ -65,7 +65,7 @@ def boxplot(
     data = data.copy()
 
     # Remove upper and lower quantiles
-    data = trim_values(data, column, lower_trim, upper_trim)
+    data = trim_values(data, column, lower_quantile, upper_quantile)
 
     # Clip/remove zeros for log transformation
     data = preprocess_transform(data, column, transform, clip=clip)
@@ -215,8 +215,8 @@ def histogram(
     bins: Optional[int] = None,
     transform: str = "identity",
     clip: float = 0,
-    lower_trim: int = 0,
-    upper_trim: int = 0,
+    lower_quantile: float = 0,
+    upper_quantile: float = 1,
     kde: bool = False,
     **kwargs,
 ) -> plt.Axes:
@@ -234,8 +234,8 @@ def histogram(
          - **'identity'**: no transformation
          - **'log'**: apply a logarithmic transformation to the data
         clip: Value to clip zero values to for log transformation. If 0 (default), zero values are simply removed.
-        lower_trim: Number of values to trim from lower end of distribution
-        upper_trim: Number of values to trim from upper end of distribution
+        lower_quantile: Lower quantile to filter data above
+        upper_quantile: Upper quantile to filter data below
         kde: Whether to overlay a KDE plot on the histogram
         kwargs: Additional keyword arguments passed through to [sns.histplot](https://seaborn.pydata.org/generated/seaborn.histplot.html)
 
@@ -253,7 +253,7 @@ def histogram(
     data = data.copy()
 
     # Remove upper and lower quantiles
-    data = trim_values(data, column, lower_trim, upper_trim)
+    data = trim_values(data, column, lower_quantile, upper_quantile)
 
     # Clip/remove zeros for log transformation
     data = preprocess_transform(data, column, transform, clip=clip)
@@ -285,8 +285,8 @@ def time_series_countplot(
     date_breaks: Optional[str] = None,
     span: float = 0.75,
     ci_level: float = 0.95,
-    lower_trim: int = 0,
-    upper_trim: int = 0,
+    lower_quantile: float = 0,
+    upper_quantile: float = 1,
 ) -> plt.Axes:
     """
     Plots a times series plot of datetime column where the y axis is counts of observations aggregated at a provided
@@ -309,8 +309,8 @@ def time_series_countplot(
           a time period ranging from seconds to years. (e.g. '1 year', '3 minutes')
         span: Span parameter to determine amount of smoothing for loess
         ci_level: Confidence level determining how wide to plot confidence intervals for smoothing.
-        lower_trim: Number of values to trim from lower end of distribution
-        upper_trim: Number of values to trim from upper end of distribution
+        lower_quantile: Lower quantile to filter data above
+        upper_quantile: Upper quantile to filter data below
 
     Returns:
         Matplotlib axes with time series drawn
@@ -324,7 +324,7 @@ def time_series_countplot(
             data['created_at'] = pd.to_datetime(data.created_at)
             intedact.time_series_countplot(data, 'created_at', ts_freq='1 week', trend_line='auto');
     """
-    data = trim_values(data, column, lower_trim, upper_trim)
+    data = trim_values(data, column, lower_quantile, upper_quantile)
 
     agg_data, ylabel = agg_time_series(data, column, ts_freq)
 

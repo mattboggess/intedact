@@ -206,24 +206,24 @@ WIDGET_PARAMS = {
         step=1e-6,
         style={"description_width": "31%"},
     ),
-    "lower_trim": dict(
+    "lower_quantile": dict(
         description=(
-            "Lower Trim: Remove X values from lower end of distribution. Use to remove outliers in data."
+            "Lower Quantile: Remove values below the provided quantile. Use to remove outliers in data."
         ),
         value=0,
         min=0,
-        max=10000,
-        step=1,
+        max=1,
+        step=.0001,
         style={"description_width": "30%"},
     ),
-    "upper_trim": dict(
+    "upper_quantile": dict(
         description=(
-            "Upper Trim: Remove X values from upper end of distribution. Use to remove outliers in data."
+            "Upper Quantile: Remove values above the provided quantile. Use to remove outliers in data."
         ),
-        value=0,
+        value=1,
         min=0,
-        max=10000,
-        step=1,
+        max=1,
+        step=.0001,
         style={"description_width": "30%"},
     ),
     "lower_trim1": dict(

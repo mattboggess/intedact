@@ -223,7 +223,7 @@ def convert_date_breaks(breaks_str: str) -> mdates.DateLocator:
 
 
 def trim_values(
-    data: pd.DataFrame, column: str, lower_trim: int = 0, upper_trim: int = 0
+    data: pd.DataFrame, column: str, lower_quantile: float = 0, upper_quantile: float = 1
 ) -> pd.DataFrame:
     """
     Filters a dataframe by removing rows where the values for a specified column are above or below
@@ -232,17 +232,15 @@ def trim_values(
     Args:
         data: pandas DataFrame to perform EDA on
         column: A string matching a column in the data to visualize
-        lower_trim: Number of values to trim from lower end of distribution
-        upper_trim: Number of values to trim from upper end of distribution
+        lower_quantile: Lower quantile to filter data above
+        upper_quantile: Upper quantile to filter data below
 
     Returns:
         pandas Dataframe filtered to remove rows where column values are beyond the specified quantiles
     """
-    data = data.sort_values(column, ascending=True)
-    if upper_trim == 0:
-        data = data.iloc[lower_trim:, :]
-    else:
-        data = data.iloc[lower_trim:-upper_trim, :]
+    lower_quantile = data[column].quantile(lower_quantile)
+    upper_quantile = data[column].quantile(upper_quantile)
+    data = data[(data[column] >= lower_quantile) & (data[column] <= upper_quantile)]
     return data
 
 
