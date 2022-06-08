@@ -31,7 +31,7 @@ The text summary computes the following:
 - Countplots for the most common unigrams, bigrams, and trigams
 - A table with summary statistics for the text metadata
 
-.. GENERATED FROM PYTHON SOURCE LINES 15-25
+.. GENERATED FROM PYTHON SOURCE LINES 15-26
 
 .. code-block:: default
 
@@ -42,8 +42,9 @@ The text summary computes the following:
     import pandas as pd
     import intedact
     import nltk
-    nltk.download('punkt')
-    nltk.download('stopwords')
+
+    nltk.download("punkt")
+    nltk.download("stopwords")
 
 
 
@@ -65,12 +66,12 @@ The text summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 26-28
+.. GENERATED FROM PYTHON SOURCE LINES 27-29
 
 Here we take a look at the summaries for GDPR violations.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 28-37
+.. GENERATED FROM PYTHON SOURCE LINES 29-38
 
 .. code-block:: default
 
@@ -185,13 +186,13 @@ Here we take a look at the summaries for GDPR violations.
     <br />
     <br />
 
-.. GENERATED FROM PYTHON SOURCE LINES 38-41
+.. GENERATED FROM PYTHON SOURCE LINES 39-42
 
 By default, the summary does a lot of text cleaning: removing punctuation and stop words, lower casing. We can
 turn all of these off.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 41-52
+.. GENERATED FROM PYTHON SOURCE LINES 42-53
 
 .. code-block:: default
 
@@ -311,7 +312,7 @@ turn all of these off.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.389 seconds)
+   **Total running time of the script:** ( 0 minutes  1.458 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_text_summary.py:

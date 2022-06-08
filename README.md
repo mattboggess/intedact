@@ -1,7 +1,7 @@
 # intedact: Interactive EDA
 
 [![Read the Docs](https://readthedocs.org/projects/intedact/badge/?version=latest)](https://intedact.readthedocs.io/en/latest/)
-[![License](https://img.shields.io/pypi/l/seaborn.svg)](https://github.com/mattboggess/intedact/blob/master/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/mattboggess/intedact/blob/master/LICENSE)
 
 Interactive EDA for pandas DataFrames directly in your Jupyter notebook. intedact's goal is to make
 common, standardized EDA summaries available with one function call. Instead of copying and pasting the same code
