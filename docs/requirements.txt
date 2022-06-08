@@ -4,6 +4,7 @@ sphinx_rtd_theme
 matplotlib
 seaborn
 pandas
+plotnine
 sphinx_exec_directive
 ipywidgets
 numpy
