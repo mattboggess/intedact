@@ -1,26 +1,30 @@
-import matplotlib.pyplot as plt
-import matplotlib
-import pandas as pd
-import numpy as np
+import calendar
 from collections import Counter
-import seaborn as sns
 from itertools import combinations
-from matplotlib import gridspec
+from typing import List
+from typing import Tuple
+from typing import Union
+
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import tldextract
 from IPython.display import display
-from typing import Union, List, Tuple
-from .plot_utils import *
-from .data_utils import trim_values, compute_time_deltas, convert_to_freq_string
-from .univariate_plots import (
-    histogram,
-    boxplot,
-    countplot,
-    time_series_countplot,
-    plot_ngrams,
-)
+from matplotlib import gridspec
+
 from .bivariate_plots import time_series_plot
 from .config import TIME_UNITS
-import calendar
-import tldextract
+from .data_utils import compute_time_deltas
+from .data_utils import convert_to_freq_string
+from .data_utils import trim_values
+from .plot_utils import *
+from .univariate_plots import boxplot
+from .univariate_plots import countplot
+from .univariate_plots import histogram
+from .univariate_plots import plot_ngrams
+from .univariate_plots import time_series_countplot
 
 FLIP_LEVEL_MINIMUM = 5
 
@@ -739,12 +743,16 @@ def url_univariate_summary(
 
     # Compute Derived Information
     data["is_https"] = data[column].str.startswith("https")
-    data["parse"] = data[column].apply(lambda x: tldextract.extract(x))
-    data["Domain"] = data["parse"].apply(lambda x: x.domain)
-    data["Domain Suffix"] = data["parse"].apply(lambda x: x.suffix)
+    data["parse"] = data[column].apply(
+        lambda x: tldextract.extract(x) if not pd.isna(x) else None
+    )
+    data["Domain"] = data["parse"].apply(lambda x: x.domain if not pd.isna(x) else None)
+    data["Domain Suffix"] = data["parse"].apply(
+        lambda x: x.suffix if not pd.isna(x) else None
+    )
     data["File Type"] = data[column].str.extract("\.([a-z]{3})$")
     data["File Type"] = data.apply(
-        lambda x: x["File Type"] if x["File Type"] != x["Domain Suffix"] else np.nan,
+        lambda x: x["File Type"] if x["File Type"] != x["Domain Suffix"] else None,
         axis=1,
     ).fillna("No File Detected")
 

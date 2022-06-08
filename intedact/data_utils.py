@@ -363,7 +363,7 @@ def agg_time_series(data, column, agg_freq):
     return agg_df, ylabel
 
 
-def detect_column_type(col_data, discrete_limit=50, bivariate=False):
+def detect_column_type(col_data, discrete_limit=50):
     col_data = col_data.dropna()
 
     if is_datetime64_any_dtype(col_data):
@@ -377,7 +377,10 @@ def detect_column_type(col_data, discrete_limit=50, bivariate=False):
         return "categorical"
     elif col_data.dtype.name == "string":
         test_value = col_data.dropna().iat[0]
-        if test_value.startswith("http") or test_value.startswith("www"):
+        if re.search(
+            "(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}",
+            test_value,
+        ):
             return "url"
         return "text"
     elif col_data.dtype.name == "object":
@@ -386,7 +389,10 @@ def detect_column_type(col_data, discrete_limit=50, bivariate=False):
             return "collection"
         # TODO: Probably need smarter detection
         elif type(test_value) == str:
-            if test_value.startswith("http") or test_value.startswith("www"):
+            if re.search(
+                "(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}",
+                test_value,
+            ):
                 return "url"
             num_levels = col_data.nunique()
             if num_levels > len(col_data) / 2:
