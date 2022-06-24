@@ -1,23 +1,24 @@
-import pandas as pd
+import re
+from typing import List
+from typing import Optional
+
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
+import pandas as pd
 import scipy.stats as stats
-from pandas.api.types import is_numeric_dtype, is_datetime64_any_dtype
-from typing import List, Optional
-import matplotlib.dates as mdates
+from dateutil.rrule import DAILY
+from dateutil.rrule import HOURLY
+from dateutil.rrule import MINUTELY
+from dateutil.rrule import MONTHLY
+from dateutil.rrule import rrule
+from dateutil.rrule import SECONDLY
+from dateutil.rrule import WEEKLY
+from dateutil.rrule import YEARLY
+from pandas.api.types import is_datetime64_any_dtype
+from pandas.api.types import is_numeric_dtype
 from plotnine.stats.smoothers import predictdf
-from dateutil.rrule import (
-    rrule,
-    YEARLY,
-    MONTHLY,
-    WEEKLY,
-    DAILY,
-    HOURLY,
-    MINUTELY,
-    SECONDLY,
-)
-import re
 
 
 # Plotting Helpers
@@ -269,9 +270,9 @@ def add_trendline(
 
     df = predictdf(data, xseq, **params)
 
-    ax.plot(data[x], df["y"], color="black", linewidth=2)
+    ax.plot(df["x"], df["y"], color="black", linewidth=2)
     ax.fill_between(
-        data[x],
+        df["x"],
         df["ymin"],
         df["ymax"],
         alpha=0.2,

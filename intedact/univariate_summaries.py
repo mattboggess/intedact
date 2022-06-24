@@ -30,7 +30,11 @@ FLIP_LEVEL_MINIMUM = 5
 
 
 def compute_univariate_summary_table(
-    data: pd.DataFrame, column: str, data_type: str, lower_quantile=0, upper_quantile=1
+    data: pd.DataFrame,
+    column: str,
+    data_type: str,
+    lower_quantile: float = 0,
+    upper_quantile: float = 1,
 ) -> pd.DataFrame:
     """
     Computes summary statistics for a numerical pandas DataFrame column.
