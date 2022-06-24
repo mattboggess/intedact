@@ -1,14 +1,10 @@
-# TODO: WIP
 import json
 import os
 import warnings
 
 import ipywidgets as widgets
-import pandas as pd
-import seaborn as sns
 
 from .bivariate_summaries import *
-from .config import FLIP_LEVEL_COUNT
 from .config import WIDGET_PARAMS
 from .data_utils import coerce_column_type
 from .data_utils import detect_column_type
@@ -21,7 +17,7 @@ def bivariate_eda_interact(
     notes_file: str = None,
     data_dict_file: str = None,
 ):
-    pd.set_option("precision", 2)
+    pd.set_option("display.precision", 2)
     sns.set(style="whitegrid")
     warnings.simplefilter("ignore")
 
@@ -73,13 +69,11 @@ def bivariate_eda_interact(
         col1_type = detect_column_type(data[col1_widget.value], discrete_limit=10)
         col2_type = detect_column_type(data[col2_widget.value], discrete_limit=10)
         type_widget.value = f"{col1_type}-{col2_type}"
-        # auto_widget.value = f"{col1_type}-{col2_type}" not in ["text"]
 
     col1_widget = widget.children[0]
     col2_widget = widget.children[1]
     col2_widget.value = data.columns[1]
     type_widget = widget.children[2]
-    auto_widget = widget.children[3]
     col1_widget.observe(match_type, "value")
     col2_widget.observe(match_type, "value")
     col1_type = detect_column_type(data[data.columns[0]], discrete_limit=10)
@@ -106,18 +100,16 @@ def column_bivariate_eda_interact(
     data[column2] = coerce_column_type(data[column2], summary_type)
 
     color_palette_widget = widgets.Text(**WIDGET_PARAMS["color_palette"])
+
     if summary_type == "numeric-numeric":
-        lower_trim1_widget = widgets.BoundedIntText(**WIDGET_PARAMS["lower_trim1"])
-        lower_trim1_widget.max = data.shape[0] - 1
-        upper_trim1_widget = widgets.BoundedIntText(**WIDGET_PARAMS["upper_trim1"])
-        upper_trim1_widget.max = data.shape[0] - 1
-        lower_trim2_widget = widgets.BoundedIntText(**WIDGET_PARAMS["lower_trim2"])
-        lower_trim2_widget.max = data.shape[0] - 1
-        upper_trim2_widget = widgets.BoundedIntText(**WIDGET_PARAMS["upper_trim2"])
-        upper_trim2_widget.max = data.shape[0] - 1
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
+        fig_height_widget.value = 8
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
         fig_width_widget.value = fig_height_widget.value
+        bins_widget = widgets.IntSlider(**WIDGET_PARAMS["bins"])
+        bins_widget.value = max(
+            freedman_diaconis_bins(data[column1]), freedman_diaconis_bins(data[column2])
+        )
         widget = widgets.interactive(
             numeric_numeric_bivariate_summary,
             {"manual": not auto_update},
@@ -128,17 +120,28 @@ def column_bivariate_eda_interact(
             fig_width=fig_width_widget,
             fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
             color_palette=color_palette_widget,
+            plot_type=widgets.Dropdown(**WIDGET_PARAMS["numeric2d_plot_type"]),
             trend_line=widgets.Dropdown(**WIDGET_PARAMS["trend_line"]),
+            bins=bins_widget,
             alpha=widgets.FloatSlider(**WIDGET_PARAMS["alpha"]),
-            lower_trim1=lower_trim1_widget,
-            upper_trim1=upper_trim1_widget,
-            lower_trim2=lower_trim2_widget,
-            upper_trim2=upper_trim2_widget,
+            lower_quantile1=widgets.BoundedFloatText(
+                **WIDGET_PARAMS["lower_quantile1"]
+            ),
+            upper_quantile1=widgets.BoundedFloatText(
+                **WIDGET_PARAMS["upper_quantile1"]
+            ),
+            lower_quantile2=widgets.BoundedFloatText(
+                **WIDGET_PARAMS["lower_quantile2"]
+            ),
+            upper_quantile2=widgets.BoundedFloatText(
+                **WIDGET_PARAMS["upper_quantile2"]
+            ),
             transform1=widgets.Dropdown(**WIDGET_PARAMS["transform1"]),
             transform2=widgets.Dropdown(**WIDGET_PARAMS["transform2"]),
             clip=widgets.BoundedFloatText(**WIDGET_PARAMS["clip"]),
             reference_line=widgets.Checkbox(**WIDGET_PARAMS["reference_line"]),
             plot_density=widgets.Checkbox(**WIDGET_PARAMS["plot_kde"]),
+            match_axes=widgets.Checkbox(**WIDGET_PARAMS["match_axes"]),
             interactive=widgets.fixed(True),
         )
     else:

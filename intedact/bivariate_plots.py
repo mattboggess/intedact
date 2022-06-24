@@ -1,4 +1,3 @@
-# TODO: WIP
 from typing import Optional
 from typing import Tuple
 
@@ -6,159 +5,52 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import plotnine as p9
 import seaborn as sns
 
 from .data_utils import convert_date_breaks
-from .data_utils import convert_to_freq_string
-from .data_utils import match_axes
+from .data_utils import freedman_diaconis_bins
 from .data_utils import preprocess_transform
 from .data_utils import trim_values
 from .plot_utils import add_trendline
 from .plot_utils import transform_axis
 
 
-def histogram2d(
+def numeric_2dplot(
     data: pd.DataFrame,
     column1: str,
     column2: str,
-    fig: plt.Figure = None,
-    ax: plt.Axes = None,
-    fig_width: int = 6,
-    fig_height: int = 6,
+    plot_type: str = "scatter",
     trend_line: str = "auto",
+    bins: Optional[int] = None,
+    alpha: float = 1,
     lower_quantile1: float = 0,
     upper_quantile1: float = 1,
     lower_quantile2: float = 0,
     upper_quantile2: float = 1,
     transform1: str = "identity",
     transform2: str = "identity",
-    equalize_axes: bool = False,
-    reference_line: bool = False,
-    plot_density: bool = False,
-) -> Tuple[plt.Figure, plt.Axes, p9.ggplot]:
-    """
-    Creates an EDA plot for two continuous variables.
-
-    Args:
-        data: pandas DataFrame containing data to be plotted
-        column1: name of column to plot on the x axis
-        column2: name of column to plot on the y axis
-        fig: matplotlib Figure generated from blank ggplot to plot onto. If specified, must also specify ax
-        ax: matplotlib axes generated from blank ggplot to plot onto. If specified, must also specify fig
-        fig_width: figure width in inches
-        fig_height: figure height in inches
-        trend_line: Trend line to plot over data. Default is to plot no trend line. Other options are passed
-            to `geom_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.geoms.geom_smooth.html>`_.
-        lower_quantile1: Lower quantile of column1 data to remove before plotting for ignoring outliers
-        upper_quantile1: Upper quantile of column1 data to remove before plotting for ignoring outliers
-        lower_quantile2: Lower quantile of column2 data to remove before plotting for ignoring outliers
-        upper_quantile2: Upper quantile of column2 data to remove before plotting for ignoring outliers
-        transform1: Transformation to apply to the column1 data for plotting:
-
-         - **'identity'**: no transformation
-         - **'log'**: apply a logarithmic transformation with small constant added in case of zero values
-         - **'log_exclude0'**: apply a logarithmic transformation with zero values removed
-         - **'sqrt'**: apply a square root transformation
-        transform2: Transformation to apply to the column2 data for plotting. Same options as for column1.
-        equalize_axes: Square the aspect ratio and match the axis limits
-        reference_line: Add a y = x reference line
-        plot_density: Overlay a 2d density on the given plot
-
-    Returns:
-        Tuple containing matplotlib figure and axes along with the plotnine ggplot object
-
-    Examples:
-        .. plot::
-
-            import pandas as pd
-            import intedact
-            data = pd.read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-09-11/cats_vs_dogs.csv")
-            intedact.histogram2d(data, 'n_dog_households', 'n_cat_households', equalize_axes=True, reference_line=True);
-    """
-    data = trim_quantiles(
-        data, column1, lower_quantile=lower_quantile1, upper_quantile=upper_quantile1
-    )
-    data = trim_quantiles(
-        data, column2, lower_quantile=lower_quantile2, upper_quantile=upper_quantile2
-    )
-    data = preprocess_transformations(data, column1, transform=transform1)
-    data = preprocess_transformations(data, column2, transform=transform2)
-
-    # draw the scatterplot
-    gg = p9.ggplot(data, p9.aes(x=column1, y=column2)) + p9.geom_bin2d()
-
-    # overlay density
-    if plot_density:
-        gg += p9.geom_density_2d()
-
-    # add reference line
-    if reference_line:
-        gg += p9.geom_abline(color="black")
-
-    # add trend line
-    if trend_line != "none":
-        gg += p9.geom_smooth(method=trend_line, color="red")
-
-    gg += p9.labs(fill="")
-
-    # handle axes transforms
-    gg, xlabel = transform_axis(gg, column1, transform1, xaxis=True)
-    gg, ylabel = transform_axis(gg, column2, transform2, xaxis=False)
-
-    if fig is None and ax is None:
-        gg.draw()
-        fig = plt.gcf()
-        ax = fig.axes[0]
-    else:
-        _ = gg._draw_using_figure(fig, [ax])
-
-    if equalize_axes:
-        fig, ax, gg = match_axes(fig, ax, gg)
-        fig.set_size_inches(fig_width, fig_width)
-    else:
-        fig.set_size_inches(fig_width, fig_height)
-
-    ax.set_ylabel(ylabel)
-    ax.set_xlabel(xlabel)
-
-    return fig, ax, gg
-
-
-def scatterplot(
-    data: pd.DataFrame,
-    column1: str,
-    column2: str,
-    ax: plt.Axes = None,
-    trend_line: str = "auto",
-    alpha: float = 1,
-    lower_trim1: int = 0,
-    upper_trim1: int = 0,
-    lower_trim2: int = 0,
-    upper_trim2: int = 0,
-    transform1: str = "identity",
-    transform2: str = "identity",
     clip: float = 0,
     ci_level=0.95,
     span=0.75,
     reference_line: bool = False,
-    plot_density: bool = False,
-) -> Tuple[plt.Figure, plt.Axes, p9.ggplot]:
+    match_axes: bool = False,
+) -> Tuple[plt.Axes, plt.Figure]:
     """
-    Creates an EDA plot for two continuous variables.
+    Creates an EDA plot for two numeric variables that is a wrapper around seaborn's jointplot.
 
     Args:
         data: pandas DataFrame containing data to be plotted
         column1: name of column to plot on the x axis
         column2: name of column to plot on the y axis
-        ax: matplotlib axes to draw plot onto
+        plot_type: One of ['auto', 'hist', 'hex', 'kde', 'scatter']
         trend_line: Trend line to plot over data. Default is to plot no trend line. Other options are passed
             to `geom_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.geoms.geom_smooth.html>`_.
-        alpha: The amount of alpha to apply to points for the scatter plot type (0 - 1)
-        lower_trim1: Number of values to trim from lower end of distribution for column1
-        upper_trim1: Number of values to trim from upper end of distribution for column1
-        lower_trim2: Number of values to trim from lower end of distribution for column1
-        upper_trim2: Number of values to trim from upper end of distribution for column1
+        bins: Number of bins to use for the histogram/hexplot. Default is to determine # of bins from the data
+        alpha: Amount of transparency to add to the scatter plot points [0, 1]
+        lower_quantile1: Lower quantile to filter data above for column1
+        upper_quantile1: Upper quantile to filter data below for column1
+        lower_quantile2: Lower quantile to filter data above for column2
+        upper_quantile2: Upper quantile to filter data below for column2
         transform1: Transformation to apply to the data for plotting:
 
          - **'identity'**: no transformation
@@ -168,53 +60,76 @@ def scatterplot(
         ci_level: Confidence level determining how wide to plot confidence intervals for trend line smoothing.
         span: Span parameter to determine amount of smoothing for loess
         reference_line: Add a y = x reference line
-        plot_density: Overlay a 2d density on the given plot
+        match_axes: Match the x and y axis limits
 
     Returns:
-        Matplotlib axes with scatterplot drawn
+        Matplotlib axes and figure with plot drawn
 
     Examples:
         .. plot::
 
-            import pandas as pd
+            import seaborn as sns
             import intedact
-            data = pd.read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-09-11/cats_vs_dogs.csv")
-            intedact.scatterplot(data, 'n_dog_households', 'n_cat_households', equalize_axes=True, reference_line=True);
+            data = sns.load_dataset("iris")
+            intedact.numeric_2dplot(data, 'sepal_length', 'sepal_width');
     """
     data = data.copy()
-    # data = data.dropna(subset=[column1, column2])
+    data = data.dropna(subset=[column1, column2])
 
     # Remove upper and lower values
-    data = trim_values(data, column1, lower_trim1, upper_trim1)
-    data = trim_values(data, column2, lower_trim2, upper_trim2)
+    data = trim_values(data, column1, lower_quantile1, upper_quantile1)
+    data = trim_values(data, column2, lower_quantile2, upper_quantile2)
 
     # Clip/remove zeros for log transformation
     data = preprocess_transform(data, column1, transform1, clip=clip)
     data = preprocess_transform(data, column2, transform2, clip=clip)
 
-    # draw the scatterplot
-    ax = sns.scatterplot(x=column1, y=column2, ax=ax, alpha=alpha, data=data)
+    kws = dict(alpha=alpha)
+    if plot_type != "scatter":
+        kws["alpha"] = 1.0
+    if plot_type == "hist":
+        if bins is None:
+            bins1 = freedman_diaconis_bins(data[column1], log=(transform1 == "log"))
+            bins2 = freedman_diaconis_bins(data[column2], log=(transform2 == "log"))
+            bins = max(bins1, bins2)
+        kws["bins"] = bins
+    if plot_type == "hex":
+        if bins is None:
+            bins = 30
+        kws["gridsize"] = bins
+        kws["mincnt"] = 1
 
-    # overlay density
-    if plot_density:
-        sns.kdeplot(x=column1, y=column2, ax=ax, data=data)
+    g = sns.jointplot(
+        data=data, x=column1, y=column2, kind=plot_type, joint_kws=kws, cmap="viridis"
+    )
+    ax = g.figure.axes[0]
+    ax_marg_x = g.figure.axes[1]
+    ax_marg_y = g.figure.axes[2]
 
-    # add y=x reference line
-    if reference_line:
-        x_vals = np.array(ax.get_xlim())
-        y_vals = x_vals
-        ax.plot(x_vals, y_vals, "--")
+    if match_axes:
+        max_val = max(data[column1].max(), data[column2].max())
+        min_val = min(data[column1].min(), data[column2].min())
+        ax.set_xlim((min_val, max_val))
+        ax.set_ylim((min_val, max_val))
 
-    # add trend line
     if trend_line != "none":
         ax = add_trendline(
             data, column1, column2, ax, method=trend_line, span=span, level=ci_level
         )
 
+    if reference_line:
+        x_vals = np.array(ax.get_xlim())
+        y_vals = x_vals
+        ax.plot(x_vals, y_vals, "--")
+
     ax = transform_axis(ax, column1, transform=transform1, xaxis=True)
     ax = transform_axis(ax, column2, transform=transform2, xaxis=False)
+    plt.setp(ax_marg_x.get_xticklabels(), visible=False)
+    plt.setp(ax_marg_y.get_yticklabels(), visible=False)
+    plt.setp(ax_marg_x.get_xticklabels(minor=True), visible=False)
+    plt.setp(ax_marg_y.get_yticklabels(minor=True), visible=False)
 
-    return ax
+    return ax, g.figure
 
 
 def time_series_plot(

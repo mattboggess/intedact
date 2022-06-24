@@ -183,7 +183,7 @@ WIDGET_PARAMS = {
         ),
         value="identity",
         options=["identity", "log"],
-        style={"description_width": "27%"},
+        style={"description_width": "30%"},
     ),
     "transform2": dict(
         description=(
@@ -193,7 +193,7 @@ WIDGET_PARAMS = {
         ),
         value="identity",
         options=["identity", "log"],
-        style={"description_width": "27%"},
+        style={"description_width": "30%"},
     ),
     "clip": dict(
         description=(
@@ -225,6 +225,46 @@ WIDGET_PARAMS = {
         max=1,
         step=0.0001,
         style={"description_width": "30%"},
+    ),
+    "lower_quantile1": dict(
+        description=(
+            "Lower Quantile1: Remove values below the provided quantile for column1. Use to remove outliers in data."
+        ),
+        value=0,
+        min=0,
+        max=1,
+        step=0.0001,
+        style={"description_width": "40%"},
+    ),
+    "upper_quantile1": dict(
+        description=(
+            "Upper Quantile1: Remove values above the provided quantile for column1. Use to remove outliers in data."
+        ),
+        value=1,
+        min=0,
+        max=1,
+        step=0.0001,
+        style={"description_width": "40%"},
+    ),
+    "lower_quantile2": dict(
+        description=(
+            "Lower Quantile2: Remove values below the provided quantile for column2. Use to remove outliers in data."
+        ),
+        value=0,
+        min=0,
+        max=1,
+        step=0.0001,
+        style={"description_width": "40%"},
+    ),
+    "upper_quantile2": dict(
+        description=(
+            "Upper Quantile1: Remove values above the provided quantile for column2. Use to remove outliers in data."
+        ),
+        value=1,
+        min=0,
+        max=1,
+        step=0.0001,
+        style={"description_width": "40%"},
     ),
     "lower_trim1": dict(
         description=(
@@ -350,87 +390,17 @@ WIDGET_PARAMS = {
         step=0.05,
         value=1,
     ),
+    "numeric2d_plot_type": dict(
+        description="Plot Type: Type of plot from seaborn's jointplot to use",
+        style={"description_width": "27%"},
+        value="scatter",
+        options=["scatter", "hex", "hist", "kde"],
+    ),
+    "match_axes": dict(
+        description="Match x and y axis limits",
+        width="25%",
+        value=False,
+    ),
     "sort_collections": dict(description="Sort Collections", value=True),
     "remove_duplicates": dict(description="Remove Duplicate Entries", value=True),
-    "plot_type_cc": {
-        "description": (
-            "plot type: Type of plot to show\n"
-            "  - 'auto': Defaults to scatter plot\n"
-            "  - 'scatter': Draw a scatter plot using geom_scatter\n"
-            "  - 'bin2d': Draw a 2d histogram using geom_bin2d\n"
-            "  - 'count': Draw a 2d count plot using geom_count"
-        ),
-        "width": "25%",
-        "widget": ["auto", "scatter", "bin2d", "count"],
-    },
-    "plot_type_dc1": {
-        "description": (
-            "plot type: Type of plot to show\n"
-            "  - 'auto': Defaults to bar plot\n"
-            "  - 'bar': Draw a bar plot\n"
-            "  - 'point': Draw a point plot\n"
-        ),
-        "width": "25%",
-        "widget": ["auto", "bar", "point"],
-    },
-    "plot_type_dc2": {
-        "description": (
-            "plot type: Type of plot to show\n"
-            "  - 'auto': Defaults to overlapping histograms \n"
-            "  - 'histogram': Draw overlapping histograms \n"
-            "  - 'density': Draw overlapping KDEs \n"
-        ),
-        "width": "25%",
-        "widget": ["auto", "histogram", "density"],
-    },
-    "plot_type_dcn": {
-        "description": (
-            "plot type: Type of plot to show\n"
-            "  - 'auto': Defaults to boxplot \n"
-            "  - 'freqpoly': Draw overlapping densities/histograms as colored lines with geom_freqpoly \n"
-            "  - 'boxplot': Draw boxplot per level of discrete variable \n"
-            "  - 'violinplot': Draw violin per level of discrete variable \n"
-            "  - 'facted_histogram': Draw faceted histograms stacked vertically in facets by level \n"
-            "  - 'facted_density': Draw faceted densities stacked vertically in facets by level \n"
-        ),
-        "width": "25%",
-        "widget": [
-            "auto",
-            "freqpoly",
-            "boxplot",
-            "violin",
-            "faceted_histogram",
-            "faceted_density",
-        ],
-    },
-    "equalize_axes": {
-        "description": "Match x and y axes",
-        "width": "30%",
-        "widget": "N/A",
-    },
-    "plot_density": {
-        "description": "Overlay a bivariate KDE",
-        "width": "0%",
-        "widget": "N/A",
-    },
-    "normalize": {
-        "description": "Normalize counts to percentages",
-        "width": "0%",
-        "widget": "N/A",
-    },
-    "ref_lines": {
-        "description": "Add mean & median reference lines",
-        "width": "0%",
-        "widget": "N/A",
-    },
-    "varwidth": {
-        "description": "Scale boxplot by sample size",
-        "width": "0%",
-        "widget": "N/A",
-    },
-    "normalize_dist": {
-        "description": "Normalize distributions to densities",
-        "width": "0%",
-        "widget": "N/A",
-    },
 }

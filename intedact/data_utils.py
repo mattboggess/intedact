@@ -1,12 +1,9 @@
-import itertools
 import re
 from typing import List
 from typing import Optional
 from typing import Tuple
 
 import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
@@ -14,7 +11,6 @@ from dateutil.rrule import DAILY
 from dateutil.rrule import HOURLY
 from dateutil.rrule import MINUTELY
 from dateutil.rrule import MONTHLY
-from dateutil.rrule import rrule
 from dateutil.rrule import SECONDLY
 from dateutil.rrule import WEEKLY
 from dateutil.rrule import YEARLY
@@ -406,14 +402,3 @@ def detect_column_type(col_data, discrete_limit=50):
             return "categorical"
     else:
         raise ValueError(f"Unsupported data type {col_data.dtype.name}")
-
-
-# Old
-
-
-def match_axes(fig, ax, gg):
-    upper = max(ax.get_xlim()[1], ax.get_ylim()[1])
-    lower = min(ax.get_xlim()[0], ax.get_ylim()[0])
-    gg += p9.coord_fixed(ratio=1, xlim=(lower, upper), ylim=(lower, upper))
-    _ = gg._draw_using_figure(fig, [ax])
-    return fig, ax, gg
