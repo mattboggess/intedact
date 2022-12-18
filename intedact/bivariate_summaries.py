@@ -1,14 +1,285 @@
 from typing import Tuple
+from typing import Union
 
+import plotly.express as px
+import plotly.graph_objects as go
 import scipy.stats
 import seaborn as sns
 from IPython.display import display
+from plotly.subplots import make_subplots
 
 from .bivariate_plots import (
     numeric_2dplot,
 )
+from .data_utils import order_levels
 from .data_utils import trim_values
 from .plot_utils import *
+
+
+def categorical_categorical_summary(
+    data: pd.DataFrame,
+    column1: str,
+    column2: str,
+    order1: Union[str, List] = "auto",
+    order2: Union[str, List] = "auto",
+    barmode: str = "stack",
+    max_levels: int = 30,
+    include_missing: bool = False,
+) -> plt.Axes:
+    """
+    Generates an EDA summary of two categorical variables. This includes:
+      - Categorical heatmap with counts and percentages of each pair of levels
+      - Bar chart with relative percentage of column2 levels for each column1 level
+      - Line plot with relative percentage of column2 levels for each column1 level
+
+    Args:
+        data: pandas DataFrame with data to be plotted
+        column1: First categorical column in the data
+        column2: Second categorical column in the data
+        order1: Order in which to sort the levels of the first variable:
+
+         - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
+         - **'descending'**: sorts in descending frequency.
+         - **'ascending'**: sorts in ascending frequency.
+         - **'sorted'**: sorts according to sorted order of the levels themselves.
+         - **'random'**: produces a random order. Useful if there are too many levels for one plot.
+         Or you can pass a list of level names in directly for your own custom order.
+        order2: Same as order1 but for the second variable
+        barmode: Type of bar plot aggregation. One of ['stack', 'group', 'overlay', 'relative']
+        max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
+         max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
+        include_missing: Whether to include missing values as an additional level in the data to be plotted
+        add_other: Whether to include
+
+    Returns:
+
+    Examples:
+        .. plot::
+
+            import seaborn as sns
+            import intedact
+            data = sns.load_dataset('tips')
+            intedact.countplot(data, 'day')
+    """
+    # Reorder column levels
+    data[column1] = order_levels(
+        data,
+        column1,
+        None,
+        order=order1,
+        max_levels=max_levels,
+        include_missing=include_missing,
+        add_other=True,
+    )
+    order1 = list(data[column1].cat.categories)
+    data[column2] = order_levels(
+        data,
+        column2,
+        None,
+        order=order2,
+        max_levels=max_levels,
+        include_missing=include_missing,
+        add_other=True,
+    )
+    order2 = list(data[column2].cat.categories)
+    colorway = px.colors.qualitative.Plotly + px.colors.qualitative.Dark24
+
+    fig = make_subplots(
+        rows=4,
+        cols=2,
+        specs=[
+            [{"colspan": 2, "rowspan": 2}, None],
+            [None, None],
+            [{"colspan": 2}, None],
+            [{"colspan": 2}, None],
+        ],
+    )
+    fig.update_layout(height=1000, width=1000, title_text="Cat Cat")
+    fig.update_traces(showscale=False)
+
+    # Make the heatmap
+    ct = pd.crosstab(data[column2], data[column1])
+    annot = ct.applymap(lambda x: f"{100 * x / ct.sum().sum():.1f}%")
+    fig.add_trace(
+        go.Heatmap(
+            z=ct,
+            x=[str(x) for x in order1],
+            y=[str(x) for x in order2],
+            colorbar=None,
+            hovertemplate=(
+                f"{column1}"
+                + ": %{x}<br>"
+                + f"{column2}"
+                + ": %{y}<br>"
+                + "Count: %{z}<br>"
+                + "Percent: %{text}"
+                + "<extra></extra>"
+            ),
+            text=annot,
+            texttemplate="%{z} (%{text})",
+            coloraxis="coloraxis",
+        ),
+        row=1,
+        col=1,
+    )
+
+    tmp = (
+        data.groupby([column1, column2])
+        .size()
+        .reset_index()
+        .rename({0: "Count"}, axis="columns")
+    )
+    tmp["fraction"] = tmp.groupby(column1).Count.apply(lambda x: x / x.sum())
+    # Make the barchart
+    for i, o in enumerate(order2):
+        fig.add_trace(
+            go.Bar(
+                x=order1,
+                y=tmp[tmp[column2] == o].fraction,
+                name=o,
+                legendgroup=i,
+                showlegend=False,
+                marker={"color": colorway[i]},
+                hovertemplate=(
+                    f"{column1}"
+                    + ": %{x}<br>"
+                    + f"{column2}: {o}<br>"
+                    + "Fraction: %{y}"
+                    + "<extra></extra>"
+                ),
+            ),
+            row=3,
+            col=1,
+        )
+    fig.update_layout(barmode=barmode)
+
+    # Make the line chart
+    for i, o in enumerate(order2):
+        fig.add_trace(
+            go.Scatter(
+                x=order1,
+                y=tmp[tmp[column2] == o].fraction,
+                name=o,
+                legendgroup=i,
+                line=dict(color=colorway[i]),
+                hovertemplate=(
+                    f"{column1}"
+                    + ": %{x}<br>"
+                    + f"{column2}: {o}<br>"
+                    + "Fraction: %{y}"
+                    + "<extra></extra>"
+                ),
+            ),
+            row=4,
+            col=1,
+        )
+    fig.update_coloraxes(showscale=False)
+    fig.update_layout(legend=dict(y=0.25, yanchor="middle"))
+
+    fig.show()
+    return fig
+
+
+def numeric_categorical_summary(
+    data: pd.DataFrame,
+    column1: str,
+    column2: str,
+    order2: Union[str, List] = "auto",
+    bins: int = 4,
+    bin_type: str = "quantiles",
+    max_levels: int = 30,
+    include_missing: bool = False,
+    add_other: bool = True,
+) -> plt.Axes:
+    """
+    Generates an EDA summary of the relationship of a numeric variable on a categorical variable
+
+    Args:
+        data: pandas DataFrame with data to be plotted
+        column1: First categorical column in the data
+        column2: Second categorical column in the data
+        order1: Order in which to sort the levels of the first variable:
+
+         - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
+         - **'descending'**: sorts in descending frequency.
+         - **'ascending'**: sorts in ascending frequency.
+         - **'sorted'**: sorts according to sorted order of the levels themselves.
+         - **'random'**: produces a random order. Useful if there are too many levels for one plot.
+         Or you can pass a list of level names in directly for your own custom order.
+        order2: Same as order1 but for the second variable
+        barmode: Type of bar plot aggregation. One of ['stack', 'group', 'overlay', 'relative']
+        max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
+         max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
+        include_missing: Whether to include missing values as an additional level in the data to be plotted
+        add_other: Whether to include
+
+    Returns:
+
+    Examples:
+        .. plot::
+
+            import seaborn as sns
+            import intedact
+            data = sns.load_dataset('tips')
+            intedact.countplot(data, 'day')
+    """
+    # Reorder categorical column levels
+    data[column2] = order_levels(
+        data,
+        column2,
+        None,
+        order=order2,
+        max_levels=max_levels,
+        include_missing=include_missing,
+        add_other=add_other,
+    )
+    order2 = list(data[column2].cat.categories)
+    colorway = px.colors.qualitative.Plotly + px.colors.qualitative.Dark24
+
+    if bin_type == "quantiles":
+        data["interval"] = pd.qcut(data[column1], bins).astype(str)
+    else:
+        data["interval"] = pd.cut(data[column1], bins).astype(str)
+
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+    )
+    fig.update_layout(height=1000, width=1000)
+    fig.update_traces(showscale=False)
+
+    tmp = (
+        data.groupby(["interval", column2])
+        .size()
+        .reset_index()
+        .rename({0: "Count"}, axis="columns")
+    )
+    tmp["fraction"] = tmp.groupby("interval").Count.apply(lambda x: x / x.sum())
+
+    # Make the line chart
+    for i, o in enumerate(order2):
+        fig.add_trace(
+            go.Scatter(
+                x=tmp[tmp[column2] == o].interval,
+                y=tmp[tmp[column2] == o].fraction,
+                name=o,
+                legendgroup=i,
+                line=dict(color=colorway[i]),
+                hovertemplate=(
+                    f"{column1}"
+                    + ": %{x}<br>"
+                    + f"{column2}: {o}<br>"
+                    + "Fraction: %{y}"
+                    + "<extra></extra>"
+                ),
+            ),
+            row=1,
+            col=1,
+        )
+    # fig.update_coloraxes(showscale=False)
+    # fig.update_layout(legend=dict(y=.25, yanchor="middle"))
+
+    fig.show()
 
 
 def numeric_numeric_bivariate_summary(

@@ -15,7 +15,7 @@ from .univariate_plots import (
     countplot,
     time_series_countplot,
 )
-from .bivariate_plots import numeric_2dplot
+from .bivariate_plots import numeric_2dplot, categorical_heatmap
 
 
 __version__ = "0.0.1"

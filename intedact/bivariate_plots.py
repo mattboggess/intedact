@@ -1,5 +1,7 @@
+from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -9,10 +11,246 @@ import seaborn as sns
 
 from .data_utils import convert_date_breaks
 from .data_utils import freedman_diaconis_bins
+from .data_utils import order_levels
 from .data_utils import preprocess_transform
 from .data_utils import trim_values
 from .plot_utils import add_trendline
 from .plot_utils import transform_axis
+
+
+def categorical_categorical_summary(
+    data: pd.DataFrame,
+    column1: str,
+    column2: str,
+    ax: Optional[plt.Axes] = None,
+    order1: Union[str, List] = "auto",
+    order2: Union[str, List] = "auto",
+    max_levels: int = 30,
+    include_missing: bool = False,
+    add_other: bool = True,
+    **kwargs,
+) -> plt.Axes:
+    """
+    Plots a bar plot of counts/percentages across the levels of a discrete data column in a pandas DataFrame.
+
+    Wraps seaborn's countplot adding annotations, twin axis for percents, and a few other nice argument controls
+    useful for EDA.
+
+    Args:
+        data: pandas DataFrame with data to be plotted
+        column: column in the dataframe to plot
+        ax: matplotlib axes to plot to. Defaults to current axis.
+        order: Order in which to sort the levels of the variable for plotting:
+
+         - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
+         - **'descending'**: sorts in descending frequency.
+         - **'ascending'**: sorts in ascending frequency.
+         - **'sorted'**: sorts according to sorted order of the levels themselves.
+         - **'random'**: produces a random order. Useful if there are too many levels for one plot.
+         Or you can pass a list of level names in directly for your own custom order.
+        max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
+         max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
+        percent_axis: Whether to add a twin y axis with percentages
+        label_counts: Whether to add exact counts and percentages as text annotations on each bar in the plot.
+        label_fontsize: Size of the annotations text. Default tries to infer a reasonable size based on the figure
+         size and number of levels.
+        flip_axis: Whether to flip the plot so labels are on y axis. Useful for long level names or lots of levels.
+         Default tries to infer based on number of levels and label_rotation value.
+        label_rotation: Amount to rotate level labels. Useful for long level names or lots of levels.
+        include_missing: Whether to include missing values as an additional level in the data to be plotted
+        kwargs: Additional keyword arguments passed through to [sns.barplot](https://seaborn.pydata.org/generated/seaborn.barplot.html)
+
+    Returns:
+        The axes plot was drawn to
+
+    Examples:
+        .. plot::
+
+            import seaborn as sns
+            import intedact
+            data = sns.load_dataset('tips')
+            intedact.countplot(data, 'day')
+    """
+    # Reorder column levels
+    data[column1] = order_levels(
+        data,
+        column1,
+        None,
+        order=order1,
+        max_levels=max_levels,
+        include_missing=include_missing,
+        add_other=add_other,
+    )
+    order1 = list(data[column1].cat.categories)
+    data[column2] = order_levels(
+        data,
+        column2,
+        None,
+        order=order2,
+        max_levels=max_levels,
+        include_missing=include_missing,
+        add_other=add_other,
+    )
+    order2 = list(data[column2].cat.categories)
+
+    from plotly.subplots import make_subplots
+    import plotly.graph_objects as go
+
+    fig = make_subplots(
+        rows=4,
+        cols=2,
+        specs=[
+            [{"colspan": 2, "rowspan": 2}, None],
+            [None, None],
+            [{"colspan": 2}, None],
+            [{"colspan": 2}, None],
+        ],
+    )
+
+    # Make the heatmap
+    ct = pd.crosstab(data[column2], data[column1])
+    annot = ct.applymap(lambda x: f"{x} ({100 * x / ct.sum().sum():.1f}%)")
+    fig.add_trace(
+        go.Heatmap(
+            z=ct,
+            x=[str(x) for x in order1],
+            y=[str(x) for x in order2],
+            hovertext=annot,
+            text=annot,
+            texttemplate="%{text}",
+        ),
+        row=1,
+        col=1,
+    )
+
+    tmp = (
+        data.groupby([column1, column2])
+        .size()
+        .reset_index()
+        .rename({0: "Count"}, axis="columns")
+    )
+    tmp["fraction"] = tmp.groupby(column1).Count.apply(lambda x: x / x.sum())
+    # Make the barchart
+    for o in order2:
+        fig.add_trace(
+            go.Bar(x=order1, y=tmp[tmp[column2] == o].fraction, name=o),
+            row=3,
+            col=1,
+        )
+    fig.update_layout(barmode="group")
+
+    # Make the line chart
+    for o in order2:
+        fig.add_trace(
+            go.Line(x=order1, y=tmp[tmp[column2] == o].fraction, name=o),
+            row=4,
+            col=1,
+        )
+
+    fig.update_layout(height=1000, width=1000, title_text="Cat Cat")
+    fig.show()
+
+
+def categorical_heatmap(
+    data: pd.DataFrame,
+    column1: str,
+    column2: str,
+    ax: Optional[plt.Axes] = None,
+    order1: Union[str, List] = "auto",
+    order2: Union[str, List] = "auto",
+    max_levels: int = 30,
+    include_missing: bool = False,
+    add_other: bool = True,
+    **kwargs,
+) -> plt.Axes:
+    """
+    Plots a bar plot of counts/percentages across the levels of a discrete data column in a pandas DataFrame.
+
+    Wraps seaborn's countplot adding annotations, twin axis for percents, and a few other nice argument controls
+    useful for EDA.
+
+    Args:
+        data: pandas DataFrame with data to be plotted
+        column: column in the dataframe to plot
+        ax: matplotlib axes to plot to. Defaults to current axis.
+        order: Order in which to sort the levels of the variable for plotting:
+
+         - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
+         - **'descending'**: sorts in descending frequency.
+         - **'ascending'**: sorts in ascending frequency.
+         - **'sorted'**: sorts according to sorted order of the levels themselves.
+         - **'random'**: produces a random order. Useful if there are too many levels for one plot.
+         Or you can pass a list of level names in directly for your own custom order.
+        max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
+         max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
+        percent_axis: Whether to add a twin y axis with percentages
+        label_counts: Whether to add exact counts and percentages as text annotations on each bar in the plot.
+        label_fontsize: Size of the annotations text. Default tries to infer a reasonable size based on the figure
+         size and number of levels.
+        flip_axis: Whether to flip the plot so labels are on y axis. Useful for long level names or lots of levels.
+         Default tries to infer based on number of levels and label_rotation value.
+        label_rotation: Amount to rotate level labels. Useful for long level names or lots of levels.
+        include_missing: Whether to include missing values as an additional level in the data to be plotted
+        kwargs: Additional keyword arguments passed through to [sns.barplot](https://seaborn.pydata.org/generated/seaborn.barplot.html)
+
+    Returns:
+        The axes plot was drawn to
+
+    Examples:
+        .. plot::
+
+            import seaborn as sns
+            import intedact
+            data = sns.load_dataset('tips')
+            intedact.countplot(data, 'day')
+    """
+    # Reorder column levels
+    data[column1] = order_levels(
+        data,
+        column1,
+        None,
+        order=order1,
+        max_levels=max_levels,
+        include_missing=include_missing,
+        add_other=add_other,
+    )
+    order1 = list(data[column1].cat.categories)
+    data[column2] = order_levels(
+        data,
+        column2,
+        None,
+        order=order2,
+        max_levels=max_levels,
+        include_missing=include_missing,
+        add_other=add_other,
+    )
+    order2 = list(data[column2].cat.categories)
+
+    # Make the heatmap
+    ct = pd.crosstab(data[column1], data[column2])
+    annot = ct.applymap(lambda x: f"{x} ({100 * x / ct.sum().sum():.1f}%)")
+    # ax = sns.heatmap(data=ct, annot=annot, ax=ax, fmt="")
+
+    # return ax
+    from plotly.subplots import make_subplots
+    import plotly.graph_objects as go
+
+    fig = make_subplots(rows=1, cols=1)
+    fig.add_trace(
+        go.Heatmap(
+            z=ct,
+            x=order2,
+            y=order1,
+            hovertext=annot,
+            text=annot,
+            texttemplate="%{text}",
+        ),
+        row=1,
+        col=1,
+    )
+
+    fig.update_layout(height=600, width=800, title_text="Side By Side Subplots")
+    fig.show()
 
 
 def numeric_2dplot(

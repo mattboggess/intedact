@@ -403,4 +403,10 @@ WIDGET_PARAMS = {
     ),
     "sort_collections": dict(description="Sort Collections", value=True),
     "remove_duplicates": dict(description="Remove Duplicate Entries", value=True),
+    "barmode": dict(
+        description=("Bar Mode: Manner in which to display levels of y variable"),
+        options=["stack", "group"],
+        value="stack",
+        style={"description_width": "30%"},
+    ),
 }

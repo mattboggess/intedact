@@ -144,6 +144,32 @@ def column_bivariate_eda_interact(
             match_axes=widgets.Checkbox(**WIDGET_PARAMS["match_axes"]),
             interactive=widgets.fixed(True),
         )
+    elif summary_type == "categorical-categorical":
+        fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
+        fig_height_widget.value = 8
+        fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
+        fig_width_widget.value = fig_height_widget.value
+        bins_widget = widgets.IntSlider(**WIDGET_PARAMS["bins"])
+        bins_widget.value = max(
+            freedman_diaconis_bins(data[column1]), freedman_diaconis_bins(data[column2])
+        )
+        widget = widgets.interactive(
+            categorical_categorical_summary,
+            {"manual": not auto_update},
+            data=widgets.fixed(data),
+            column1=widgets.fixed(column1),
+            column2=widgets.fixed(column2),
+            fig_height=fig_height_widget,
+            fig_width=fig_width_widget,
+            fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
+            color_palette=color_palette_widget,
+            order1=widgets.Dropdown(**WIDGET_PARAMS["order"]),
+            order2=widgets.Dropdown(**WIDGET_PARAMS["order"]),
+            barmode=widgets.Dropdown(**WIDGET_PARAMS["barmode"]),
+            max_levels=widgets.IntSlider(**WIDGET_PARAMS["max_levels"]),
+            include_missing=widgets.Checkbox(**WIDGET_PARAMS["include_missing"]),
+            interactive=widgets.fixed(True),
+        )
     else:
         print("No EDA support for this variable type")
         return
