@@ -12,6 +12,7 @@ from .bivariate_plots import (
     numeric_2dplot,
 )
 from .data_utils import order_levels
+from .data_utils import preprocess_transform
 from .data_utils import trim_values
 from .plot_utils import *
 
@@ -20,12 +21,14 @@ def categorical_categorical_summary(
     data: pd.DataFrame,
     column1: str,
     column2: str,
+    fig_height: int = 1000,
+    fig_width: int = 1000,
     order1: Union[str, List] = "auto",
     order2: Union[str, List] = "auto",
     barmode: str = "stack",
     max_levels: int = 30,
     include_missing: bool = False,
-) -> plt.Axes:
+) -> go.Figure:
     """
     Generates an EDA summary of two categorical variables. This includes:
       - Categorical heatmap with counts and percentages of each pair of levels
@@ -36,6 +39,8 @@ def categorical_categorical_summary(
         data: pandas DataFrame with data to be plotted
         column1: First categorical column in the data
         column2: Second categorical column in the data
+        fig_width: figure width
+        fig_height: figure height
         order1: Order in which to sort the levels of the first variable:
 
          - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
@@ -82,8 +87,8 @@ def categorical_categorical_summary(
         add_other=True,
     )
     order2 = list(data[column2].cat.categories)
-    colorway = px.colors.qualitative.Plotly + px.colors.qualitative.Dark24
 
+    colorway = px.colors.qualitative.Plotly + px.colors.qualitative.Dark24
     fig = make_subplots(
         rows=4,
         cols=2,
@@ -94,7 +99,7 @@ def categorical_categorical_summary(
             [{"colspan": 2}, None],
         ],
     )
-    fig.update_layout(height=1000, width=1000, title_text="Cat Cat")
+    fig.update_layout(height=fig_height, width=fig_width)
     fig.update_traces(showscale=False)
 
     # Make the heatmap
@@ -174,7 +179,11 @@ def categorical_categorical_summary(
             col=1,
         )
     fig.update_coloraxes(showscale=False)
-    fig.update_layout(legend=dict(y=0.25, yanchor="middle"))
+    fig.update_layout(legend=dict(y=0.25, yanchor="middle", title=column2))
+    fig.update_xaxes(title_text=column1, row=4, col=1)
+    fig.update_yaxes(title_text=column2, row=1, col=1)
+    fig.update_yaxes(title_text="Fraction", row=3, col=1)
+    fig.update_yaxes(title_text="Fraction", row=4, col=1)
 
     fig.show()
     return fig
@@ -184,21 +193,22 @@ def numeric_categorical_summary(
     data: pd.DataFrame,
     column1: str,
     column2: str,
-    order2: Union[str, List] = "auto",
+    fig_height: int = 500,
+    fig_width: int = 1000,
+    order: Union[str, List] = "auto",
     bins: int = 4,
     bin_type: str = "quantiles",
     max_levels: int = 30,
     include_missing: bool = False,
-    add_other: bool = True,
-) -> plt.Axes:
+) -> go.Figure:
     """
-    Generates an EDA summary of the relationship of a numeric variable on a categorical variable
+    Generates an EDA summary of the relationship of a numeric variable on a categorical variable.
 
     Args:
         data: pandas DataFrame with data to be plotted
         column1: First categorical column in the data
         column2: Second categorical column in the data
-        order1: Order in which to sort the levels of the first variable:
+        order2: Order in which to sort the levels of the first variable:
 
          - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
          - **'descending'**: sorts in descending frequency.
@@ -206,12 +216,9 @@ def numeric_categorical_summary(
          - **'sorted'**: sorts according to sorted order of the levels themselves.
          - **'random'**: produces a random order. Useful if there are too many levels for one plot.
          Or you can pass a list of level names in directly for your own custom order.
-        order2: Same as order1 but for the second variable
-        barmode: Type of bar plot aggregation. One of ['stack', 'group', 'overlay', 'relative']
         max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
          max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
         include_missing: Whether to include missing values as an additional level in the data to be plotted
-        add_other: Whether to include
 
     Returns:
 
@@ -228,24 +235,37 @@ def numeric_categorical_summary(
         data,
         column2,
         None,
-        order=order2,
+        order=order,
         max_levels=max_levels,
         include_missing=include_missing,
-        add_other=add_other,
+        add_other=True,
     )
-    order2 = list(data[column2].cat.categories)
+    order = list(data[column2].cat.categories)
     colorway = px.colors.qualitative.Plotly + px.colors.qualitative.Dark24
 
     if bin_type == "quantiles":
-        data["interval"] = pd.qcut(data[column1], bins).astype(str)
-    else:
+        data["interval"] = pd.qcut(data[column1], bins, duplicates="drop").astype(str)
+        x_desc = "quantile bins"
+    elif bin_type == "equal_width":
         data["interval"] = pd.cut(data[column1], bins).astype(str)
+        x_desc = "equal width bins"
+    else:
+        raise ValueError(f"Unknown bin_type {bin_type}")
+    intervals = data.interval.unique()
+    if len(intervals) < bins and x_desc == "quantile bins":
+        print(f"Dropped {bins - len(intervals)} bins due to duplicate quantiles.")
+    interval_order = sorted(
+        data.interval.unique(), key=lambda x: float(x.split(",")[0][1:])
+    )
+    data["interval"] = pd.Categorical(
+        data["interval"], categories=interval_order, ordered=True
+    )
 
     fig = make_subplots(
-        rows=2,
+        rows=1,
         cols=1,
     )
-    fig.update_layout(height=1000, width=1000)
+    fig.update_layout(height=fig_height, width=fig_width)
     fig.update_traces(showscale=False)
 
     tmp = (
@@ -257,7 +277,7 @@ def numeric_categorical_summary(
     tmp["fraction"] = tmp.groupby("interval").Count.apply(lambda x: x / x.sum())
 
     # Make the line chart
-    for i, o in enumerate(order2):
+    for i, o in enumerate(order):
         fig.add_trace(
             go.Scatter(
                 x=tmp[tmp[column2] == o].interval,
@@ -276,10 +296,199 @@ def numeric_categorical_summary(
             row=1,
             col=1,
         )
-    # fig.update_coloraxes(showscale=False)
-    # fig.update_layout(legend=dict(y=.25, yanchor="middle"))
+    fig.update_layout(legend=dict(title=column2))
+    fig.update_xaxes(title_text=f"{column1} ({x_desc})", row=1, col=1)
+    fig.update_yaxes(title_text="Fraction", row=1, col=1)
 
     fig.show()
+    return fig
+
+
+def categorical_numeric_summary(
+    data: pd.DataFrame,
+    column1: str,
+    column2: str,
+    fig_height: int = 500,
+    fig_width: int = 1000,
+    order: Union[str, List] = "auto",
+    max_levels: int = 30,
+    include_missing: bool = False,
+    lower_quantile: float = 0,
+    upper_quantile: float = 1,
+    transform: str = "identity",
+) -> go.Figure:
+    """
+    Generates an EDA summary of the relationship of a numeric variable on a categorical variable.
+
+    Args:
+        data: pandas DataFrame with data to be plotted
+        column1: First categorical column in the data
+        column2: Second categorical column in the data
+        order2: Order in which to sort the levels of the first variable:
+
+         - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
+         - **'descending'**: sorts in descending frequency.
+         - **'ascending'**: sorts in ascending frequency.
+         - **'sorted'**: sorts according to sorted order of the levels themselves.
+         - **'random'**: produces a random order. Useful if there are too many levels for one plot.
+         Or you can pass a list of level names in directly for your own custom order.
+        max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
+         max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
+        include_missing: Whether to include missing values as an additional level in the data to be plotted
+
+    Returns:
+
+    Examples:
+        .. plot::
+
+            import seaborn as sns
+            import intedact
+            data = sns.load_dataset('tips')
+            intedact.countplot(data, 'day')
+    """
+    # Reorder categorical column levels
+    data[column1] = order_levels(
+        data,
+        column1,
+        None,
+        order=order,
+        max_levels=max_levels,
+        include_missing=include_missing,
+        add_other=True,
+    )
+    order = list(data[column1].cat.categories)
+    colorway = px.colors.qualitative.Plotly + px.colors.qualitative.Dark24
+
+    # Remove upper and lower values
+    data = trim_values(data, column2, lower_quantile, upper_quantile)
+
+    # Clip/remove zeros for log transformation
+    # data = preprocess_transform(data, column2, transform, clip=clip)
+
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+    )
+    fig.update_layout(height=fig_height, width=fig_width)
+    fig.update_traces(showscale=False)
+
+    # Make the boxplot
+    fig.add_trace(
+        go.Box(
+            x=data[column1],
+            y=data[column2],
+            # hovertemplate=(
+            #        f"{column1}"
+            #        + ": %{x}<br>"
+            #        + f"{column2}: {o}<br>"
+            #        + "Fraction: %{y}"
+            #        + "<extra></extra>"
+            # ),
+        ),
+        row=1,
+        col=1,
+    )
+    # fig.update_layout(legend=dict(title=column2))
+    if transform == "log":
+        fig.update_yaxes(type="log")
+    # fig.update_xaxes(title_text=f"{column1} ({x_desc})", row=1, col=1)
+    # fig.update_yaxes(title_text="Fraction", row=1, col=1)
+
+    fig.show()
+    return fig
+
+
+def numeric_numeric_summary(
+    data: pd.DataFrame,
+    column1: str,
+    column2: str,
+    fig_height: int = 6,
+    fig_width: int = 6,
+    fontsize: int = 15,
+    plot_type: str = "scatter",
+    trend_line: str = "auto",
+    bins: Optional[int] = None,
+    alpha: float = 1,
+    lower_quantile1: float = 0,
+    upper_quantile1: float = 1,
+    lower_quantile2: float = 0,
+    upper_quantile2: float = 1,
+    transform1: str = "identity",
+    transform2: str = "identity",
+    clip: float = 0,
+    reference_line: bool = False,
+    match_axes: bool = False,
+    interactive: bool = False,
+) -> Tuple[pd.DataFrame, plt.Figure]:
+    """
+    Creates a bivariate EDA summary for two numeric data column in a pandas DataFrame.
+
+    Summary consists of a scatterplot with correlation coefficients.
+
+    Args:
+        data: pandas DataFrame to perform EDA on
+        column1: name of column to plot on the x axis
+        column2: name of column to plot on the y axis
+        fig_height: Height of the plot in inches
+        fig_width: Width of the plot in inches
+        fontsize: Font size of axis and tick labels
+        color_palette: Seaborn color palette to use
+        plot_type: One of ['auto', 'hist', 'hex', 'kde', 'scatter']
+        trend_line: Trend line to plot over data. Default is to plot no trend line. Other options are passed
+            to `geom_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.geoms.geom_smooth.html>`_.
+        alpha: Amount of transparency to add to the scatterplot points [0, 1]
+        lower_quantile1: Lower quantile to filter data above for column1
+        upper_quantile1: Upper quantile to filter data below for column1
+        lower_quantile2: Lower quantile to filter data above for column2
+        upper_quantile2: Upper quantile to filter data below for column2
+        transform1: Transformation to apply to the data for plotting:
+
+         - **'identity'**: no transformation
+         - **'log'**: apply a logarithmic transformation to the data
+        transform2: Transformation to apply to the column2 data for plotting. Same options as for column1.
+        clip: Value to clip zero values to for log transformation. If 0 (default), zero values are simply removed.
+        reference_line: Add a y = x reference line
+        match_axes: Match the x and y axis limits
+        interactive: Whether to modify to be used with interactive for ipywidgets
+
+    Returns:
+        Tuple containing matplotlib Figure drawn and summary stats DataFrame
+
+    """
+    data = data.copy()
+
+    ax, fig = numeric_2dplot(
+        data,
+        column1,
+        column2,
+        plot_type=plot_type,
+        trend_line=trend_line,
+        bins=bins,
+        alpha=alpha,
+        lower_quantile1=lower_quantile1,
+        lower_quantile2=lower_quantile2,
+        upper_quantile1=upper_quantile1,
+        upper_quantile2=upper_quantile2,
+        transform1=transform1,
+        transform2=transform2,
+        clip=clip,
+        reference_line=reference_line,
+        match_axes=match_axes,
+    )
+    fig.set_size_inches(fig_height, fig_width)
+    set_fontsize(ax, fontsize)
+
+    data = trim_values(data, column1, lower_quantile1, upper_quantile1)
+    data = trim_values(data, column2, lower_quantile2, upper_quantile2)
+    spearman = scipy.stats.spearmanr(data[column1], data[column2])
+    pearson = scipy.stats.pearsonr(data[column1], data[column2])
+    table = pd.DataFrame({"Pearson": [pearson[0]], "Spearman": [spearman[0]]})
+
+    if interactive:
+        display(table)
+        plt.show()
+
+    return table, fig
 
 
 def numeric_numeric_bivariate_summary(
