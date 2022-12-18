@@ -85,19 +85,19 @@ WIDGET_PARAMS = {
     ),
     "auto_update": dict(description="Auto Update Summaries", value=True),
     "fig_width": dict(
-        description="Figure Width: Width of figure in inches",
-        min=1,
-        max=50,
+        description="Figure Width: Width of figure in pixels",
+        min=100,
+        max=5000,
         step=1,
-        value=12,
+        value=1000,
         style={"description_width": "31%"},
     ),
     "fig_height": dict(
-        description="Figure Height: Height of figure in inches (multiplied if multiple subplots)",
-        min=1,
-        max=50,
+        description="Figure Height: Height of figure in pixels",
+        min=100,
+        max=5000,
         step=1,
-        value=6,
+        value=1000,
         style={"description_width": "33%"},
     ),
     "fontsize": dict(
@@ -161,6 +161,14 @@ WIDGET_PARAMS = {
         max=1000,
         step=1,
         value=100,
+        style={"description_width": "20%"},
+    ),
+    "quantile_bins": dict(
+        description="# Bins: Number of bins to use for discretizing the numerical variable",
+        min=1,
+        max=1000,
+        step=1,
+        value=4,
         style={"description_width": "20%"},
     ),
     "kde": dict(description="Overlay Density on Histogram", value=False),
@@ -403,4 +411,18 @@ WIDGET_PARAMS = {
     ),
     "sort_collections": dict(description="Sort Collections", value=True),
     "remove_duplicates": dict(description="Remove Duplicate Entries", value=True),
+    "barmode": dict(
+        description=("Bar Mode: Manner in which to display levels of y variable"),
+        options=["stack", "group"],
+        value="stack",
+        style={"description_width": "30%"},
+    ),
+    "bin_type": dict(
+        description=(
+            "Bin Type: Type of binning to use. Either quantiles or equal width."
+        ),
+        options=["quantiles", "equal_width"],
+        value="quantiles",
+        style={"description_width": "30%"},
+    ),
 }
