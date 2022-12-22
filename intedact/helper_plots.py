@@ -19,7 +19,6 @@ def countplot(
     include_missing: bool = False,
     add_other: bool = True,
 ) -> go.Figure:
-    data = data.copy()
 
     # Handle axis flip default
     num_levels = data[column].nunique()

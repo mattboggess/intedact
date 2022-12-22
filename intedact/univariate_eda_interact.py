@@ -77,9 +77,8 @@ def column_univariate_eda_interact(
         )
     elif summary_type == "numeric":
         bins_widget = widgets.IntSlider(**WIDGET_PARAMS["bins"])
-        bins_widget.value = freedman_diaconis_bins(
-            data[~data[column].isna()][column], log=False
-        )
+        height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
+        height_widget.value = 600
         lower_quantile_widget = widgets.BoundedFloatText(
             **WIDGET_PARAMS["lower_quantile"]
         )
@@ -91,15 +90,12 @@ def column_univariate_eda_interact(
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
-            fig_height=widgets.IntSlider(**WIDGET_PARAMS["fig_height"]),
+            fig_height=height_widget,
             fig_width=widgets.IntSlider(**WIDGET_PARAMS["fig_width"]),
-            fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
             bins=bins_widget,
-            clip=widgets.BoundedFloatText(**WIDGET_PARAMS["clip"]),
             lower_quantile=lower_quantile_widget,
             upper_quantile=upper_quantile_widget,
             transform=widgets.Dropdown(**WIDGET_PARAMS["transform"]),
-            kde=widgets.Checkbox(**WIDGET_PARAMS["kde"]),
             interactive=widgets.fixed(True),
         )
     elif summary_type == "datetime":

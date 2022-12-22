@@ -156,11 +156,11 @@ WIDGET_PARAMS = {
         style={"description_width": "38%"},
     ),
     "bins": dict(
-        description="# Bins: Number of bins to use for the histogram",
-        min=1,
-        max=1000,
+        description="# Bins: Number of bins to use for the histogram (0 will use default bin count used by plotly)",
+        min=0,
+        max=5000,
         step=1,
-        value=100,
+        value=0,
         style={"description_width": "20%"},
     ),
     "quantile_bins": dict(
@@ -177,10 +177,11 @@ WIDGET_PARAMS = {
         description=(
             "Transform: Transformation to apply to column for plotting \n"
             "  - identity: No transformation\n"
-            "  - log: Log transform (see clip variable for handling 0's)\n"
+            "  - log: Log transform (0 and negative values will be filtered)\n"
+            "  - sqrt: Square root transform\n"
         ),
         value="identity",
-        options=["identity", "log"],
+        options=["identity", "log", "sqrt"],
         style={"description_width": "27%"},
     ),
     "transform1": dict(
