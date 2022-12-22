@@ -9,19 +9,22 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import seaborn as sns
 import tldextract
 from IPython.display import display
 from matplotlib import gridspec
+from plotly.subplots import make_subplots
 
 from .bivariate_plots import time_series_plot
 from .config import TIME_UNITS
 from .data_utils import compute_time_deltas
 from .data_utils import convert_to_freq_string
 from .data_utils import trim_values
+from .helper_plots import countplot
 from .plot_utils import *
 from .univariate_plots import boxplot
-from .univariate_plots import countplot
 from .univariate_plots import histogram
 from .univariate_plots import plot_ngrams
 from .univariate_plots import time_series_countplot
@@ -29,103 +32,25 @@ from .univariate_plots import time_series_countplot
 FLIP_LEVEL_MINIMUM = 5
 
 
-def compute_univariate_summary_table(
+def categorical_summary(
     data: pd.DataFrame,
     column: str,
-    data_type: str,
-    lower_quantile: float = 0,
-    upper_quantile: float = 1,
-) -> pd.DataFrame:
-    """
-    Computes summary statistics for a numerical pandas DataFrame column.
-
-    Computed statistics include some subset of the following depending on data type:
-
-      - mean and median
-      - min and max
-      - 25% percentile
-      - 75% percentile
-      - standard deviation and interquartile range
-      - count and percentage of missing values
-
-    Args:
-        data: The dataframe with the column to summarize
-        column: The column in the dataframe to summarize
-        data_type: Type of column to use to determine summary values to return
-        lower_quantile: Lower quantile to filter data above
-        upper_quantile: Upper quantile to filter data below
-
-    Returns:
-        pandas DataFrame with one row containing the summary statistics for the provided column
-    """
-    if data_type in ["numeric", "datetime"]:
-        data = trim_values(data, column, lower_quantile, upper_quantile)
-
-    # Get summary table
-    count_missing = data[column].isnull().sum()
-    perc_missing = 100 * count_missing / data.shape[0]
-    count_obs = data.shape[0] - count_missing
-    count_levels = data[column].nunique()
-    counts_table = pd.DataFrame(
-        {
-            "count_observed": [count_obs],
-            "count_unique": [count_levels],
-            "count_missing": [count_missing],
-            "percent_missing": [perc_missing],
-        },
-        index=[column],
-    )
-
-    if data_type == "datetime":
-        counts_table["min"] = data[column].min()
-        counts_table["25%"] = data[column].quantile(0.25)
-        counts_table["median"] = data[column].median()
-        counts_table["75%"] = data[column].quantile(0.75)
-        counts_table["max"] = data[column].max()
-        counts_table["iqr"] = data[column].quantile(0.75) - data[column].quantile(0.25)
-        return counts_table
-    elif data_type in ["numeric", "datetime"]:
-        stats_table = pd.DataFrame(data[column].describe()).T
-        stats_table["iqr"] = data[column].quantile(0.75) - data[column].quantile(0.25)
-        stats_table = stats_table[
-            ["min", "25%", "50%", "mean", "75%", "max", "std", "iqr"]
-        ]
-        stats_table = stats_table.rename({"50%": "median"}, axis="columns")
-        return pd.concat([counts_table, stats_table], axis=1)
-    else:
-        return counts_table
-
-
-def categorical_univariate_summary(
-    data: pd.DataFrame,
-    column: str,
-    fig_height: int = 5,
-    fig_width: int = 10,
-    fontsize: int = 15,
-    color_palette: str = None,
+    fig_height: int = 600,
+    fig_width: int = 1200,
     order: Union[str, List] = "auto",
-    max_levels: int = 30,
-    label_rotation: Optional[int] = None,
-    label_fontsize: Optional[float] = None,
+    max_levels: int = 20,
     flip_axis: Optional[bool] = None,
-    percent_axis: bool = True,
-    label_counts: bool = True,
     include_missing: bool = False,
     interactive: bool = False,
-) -> Tuple[pd.DataFrame, plt.Figure]:
+) -> go.Figure:
     """
     Creates a univariate EDA summary for a provided categorical data column in a pandas DataFrame.
-
-    Summary consists of a count plot with twin axes for counts and percentages for each level of the
-    variable and a small summary table.
 
     Args:
         data: pandas DataFrame with data to be plotted
         column: column in the dataframe to plot
         fig_width: figure width in inches
         fig_height: figure height in inches
-        fontsize: Font size of axis and tick labels
-        color_palette: Seaborn color palette to use
         order: Order in which to sort the levels of the variable for plotting:
 
          - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
@@ -136,15 +61,11 @@ def categorical_univariate_summary(
          Or you can pass a list of level names in directly for your own custom order.
         max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
          max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
-        percent_axis: Whether to add a twin y axis with percentages
-        label_counts: Whether to add exact counts and percentages as text annotations on each bar in the plot.
-        label_fontsize: Size of the annotations text. Default tries to infer a reasonable size based on the figure
          size and number of levels.
         flip_axis: Whether to flip the plot so labels are on y axis. Useful for long level names or lots of levels.
          Default tries to infer based on number of levels and label_rotation value.
-        label_rotation: Amount to rotate level labels. Useful for long level names or lots of levels.
         include_missing: Whether to include missing values as an additional level in the data
-        interactive: Whether to display plot and table for interactive use in a jupyter notebook
+        interactive: Whether to display plot for interactive use in a jupyter notebook
 
     Returns:
         Summary table and matplotlib figure with countplot
@@ -153,35 +74,28 @@ def categorical_univariate_summary(
     if flip_axis is None:
         flip_axis = data[column].nunique() > FLIP_LEVEL_MINIMUM
 
-    if color_palette != "":
-        sns.set_palette(color_palette)
-    else:
-        sns.set_palette("tab10")
-
-    # Get summary table
-    summary_table = compute_univariate_summary_table(data, column, "categorical")
-
-    # Plot countplot
-    fig, axs = plt.subplots(1, 1, figsize=(fig_width, fig_height))
-    ax = countplot(
+    fig = make_subplots(
+        rows=1,
+        cols=1,
+    )
+    fig.update_layout(height=fig_height, width=fig_width)
+    fig = countplot(
         data,
         column,
+        fig=fig,
+        fig_row=1,
+        fig_col=1,
         order=order,
         max_levels=max_levels,
-        percent_axis=percent_axis,
-        label_counts=label_counts,
         flip_axis=flip_axis,
-        label_fontsize=label_fontsize,
         include_missing=include_missing,
-        label_rotation=label_rotation,
-        fontsize=fontsize,
     )
 
     if interactive:
-        display(summary_table)
-        plt.show()
+        fig.show()
+    fig.show()
 
-    return summary_table, fig
+    return fig
 
 
 def numeric_univariate_summary(

@@ -1,23 +1,26 @@
-import pandas as pd
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
+
 import matplotlib.pyplot as plt
-from typing import Union, List, Optional, Tuple
-import seaborn as sns
 import numpy as np
-from .plot_utils import (
-    add_percent_axis,
-    transform_axis,
-    add_barplot_annotations,
-    set_fontsize,
-)
-from .data_utils import (
-    trim_values,
-    order_levels,
-    freedman_diaconis_bins,
-    preprocess_transform,
-    agg_time_series,
-)
-from .config import FLIP_LEVEL_COUNT
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import seaborn as sns
+
 from .bivariate_plots import time_series_plot
+from .config import FLIP_LEVEL_COUNT
+from .data_utils import agg_time_series
+from .data_utils import freedman_diaconis_bins
+from .data_utils import order_levels
+from .data_utils import preprocess_transform
+from .data_utils import trim_values
+from .plot_utils import add_barplot_annotations
+from .plot_utils import add_percent_axis
+from .plot_utils import set_fontsize
+from .plot_utils import transform_axis
 
 
 def boxplot(
