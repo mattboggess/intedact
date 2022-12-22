@@ -280,3 +280,95 @@ def add_trendline(
         edgecolor=None,
     )
     return ax
+
+
+def add_trendline(
+    data: pd.DataFrame,
+    x: str,
+    y: str,
+    method: str,
+    span: float = 0.75,
+    level: float = 0.95,
+) -> pd.DataFrame:
+    """
+    Adds a trendline to a line or scatter plot. This is a modified version of plotnine's
+    stat_smooth since plotly doesn't have support for custom subplot trend lines.
+
+    Args:
+        data: pandas Dataframe to add trend line for
+        x: x axis variable column name
+        y: y axis variable column name
+        ax: matplotlib axis to add trend line to
+        method: smoothing method, see plotnine's [stat_smooth](https://plotnine.readthedocs.io/en/stable/generated/plotnine.stats.stat_smooth.html#plotnine.stats.stat_smooth) for options
+        span: span parameter for loess
+        level: confidence level to use for drawing confidence interval
+
+    Returns:
+        matplotlib axes object with trend line added
+    """
+
+    params = {
+        "geom": "smooth",
+        "position": "identity",
+        "na_rm": False,
+        "method": method,
+        "se": True,
+        "n": 80,
+        "formula": None,
+        "fullrange": False,
+        "level": level,
+        "span": span,
+        "method_args": {},
+    }
+
+    if params["method"] == "auto":
+        max_group = data[x].value_counts().max()
+        if max_group < 1000:
+            try:
+                from skmisc.loess import loess  # noqa: F401
+
+                params["method"] = "loess"
+            except ImportError:
+                params["method"] = "lowess"
+        else:
+            params["method"] = "glm"
+
+    if params["method"] == "mavg":
+        if "window" not in params["method_args"]:
+            window = len(data) // 10
+            params["method_args"]["window"] = window
+
+    if params["formula"]:
+        allowed = {"lm", "ols", "wls", "glm", "rlm", "gls"}
+        if params["method"] not in allowed:
+            raise ValueError(
+                "You can only use a formula with `method` is "
+                "one of {}".format(allowed)
+            )
+
+    # convert datetime to numeric values
+    date_min = data[x].min()
+    if data[x].dtype.kind == "M":
+        data["x"] = (data[x] - date_min).dt.total_seconds()
+    else:
+        data["x"] = data[x]
+    data["y"] = data[y]
+
+    data = data.sort_values("x")
+    n = data.shape[0]
+    x_unique = data["x"].unique()
+
+    # Not enough data to fit
+    if len(x_unique) < 2:
+        print("Need 2 or more points to smooth")
+        return pd.DataFrame()
+
+    if data["x"].dtype.kind == "i":
+        xseq = np.sort(x_unique)
+    else:
+        rangee = [data["x"].min(), data["x"].max()]
+        xseq = np.linspace(rangee[0], rangee[1], n)
+
+    df = predictdf(data, xseq, **params)
+    df["x"] = date_min + pd.to_timedelta(data["x"], unit="S")
+    return df

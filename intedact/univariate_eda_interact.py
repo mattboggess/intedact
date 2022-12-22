@@ -86,7 +86,7 @@ def column_univariate_eda_interact(
             **WIDGET_PARAMS["upper_quantile"]
         )
         widget = widgets.interactive(
-            numeric_univariate_summary,
+            numeric_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
@@ -109,13 +109,12 @@ def column_univariate_eda_interact(
             **WIDGET_PARAMS["upper_quantile"]
         )
         widget = widgets.interactive(
-            datetime_univariate_summary,
+            datetime_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
             fig_height=widgets.IntSlider(**WIDGET_PARAMS["fig_height"]),
             fig_width=widgets.IntSlider(**WIDGET_PARAMS["fig_width"]),
-            fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
             ts_freq=widgets.Text(**WIDGET_PARAMS["ts_freq"]),
             delta_units=widgets.Dropdown(**WIDGET_PARAMS["delta_units"]),
             ts_type=widgets.Dropdown(**WIDGET_PARAMS["ts_type"]),
