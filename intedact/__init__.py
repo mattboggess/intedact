@@ -1,7 +1,7 @@
 from .univariate_eda_interact import univariate_eda_interact
 from .bivariate_eda_interact import bivariate_eda_interact
 from .univariate_summaries import (
-    categorical_univariate_summary,
+    categorical_summary,
     numeric_univariate_summary,
     datetime_univariate_summary,
     text_univariate_summary,

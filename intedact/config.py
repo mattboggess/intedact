@@ -89,7 +89,7 @@ WIDGET_PARAMS = {
         min=100,
         max=5000,
         step=1,
-        value=1000,
+        value=1200,
         style={"description_width": "31%"},
     ),
     "fig_height": dict(
@@ -132,7 +132,7 @@ WIDGET_PARAMS = {
         min=1,
         max=100,
         step=1,
-        value=30,
+        value=20,
         style={"description_width": "28%"},
     ),
     "flip_axis": dict(description="Flip Plot Orientation", value=True),

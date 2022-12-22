@@ -133,10 +133,7 @@ def order_levels(
         data[column1] = data[column1].fillna("NA")
         order.append("NA")
 
-    # convert to ordered categorical variable
-    data[column1] = pd.Categorical(data[column1], categories=order, ordered=True)
-
-    return data[column1]
+    return order
 
 
 def freedman_diaconis_bins(a, log=False):
