@@ -93,7 +93,6 @@ def categorical_summary(
 
     if interactive:
         fig.show()
-    fig.show()
 
     return fig
 
@@ -101,83 +100,52 @@ def categorical_summary(
 def numeric_univariate_summary(
     data: pd.DataFrame,
     column: str,
-    fig_height: int = 4,
-    fig_width: int = 8,
-    fontsize: int = 15,
-    color_palette: str = None,
-    bins: Optional[int] = None,
+    fig_height: int = 600,
+    fig_width: int = 1200,
+    bins: int = 0,
     transform: str = "identity",
-    clip: float = 0,
-    kde: bool = False,
     lower_quantile: float = 0,
     upper_quantile: float = 1,
     interactive: bool = False,
-) -> Tuple[pd.DataFrame, plt.Figure]:
+) -> go.Figure:
     """
-    Creates a univariate EDA summary for a provided high cardinality numeric data column in a pandas DataFrame.
-
-    Summary consists of a histogram, boxplot, and small table of summary statistics.
+    Creates a univariate EDA summary for a high cardinality numeric data column in a pandas DataFrame.
 
     Args:
         data: pandas DataFrame to perform EDA on
         column: A string matching a column in the data to visualize
-        fig_height: Height of the plot in inches
-        fig_width: Width of the plot in inches
-        fontsize: Font size of axis and tick labels
-        color_palette: Seaborn color palette to use
-        bins: Number of bins to use for the histogram. Default is to determines # of bins from the data
+        fig_height: Height of the plot in pixels
+        fig_width: Width of the plot in pixels
+        bins: Number of bins to use for the histogram. Default (0) is to determines # of bins from the data
         transform: Transformation to apply to the data for plotting:
 
             - 'identity': no transformation
-            - 'log': apply a logarithmic transformation with small constant added in case of zero values
-            - 'log_exclude0': apply a logarithmic transformation with zero values removed
+            - 'log': apply a logarithmic transformation (zero and negative values will be filtered out)
             - 'sqrt': apply a square root transformation
-        kde: Whether to overlay a KDE plot on the histogram
         lower_quantile: Lower quantile to filter data above
         upper_quantile: Upper quantile to filter data below
         interactive: Whether to modify to be used with interactive for ipywidgets
     """
+    if bins == 0:
+        bins = None
     data = data.copy()
-
-    if color_palette != "":
-        sns.set_palette(color_palette)
+    data = trim_values(data, column, lower_quantile, upper_quantile)
+    if transform == "log":
+        label = f"log({column})"
+        data[label] = np.log(data[column])
+    elif transform == "sqrt":
+        label = f"sqrt({column})"
+        data[label] = np.sqrt(data[column])
     else:
-        sns.set_palette("tab10")
+        label = column
 
-    # Get summary table
-    table = compute_univariate_summary_table(
-        data, column, "numeric", lower_quantile, upper_quantile
-    )
-
-    f, axs = plt.subplots(2, 1, figsize=(fig_width, fig_height * 2))
-    histogram(
-        data,
-        column,
-        ax=axs[0],
-        bins=bins,
-        transform=transform,
-        clip=clip,
-        lower_quantile=lower_quantile,
-        upper_quantile=upper_quantile,
-        kde=kde,
-    )
-    axs[0].set_xlabel("")
-    boxplot(
-        data,
-        column,
-        ax=axs[1],
-        transform=transform,
-        lower_quantile=lower_quantile,
-        upper_quantile=upper_quantile,
-    )
-    set_fontsize(axs[0], fontsize)
-    set_fontsize(axs[1], fontsize)
+    fig = px.histogram(data, x=label, marginal="box", nbins=bins)
+    fig.update_layout(height=fig_height, width=fig_width)
 
     if interactive:
-        display(table)
-        plt.show()
+        fig.show()
 
-    return table, f
+    return fig
 
 
 def datetime_univariate_summary(
