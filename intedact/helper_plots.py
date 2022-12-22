@@ -1,10 +1,13 @@
 from typing import List
+from typing import Optional
 from typing import Union
 
 import pandas as pd
 import plotly.graph_objects as go
 
+from .data_utils import agg_time_series
 from .data_utils import order_levels
+from .plot_utils import add_trendline
 
 
 def countplot(
@@ -69,11 +72,14 @@ def countplot(
             row=fig_row,
             col=fig_col,
         )
-        fig.update_layout(
-            yaxis={"categoryorder": "array", "categoryarray": order[::-1]}
+        fig.update_yaxes(
+            title_text=label,
+            categoryorder="array",
+            categoryarray=order[::-1],
+            row=fig_row,
+            col=fig_col,
         )
-        fig.update_yaxes(title_text=label, row=1, col=1)
-        fig.update_xaxes(title_text="Count", row=1, col=1)
+        fig.update_xaxes(title_text="Count", row=fig_row, col=fig_col)
     else:
         fig.add_trace(
             go.Bar(
@@ -93,8 +99,57 @@ def countplot(
             row=fig_row,
             col=fig_col,
         )
-        fig.update_layout(xaxis={"categoryorder": "array", "categoryarray": order})
-        fig.update_xaxes(title_text=label, row=1, col=1)
-        fig.update_yaxes(title_text="Count", row=1, col=1)
+        fig.update_xaxes(
+            title_text=label,
+            categoryorder="array",
+            categoryarray=order,
+            row=fig_row,
+            col=fig_col,
+        )
+        fig.update_yaxes(title_text="Count", row=fig_row, col=fig_col)
 
+    return fig
+
+
+def timeseries_countplot(
+    data: pd.DataFrame,
+    column: str,
+    fig: go.Figure,
+    fig_row: int = 1,
+    fig_col: int = 1,
+    ts_type: str = "markers",
+    ts_freq: str = "auto",
+    trend_line: Optional[str] = None,
+) -> go.Figure:
+    agg_data, label = agg_time_series(data, column, ts_freq)
+    agg_data["Percent"] = (100 * agg_data["Count"] / agg_data.Count.sum()).apply(
+        lambda x: f"{x:.2f}%"
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=agg_data[column],
+            y=agg_data["Count"],
+            mode=ts_type,
+            text=agg_data["Percent"],
+            hovertemplate=(
+                f"{column}"
+                + ": %{x}<br>"
+                + "Count: %{y}<br>"
+                + "Percent: %{text}"
+                + "<extra></extra>"
+            ),
+        ),
+        row=fig_row,
+        col=fig_col,
+    )
+    if trend_line is not None:
+        trend_data = add_trendline(agg_data, x=column, y="Count", method=trend_line)
+        fig.add_trace(
+            go.Scatter(x=trend_data["x"], y=trend_data["y"], mode="lines"),
+            row=fig_row,
+            col=fig_col,
+        )
+    fig.update_yaxes(title_text=label, row=fig_row, col=fig_col)
+    fig.update_xaxes(title_text=column, row=fig_row, col=fig_col)
     return fig

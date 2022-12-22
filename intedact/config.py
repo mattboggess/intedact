@@ -365,9 +365,9 @@ WIDGET_PARAMS = {
         style={"description_width": "30%"},
     ),
     "ts_type": dict(
-        description="Time Series Type: 'point' plots a time series scatter plot and 'line' plots a line graph.",
-        options=["point", "line"],
-        value="line",
+        description="Time Series Type: 'lines', 'markers', or 'lines+markers' to plot a line, points, or line + points",
+        options=["lines", "markers", "lines+markers"],
+        value="lines+markers",
         style={"description_width": "40%"},
     ),
     "top_ngrams": dict(

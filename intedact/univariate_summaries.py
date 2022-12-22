@@ -23,6 +23,7 @@ from .data_utils import compute_time_deltas
 from .data_utils import convert_to_freq_string
 from .data_utils import trim_values
 from .helper_plots import countplot
+from .helper_plots import timeseries_countplot
 from .plot_utils import *
 from .univariate_plots import boxplot
 from .univariate_plots import histogram
@@ -66,9 +67,6 @@ def categorical_summary(
          Default tries to infer based on number of levels and label_rotation value.
         include_missing: Whether to include missing values as an additional level in the data
         interactive: Whether to display plot for interactive use in a jupyter notebook
-
-    Returns:
-        Summary table and matplotlib figure with countplot
     """
     data = data.copy()
     if flip_axis is None:
@@ -97,7 +95,7 @@ def categorical_summary(
     return fig
 
 
-def numeric_univariate_summary(
+def numeric_summary(
     data: pd.DataFrame,
     column: str,
     fig_height: int = 600,
@@ -148,191 +146,122 @@ def numeric_univariate_summary(
     return fig
 
 
-def datetime_univariate_summary(
+def datetime_summary(
     data: pd.DataFrame,
     column: str,
     fig_height: int = 4,
     fig_width: int = 8,
-    fontsize: int = 15,
-    color_palette: str = None,
     ts_freq: str = "auto",
-    delta_units: str = "auto",
     ts_type: str = "line",
     trend_line: str = "auto",
-    date_labels: Optional[str] = None,
-    date_breaks: Optional[str] = None,
     lower_quantile: float = 0,
     upper_quantile: float = 1,
     interactive: bool = False,
-) -> Tuple[pd.DataFrame, plt.Figure]:
+) -> go.Figure:
     """
-    Creates a univariate EDA summary for a provided datetime data column in a pandas DataFrame.
-
-    Produces the following summary plots:
-
-      - a time series plot of counts aggregated at the temporal resolution provided by ts_freq
-      - a time series plot of time deltas between successive observations in units defined by delta_freq
-      - countplots for the following metadata from the datetime object:
-
-        - day of week
-        - day of month
-        - month
-        - year
-        - hour
-        - minute
+    Creates a univariate EDA summary for a datetime data column in a pandas DataFrame.
 
     Args:
         data: pandas DataFrame to perform EDA on
         column: A string matching a column in the data
         fig_height: Height of the plot in inches
         fig_width: Width of the plot in inches
-        fontsize: Font size of axis and tick labels
-        color_palette: Seaborn color palette to use
         ts_freq: String describing the frequency at which to aggregate data in one of two formats:
 
             - A `pandas offset string <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`_.
             - A human readable string in the same format passed to date breaks (e.g. "4 months")
             Default is to attempt to intelligently determine a good aggregation frequency.
-        delta_units: String describing the units in which to compute time deltas between successive observations in one of two formats:
-
-            - A `pandas offset string <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`_.
-            - A human readable string in the same format passed to date breaks (e.g. "4 months")
-            Default is to attempt to intelligently determine a good frequency unit.
-        ts_type: 'line' plots a line graph while 'point' plots points for observations
+        ts_type: 'lines', 'markers', or 'lines+markers' to plot a line, points, or line + points
         trend_line: Trend line to plot over data. "None" produces no trend line. Other options are passed
             to `geom_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.geoms.geom_smooth.html>`_.
-        date_labels: strftime date formatting string that will be used to set the format of the x axis tick labels
-        date_breaks: Date breaks string in form '{interval} {period}'. Interval must be an integer and period must be
           a time period ranging from seconds to years. (e.g. '1 year', '3 minutes')
         lower_quantile: Lower quantile to filter data above
         upper_quantile: Upper quantile to filter data below
         interactive: Whether to display figures and tables in jupyter notebook for interactive use
-
-    Returns:
-        Tuple containing matplotlib Figure drawn and summary stats DataFrame
     """
     data = data.copy()
     data = trim_values(data, column, lower_quantile, upper_quantile)
 
     if trend_line == "none":
         trend_line = None
-    if date_breaks == "auto":
-        date_breaks = None
-    if date_labels == "auto":
-        date_labels = None
 
-    if color_palette != "":
-        sns.set_palette(color_palette)
-    else:
-        sns.set_palette("tab10")
-
-    # Compute extra columns with datetime attributes
     data["Month"] = data[column].dt.month_name()
     data["Day of Month"] = data[column].dt.day
     data["Year"] = data[column].dt.year
     data["Hour"] = data[column].dt.hour
     data["Day of Week"] = data[column].dt.day_name()
 
-    # Compute time deltas
-    data["deltas"], delta_units = compute_time_deltas(data[column], delta_units)
-
-    # Compute summary table
-    table = compute_univariate_summary_table(data, column, "datetime")
-    delta_table = compute_univariate_summary_table(
-        data.iloc[1:, :], "deltas", "numeric"
+    fig = make_subplots(
+        rows=3,
+        cols=2,
+        specs=[
+            [{"colspan": 2}, None],
+            [{"colspan": 1, "rowspan": 1}, {"colspan": 1, "rowspan": 1}],
+            [{"colspan": 1, "rowspan": 1}, {"colspan": 1, "rowspan": 1}],
+        ],
     )
-    delta_table.index = [f"Time Deltas ({delta_units})"]
-    table = pd.concat([table, delta_table], axis=0)
-    if interactive:
-        display(table)
-
-    fig = plt.figure(figsize=(fig_width, fig_height * 4))
-    spec = gridspec.GridSpec(ncols=2, nrows=4, figure=fig)
-
-    # time series count plot
-    ax = fig.add_subplot(spec[0, :])
-    ax = time_series_countplot(
+    fig.update_layout(width=fig_width, height=fig_height)
+    fig = timeseries_countplot(
         data,
         column,
-        ax,
+        fig,
+        fig_row=1,
+        fig_col=1,
         ts_freq=ts_freq,
         ts_type=ts_type,
         trend_line=trend_line,
-        date_breaks=date_breaks,
-        date_labels=date_labels,
     )
-    set_fontsize(ax, fontsize)
 
-    # Summary plots of time deltas
-    ax = fig.add_subplot(spec[1, 0])
-    ax = histogram(data, "deltas", ax=ax)
-    ax.set_xlabel(f"{delta_units.title()} between observations")
-    set_fontsize(ax, fontsize)
-
-    ax = fig.add_subplot(spec[1, 1])
-    ax = boxplot(data, "deltas", ax=ax)
-    ax.set_xlabel(f"{delta_units.title()} between observations")
-    set_fontsize(ax, fontsize)
-
-    # countplot by month
     data["Month"] = pd.Categorical(
         data["Month"], categories=list(calendar.month_name)[1:], ordered=True
     )
-    ax = fig.add_subplot(spec[2, 0])
-    ax = countplot(
+    fig = countplot(
         data,
         "Month",
-        ax,
-        label_fontsize=10,
+        fig,
+        fig_row=2,
+        fig_col=1,
         flip_axis=True,
-        fontsize=fontsize,
     )
 
-    # countplot by day of month
     data["Day of Month"] = pd.Categorical(
         data["Day of Month"], categories=np.arange(1, 32, 1), ordered=True
     )
-    ax = fig.add_subplot(spec[2, 1])
-    ax = countplot(
+    fig = countplot(
         data,
         "Day of Month",
-        ax,
-        label_counts=False,
+        fig,
+        fig_row=2,
+        fig_col=2,
         flip_axis=True,
         max_levels=35,
-        fontsize=fontsize,
     )
-    ax.set_yticklabels(ax.get_yticklabels(), fontsize=9)
 
-    # countplot by day of week
     data["Day of Week"] = pd.Categorical(
         data["Day of Week"], categories=list(calendar.day_name), ordered=True
     )
-    ax = fig.add_subplot(spec[3, 0])
-    ax = countplot(
+    fig = countplot(
         data,
         "Day of Week",
-        ax,
-        label_fontsize=10,
+        fig,
+        fig_row=3,
+        fig_col=1,
         flip_axis=True,
-        fontsize=fontsize,
     )
 
-    # countplot by hour of day
     data["Hour"] = pd.Categorical(
         data["Hour"], categories=np.arange(0, 24, 1), ordered=True
     )
-    ax = fig.add_subplot(spec[3, 1])
-    ax = countplot(
-        data, "Hour", ax, label_counts=False, flip_axis=True, fontsize=fontsize
+    fig = countplot(
+        data, "Hour", fig, fig_row=3, fig_col=2, flip_axis=True, max_levels=25
     )
-    ax.set_yticklabels(ax.get_yticklabels(), fontsize=9)
 
-    plt.tight_layout()
+    fig.update(layout_showlegend=False)
+
     if interactive:
-        plt.show()
+        fig.show()
 
-    return table, fig
+    return fig
 
 
 def text_univariate_summary(
