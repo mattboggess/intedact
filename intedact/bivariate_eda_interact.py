@@ -9,7 +9,6 @@ from IPython.display import display
 from .config import WIDGET_PARAMS
 from .data_utils import coerce_column_type
 from .data_utils import detect_column_type
-from .data_utils import freedman_diaconis_bins
 from intedact import bivariate_summaries
 
 
@@ -17,7 +16,6 @@ def bivariate_eda_interact(
     data,
     notes_file: str = None,
 ):
-    pd.set_option("display.precision", 2)
     warnings.simplefilter("ignore")
 
     col1_widget = widgets.Dropdown(**WIDGET_PARAMS["column1"])
@@ -77,9 +75,6 @@ def column_bivariate_eda_interact(
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
         bins_widget = widgets.IntSlider(**WIDGET_PARAMS["bins"])
-        bins_widget.value = max(
-            freedman_diaconis_bins(data[column1]), freedman_diaconis_bins(data[column2])
-        )
         widget = widgets.interactive(
             bivariate_summaries.numeric_numeric_summary,
             {"manual": not auto_update},
@@ -130,6 +125,7 @@ def column_bivariate_eda_interact(
             barmode=widgets.Dropdown(**WIDGET_PARAMS["barmode"]),
             max_levels=widgets.IntSlider(**WIDGET_PARAMS["max_levels"]),
             include_missing=widgets.Checkbox(**WIDGET_PARAMS["include_missing"]),
+            interactive=widgets.fixed(True),
         )
     elif summary_type == "numeric-categorical":
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
@@ -149,12 +145,14 @@ def column_bivariate_eda_interact(
             bin_type=widgets.Dropdown(**WIDGET_PARAMS["bin_type"]),
             max_levels=widgets.IntSlider(**WIDGET_PARAMS["max_levels"]),
             include_missing=widgets.Checkbox(**WIDGET_PARAMS["include_missing"]),
+            interactive=widgets.fixed(True),
         )
     elif summary_type == "categorical-numeric":
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
-        fig_height_widget.value = 500
-        fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
-        fig_width_widget.value = fig_height_widget.value * 2
+        fig_height_widget.value = 800
+        dist_type_widget = widgets.Dropdown(**WIDGET_PARAMS["dist_type"])
+        if data[column1].nunique() > 3:
+            dist_type_widget.value = "kde_only"
         widget = widgets.interactive(
             bivariate_summaries.categorical_numeric_summary,
             {"manual": not auto_update},
@@ -162,13 +160,16 @@ def column_bivariate_eda_interact(
             column1=widgets.fixed(column1),
             column2=widgets.fixed(column2),
             fig_height=fig_height_widget,
-            fig_width=fig_width_widget,
+            fig_width=widgets.IntSlider(**WIDGET_PARAMS["fig_width"]),
             order=widgets.Dropdown(**WIDGET_PARAMS["order"]),
             max_levels=widgets.IntSlider(**WIDGET_PARAMS["max_levels"]),
             include_missing=widgets.Checkbox(**WIDGET_PARAMS["include_missing"]),
+            dist_type=dist_type_widget,
             lower_quantile=widgets.BoundedFloatText(**WIDGET_PARAMS["lower_quantile"]),
             upper_quantile=widgets.BoundedFloatText(**WIDGET_PARAMS["upper_quantile"]),
             transform=widgets.Dropdown(**WIDGET_PARAMS["transform"]),
+            hist_bins=widgets.IntSlider(**WIDGET_PARAMS["bins"]),
+            display_figure=widgets.fixed(True),
         )
     else:
         print(f"No EDA support for bivariate summary type: {summary_type}")

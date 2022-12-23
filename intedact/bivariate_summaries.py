@@ -1,6 +1,7 @@
 from typing import Union
 
 import plotly.express as px
+import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -21,6 +22,7 @@ def categorical_categorical_summary(
     barmode: str = "stack",
     max_levels: int = 30,
     include_missing: bool = False,
+    interactive: bool = False,
 ) -> go.Figure:
     """
     Generates an EDA summary of two categorical variables. This includes:
@@ -178,7 +180,8 @@ def categorical_categorical_summary(
     fig.update_yaxes(title_text="Fraction", row=3, col=1)
     fig.update_yaxes(title_text="Fraction", row=4, col=1)
 
-    fig.show()
+    if interactive:
+        fig.show()
     return fig
 
 
@@ -193,6 +196,7 @@ def numeric_categorical_summary(
     bin_type: str = "quantiles",
     max_levels: int = 30,
     include_missing: bool = False,
+    interactive: bool = False,
 ) -> go.Figure:
     """
     Generates an EDA summary of the relationship of a numeric variable on a categorical variable.
@@ -293,7 +297,8 @@ def numeric_categorical_summary(
     fig.update_xaxes(title_text=f"{column1} ({x_desc})", row=1, col=1)
     fig.update_yaxes(title_text="Fraction", row=1, col=1)
 
-    fig.show()
+    if interactive:
+        fig.show()
     return fig
 
 
@@ -301,23 +306,29 @@ def categorical_numeric_summary(
     data: pd.DataFrame,
     column1: str,
     column2: str,
-    fig_height: int = 500,
-    fig_width: int = 1000,
+    fig_height: int = 1000,
+    fig_width: int = 1200,
     order: Union[str, List] = "auto",
-    max_levels: int = 30,
+    max_levels: int = 10,
     include_missing: bool = False,
     lower_quantile: float = 0,
     upper_quantile: float = 1,
+    hist_bins: Optional[int] = None,
+    dist_type: str = "norm_hist+kde",
     transform: str = "identity",
+    display_figure: bool = False,
 ) -> go.Figure:
     """
-    Generates an EDA summary of the relationship of a numeric variable on a categorical variable.
+    Generates an EDA summary of the relationship between a categorical variable as the independent variable and a
+    numeric variable as the dependent variable.
 
     Args:
         data: pandas DataFrame with data to be plotted
-        column1: First categorical column in the data
-        column2: Second categorical column in the data
-        order2: Order in which to sort the levels of the first variable:
+        column1: Categorical column in the data to be used as independent variable
+        column2: Numeric column in the data to be used as dependent variable
+        fig_height: Height of the figure in pixels
+        fig_width: Width of the figure in pixels
+        order: Order in which to sort the levels of the categorical variable:
 
          - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
          - **'descending'**: sorts in descending frequency.
@@ -328,66 +339,74 @@ def categorical_numeric_summary(
         max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
          max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
         include_missing: Whether to include missing values as an additional level in the data to be plotted
+        lower_quantile: Lower quantile to filter numeric column above
+        upper_quantile: Upper quantile to filter numeric column below
+        hist_bins: Number of bins to use for the histogram. Default will use plotly defaults
+        dist_type: Type of distribution to plot:
 
-    Returns:
+         - **'norm_hist+kde'**: Plots histograms with overlaid KDE normalized to be a probabililty density
+         - **'norm_hist_only'**: Plots just histograms normalized to be a probabililty density
+         - **'unnorm_hist_only'**: Plots just unnormalized histograms with counts
+         - **'kde_only'**: Plots just KDEs normalized to be a probabililty density
+        transform: Transformation to apply to the numeric column for plotting:
 
-    Examples:
-        .. plot::
-
-            import seaborn as sns
-            import intedact
-            data = sns.load_dataset('tips')
-            intedact.countplot(data, 'day')
+            - 'identity': no transformation
+            - 'log': apply a logarithmic transformation (zero and negative values will be filtered out)
+            - 'sqrt': apply a square root transformation
+        display_figure: Whether to display the figure in addition to returning it
     """
+    data = data.copy()
+    if hist_bins == 0:
+        hist_bins = None
+
+    data = trim_values(data, column2, lower_quantile, upper_quantile)
+
+    if transform == "log":
+        label = f"log({column2})"
+        data[label] = np.log(data[column2])
+    elif transform == "sqrt":
+        label = f"sqrt({column2})"
+        data[label] = np.sqrt(data[column2])
+    else:
+        label = column2
+    colorway = px.colors.qualitative.Plotly + px.colors.qualitative.Dark24
+
     # Reorder categorical column levels
-    data[column1] = order_levels(
+    order = order_levels(
         data,
         column1,
-        None,
+        label,
         order=order,
         max_levels=max_levels,
         include_missing=include_missing,
         add_other=True,
     )
-    order = list(data[column1].cat.categories)
-    colorway = px.colors.qualitative.Plotly + px.colors.qualitative.Dark24
 
-    # Remove upper and lower values
-    data = trim_values(data, column2, lower_quantile, upper_quantile)
-
-    # Clip/remove zeros for log transformation
-    # data = preprocess_transform(data, column2, transform, clip=clip)
-
-    fig = make_subplots(
-        rows=2,
-        cols=1,
+    fig = px.histogram(
+        data,
+        x=label,
+        color=column1,
+        marginal="box",
+        category_orders={column1: order},
+        color_discrete_sequence=colorway,
+        nbins=hist_bins,
+        histnorm="probability density" if dist_type != "unnorm_hist_only" else None,
+        barmode="overlay",
+        opacity=0 if dist_type == "kde_only" else None,
     )
+
+    if dist_type in ["norm_hist+kde", "kde_only"]:
+        xs = [list(data[data[column1] == o][label]) for o in order]
+        tmp_fig = ff.create_distplot(xs, order, show_hist=False, show_rug=False)
+        for i, trace in enumerate(tmp_fig.data):
+            trace["showlegend"] = False
+            trace["line"]["color"] = colorway[i]
+            fig.add_trace(trace, row=1, col=1)
+
     fig.update_layout(height=fig_height, width=fig_width)
-    fig.update_traces(showscale=False)
 
-    # Make the boxplot
-    fig.add_trace(
-        go.Box(
-            x=data[column1],
-            y=data[column2],
-            # hovertemplate=(
-            #        f"{column1}"
-            #        + ": %{x}<br>"
-            #        + f"{column2}: {o}<br>"
-            #        + "Fraction: %{y}"
-            #        + "<extra></extra>"
-            # ),
-        ),
-        row=1,
-        col=1,
-    )
-    # fig.update_layout(legend=dict(title=column2))
-    if transform == "log":
-        fig.update_yaxes(type="log")
-    # fig.update_xaxes(title_text=f"{column1} ({x_desc})", row=1, col=1)
-    # fig.update_yaxes(title_text="Fraction", row=1, col=1)
-
-    fig.show()
+    if display_figure:
+        fig.show()
     return fig
 
 

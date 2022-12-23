@@ -90,7 +90,7 @@ WIDGET_PARAMS = {
         max=5000,
         step=1,
         value=1200,
-        style={"description_width": "31%"},
+        style={"description_width": "32%"},
     ),
     "fig_height": dict(
         description="Figure Height: Height of figure in pixels",
@@ -98,7 +98,7 @@ WIDGET_PARAMS = {
         max=5000,
         step=1,
         value=1000,
-        style={"description_width": "33%"},
+        style={"description_width": "34%"},
     ),
     "fontsize": dict(
         description="Font Size: fontsize for axis and tick labels",
@@ -115,7 +115,7 @@ WIDGET_PARAMS = {
     ),
     "order": dict(
         description=(
-            "Level Order: Order in which to sort the levels of the variable for plotting:\n"
+            "Level Order: Order in which to sort the levels of the categorical variable for plotting:\n"
             "  - ** 'auto' **: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.\n"
             "  - ** 'descending' **: sorts in descending frequency.\n"
             "  - ** 'ascending' **: sorts in ascending frequency.\n"
@@ -126,6 +126,18 @@ WIDGET_PARAMS = {
         options=["auto", "descending", "ascending", "sorted", "random"],
         value="auto",
         style={"description_width": "30%"},
+    ),
+    "dist_type": dict(
+        description=(
+            "Distribution Type: Type of distribution to plot \n"
+            "  - ** 'norm_hist+kde' **: Histogram and KDE normalized as probability density \n"
+            "  - ** 'norm_hist_only' **: Histogram normalized as probability density \n"
+            "  - ** 'kde_only' **: KDE normalized as probability density \n"
+            "  - ** 'unnorm_hist_only' **: Unnormalized histogram with counts\n"
+        ),
+        options=["norm_hist+kde", "norm_hist_only", "kde_only", "unnorm_hist_only"],
+        value="norm_hist+kde",
+        style={"description_width": "42%"},
     ),
     "max_levels": dict(
         description="Max Levels: Maximum number of levels to display before condensing remaining into 'Other'",
@@ -138,7 +150,7 @@ WIDGET_PARAMS = {
     "flip_axis": dict(description="Flip Plot Orientation", value=True),
     "label_counts": dict(description="Add Counts and Percentages", value=True),
     "percent_axis": dict(description="Add a Percentage Axis", value=True),
-    "include_missing": dict(description="Plot Missing Values", value=False),
+    "include_missing": dict(description="Add Missing Values Level", value=False),
     "label_rotation": dict(
         description="Label Rotation: Degree to rotate axis labels (Ignored if axis is flipped)",
         min=0,
@@ -156,12 +168,12 @@ WIDGET_PARAMS = {
         style={"description_width": "38%"},
     ),
     "bins": dict(
-        description="# Bins: Number of bins to use for the histogram (0 will use default bin count used by plotly)",
+        description="# Hist Bins: Number of bins to use for the histogram (0 will use default bin count used by plotly)",
         min=0,
         max=5000,
         step=1,
         value=0,
-        style={"description_width": "20%"},
+        style={"description_width": "30%"},
     ),
     "quantile_bins": dict(
         description="# Bins: Number of bins to use for discretizing the numerical variable",
@@ -175,7 +187,7 @@ WIDGET_PARAMS = {
     "plot_kde": dict(description="Overlay 2D Density", value=False),
     "transform": dict(
         description=(
-            "Transform: Transformation to apply to column for plotting \n"
+            "Transform: Transformation to apply to numeric column for plotting \n"
             "  - identity: No transformation\n"
             "  - log: Log transform (0 and negative values will be filtered)\n"
             "  - sqrt: Square root transform\n"
@@ -217,23 +229,23 @@ WIDGET_PARAMS = {
     ),
     "lower_quantile": dict(
         description=(
-            "Lower Quantile: Remove values below the provided quantile. Use to remove outliers in data."
+            "Lower Quantile: Remove values below the provided quantile for a numeric column. Use to remove outliers in data."
         ),
         value=0,
         min=0,
         max=1,
         step=0.0001,
-        style={"description_width": "30%"},
+        style={"description_width": "40%"},
     ),
     "upper_quantile": dict(
         description=(
-            "Upper Quantile: Remove values above the provided quantile. Use to remove outliers in data."
+            "Upper Quantile: Remove values above the provided quantile for a numeric column. Use to remove outliers in data."
         ),
         value=1,
         min=0,
         max=1,
         step=0.0001,
-        style={"description_width": "30%"},
+        style={"description_width": "40%"},
     ),
     "lower_quantile1": dict(
         description=(

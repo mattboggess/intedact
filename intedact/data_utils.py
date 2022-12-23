@@ -149,10 +149,13 @@ def order_levels(
             order = order[:max_levels]
 
     if include_missing:
-        if data[column1].dtype.name == "category":
-            data[column1].cat.add_categories(["NA"], inplace=True)
-        data[column1] = data[column1].fillna("NA")
-        order.append("NA")
+        if data[column1].isnull().sum() > 0:
+            if data[column1].dtype.name == "category":
+                data[column1].cat.add_categories(["NA"], inplace=True)
+            data[column1] = data[column1].fillna("NA")
+            order.append("NA")
+        else:
+            print(f"No missing values for column: {column1}")
 
     return order
 
