@@ -6,10 +6,10 @@ import ipywidgets as widgets
 import pandas as pd
 from IPython.display import display
 
-from .config import WIDGET_PARAMS
-from .data_utils import coerce_column_type
-from .data_utils import detect_column_type
 from intedact import bivariate_summaries
+
+from .config import WIDGET_PARAMS
+from .data_utils import coerce_column_type, detect_column_type
 
 
 def bivariate_eda_interact(
