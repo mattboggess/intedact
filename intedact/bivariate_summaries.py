@@ -1,18 +1,11 @@
-from typing import Tuple
 from typing import Union
 
 import plotly.express as px
 import plotly.graph_objects as go
-import scipy.stats
-import seaborn as sns
-from IPython.display import display
 from plotly.subplots import make_subplots
 
-from .bivariate_plots import (
-    numeric_2dplot,
-)
+from .data_utils import bin_data
 from .data_utils import order_levels
-from .data_utils import preprocess_transform
 from .data_utils import trim_values
 from .plot_utils import *
 
@@ -404,22 +397,19 @@ def numeric_numeric_summary(
     column2: str,
     fig_height: int = 6,
     fig_width: int = 6,
-    fontsize: int = 15,
-    plot_type: str = "scatter",
     trend_line: str = "auto",
-    bins: Optional[int] = None,
-    alpha: float = 1,
+    opacity: float = 1.0,
+    hist_bins: Optional[int] = None,
     lower_quantile1: float = 0,
     upper_quantile1: float = 1,
     lower_quantile2: float = 0,
     upper_quantile2: float = 1,
+    cut_nbins: Optional[int] = None,
+    cut_bin_type: str = "quantiles",
     transform1: str = "identity",
     transform2: str = "identity",
-    clip: float = 0,
-    reference_line: bool = False,
-    match_axes: bool = False,
     interactive: bool = False,
-) -> Tuple[pd.DataFrame, plt.Figure]:
+) -> go.Figure:
     """
     Creates a bivariate EDA summary for two numeric data column in a pandas DataFrame.
 
@@ -429,14 +419,10 @@ def numeric_numeric_summary(
         data: pandas DataFrame to perform EDA on
         column1: name of column to plot on the x axis
         column2: name of column to plot on the y axis
-        fig_height: Height of the plot in inches
-        fig_width: Width of the plot in inches
-        fontsize: Font size of axis and tick labels
-        color_palette: Seaborn color palette to use
-        plot_type: One of ['auto', 'hist', 'hex', 'kde', 'scatter']
+        fig_height: Height of the plot in pixels
+        fig_width: Width of the plot in pixels
         trend_line: Trend line to plot over data. Default is to plot no trend line. Other options are passed
             to `geom_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.geoms.geom_smooth.html>`_.
-        alpha: Amount of transparency to add to the scatterplot points [0, 1]
         lower_quantile1: Lower quantile to filter data above for column1
         upper_quantile1: Upper quantile to filter data below for column1
         lower_quantile2: Lower quantile to filter data above for column2
@@ -446,145 +432,94 @@ def numeric_numeric_summary(
          - **'identity'**: no transformation
          - **'log'**: apply a logarithmic transformation to the data
         transform2: Transformation to apply to the column2 data for plotting. Same options as for column1.
-        clip: Value to clip zero values to for log transformation. If 0 (default), zero values are simply removed.
-        reference_line: Add a y = x reference line
-        match_axes: Match the x and y axis limits
         interactive: Whether to modify to be used with interactive for ipywidgets
-
-    Returns:
-        Tuple containing matplotlib Figure drawn and summary stats DataFrame
-
     """
     data = data.copy()
-
-    ax, fig = numeric_2dplot(
-        data,
-        column1,
-        column2,
-        plot_type=plot_type,
-        trend_line=trend_line,
-        bins=bins,
-        alpha=alpha,
-        lower_quantile1=lower_quantile1,
-        lower_quantile2=lower_quantile2,
-        upper_quantile1=upper_quantile1,
-        upper_quantile2=upper_quantile2,
-        transform1=transform1,
-        transform2=transform2,
-        clip=clip,
-        reference_line=reference_line,
-        match_axes=match_axes,
-    )
-    fig.set_size_inches(fig_height, fig_width)
-    set_fontsize(ax, fontsize)
-
     data = trim_values(data, column1, lower_quantile1, upper_quantile1)
     data = trim_values(data, column2, lower_quantile2, upper_quantile2)
-    spearman = scipy.stats.spearmanr(data[column1], data[column2])
-    pearson = scipy.stats.pearsonr(data[column1], data[column2])
-    table = pd.DataFrame({"Pearson": [pearson[0]], "Spearman": [spearman[0]]})
 
-    if interactive:
-        display(table)
-        plt.show()
-
-    return table, fig
-
-
-def numeric_numeric_bivariate_summary(
-    data: pd.DataFrame,
-    column1: str,
-    column2: str,
-    fig_height: int = 6,
-    fig_width: int = 6,
-    fontsize: int = 15,
-    color_palette: str = None,
-    plot_type: str = "scatter",
-    trend_line: str = "auto",
-    bins: Optional[int] = None,
-    alpha: float = 1,
-    lower_quantile1: float = 0,
-    upper_quantile1: float = 1,
-    lower_quantile2: float = 0,
-    upper_quantile2: float = 1,
-    transform1: str = "identity",
-    transform2: str = "identity",
-    clip: float = 0,
-    reference_line: bool = False,
-    match_axes: bool = False,
-    interactive: bool = False,
-) -> Tuple[pd.DataFrame, plt.Figure]:
-    """
-    Creates a bivariate EDA summary for two numeric data column in a pandas DataFrame.
-
-    Summary consists of a scatterplot with correlation coefficients.
-
-    Args:
-        data: pandas DataFrame to perform EDA on
-        column1: name of column to plot on the x axis
-        column2: name of column to plot on the y axis
-        fig_height: Height of the plot in inches
-        fig_width: Width of the plot in inches
-        fontsize: Font size of axis and tick labels
-        color_palette: Seaborn color palette to use
-        plot_type: One of ['auto', 'hist', 'hex', 'kde', 'scatter']
-        trend_line: Trend line to plot over data. Default is to plot no trend line. Other options are passed
-            to `geom_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.geoms.geom_smooth.html>`_.
-        alpha: Amount of transparency to add to the scatterplot points [0, 1]
-        lower_quantile1: Lower quantile to filter data above for column1
-        upper_quantile1: Upper quantile to filter data below for column1
-        lower_quantile2: Lower quantile to filter data above for column2
-        upper_quantile2: Upper quantile to filter data below for column2
-        transform1: Transformation to apply to the data for plotting:
-
-         - **'identity'**: no transformation
-         - **'log'**: apply a logarithmic transformation to the data
-        transform2: Transformation to apply to the column2 data for plotting. Same options as for column1.
-        clip: Value to clip zero values to for log transformation. If 0 (default), zero values are simply removed.
-        reference_line: Add a y = x reference line
-        match_axes: Match the x and y axis limits
-        interactive: Whether to modify to be used with interactive for ipywidgets
-
-    Returns:
-        Tuple containing matplotlib Figure drawn and summary stats DataFrame
-
-    """
-    data = data.copy()
-
-    if color_palette != "":
-        sns.set_palette(color_palette)
-    else:
-        sns.set_palette("tab10")
-
-    ax, fig = numeric_2dplot(
-        data,
-        column1,
-        column2,
-        plot_type=plot_type,
-        trend_line=trend_line,
-        bins=bins,
-        alpha=alpha,
-        lower_quantile1=lower_quantile1,
-        lower_quantile2=lower_quantile2,
-        upper_quantile1=upper_quantile1,
-        upper_quantile2=upper_quantile2,
-        transform1=transform1,
-        transform2=transform2,
-        clip=clip,
-        reference_line=reference_line,
-        match_axes=match_axes,
+    fig = make_subplots(
+        rows=2,
+        cols=2,
+        specs=[
+            [{"colspan": 1, "rowspan": 1}, {"colspan": 1, "rowspan": 1}],
+            [{"colspan": 2}, None],
+        ],
     )
-    fig.set_size_inches(fig_height, fig_width)
-    set_fontsize(ax, fontsize)
+    fig.update_layout(height=fig_height, width=fig_width)
 
-    data = trim_values(data, column1, lower_quantile1, upper_quantile1)
-    data = trim_values(data, column2, lower_quantile2, upper_quantile2)
-    spearman = scipy.stats.spearmanr(data[column1], data[column2])
-    pearson = scipy.stats.pearsonr(data[column1], data[column2])
-    table = pd.DataFrame({"Pearson": [pearson[0]], "Spearman": [spearman[0]]})
+    fig.add_trace(
+        go.Scatter(
+            x=data[column1],
+            y=data[column2],
+            mode="markers",
+            marker=dict(opacity=opacity),
+        ),
+        row=1,
+        col=1,
+    )
+    fig.update_xaxes(title_text=f"{column1}", row=1, col=1)
+    fig.update_yaxes(title_text=f"{column2}", row=1, col=1)
 
+    fig.add_trace(
+        go.Histogram2d(
+            x=data[column1],
+            y=data[column2],
+            nbinsx=hist_bins,
+            nbinsy=hist_bins,
+            coloraxis="coloraxis",
+        ),
+        row=1,
+        col=2,
+    )
+    fig.update_xaxes(title_text=f"{column1}", row=1, col=2)
+    fig.update_yaxes(title_text=f"{column2}", row=1, col=2)
+
+    if trend_line is not None:
+        trend_data = add_trendline(data, x=column1, y=column2, method=trend_line)
+        fig.add_trace(
+            go.Scatter(
+                x=trend_data["x"],
+                y=trend_data["y"],
+                mode="lines",
+                line=dict(color="red", width=2),
+            ),
+            row=1,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=trend_data["x"],
+                y=trend_data["y"],
+                mode="lines",
+                line=dict(color="red", width=2),
+            ),
+            row=1,
+            col=2,
+        )
+
+    data, interval_order = bin_data(data, column1, cut_nbins, cut_bin_type)
+    for i, o in enumerate(interval_order):
+        fig.add_trace(
+            go.Box(
+                y=data[data["interval"] == o][column2],
+                name=o,
+                legendgroup=i,
+            ),
+            row=2,
+            col=1,
+        )
+    fig.update_xaxes(title_text=f"{column1} ({cut_bin_type} bins)", row=2, col=1)
+    fig.update_yaxes(title_text=f"{column2}", row=2, col=1)
+
+    if transform2 == "log":
+        fig.update_yaxes(type="log", row=1, col=1)
+        fig.update_yaxes(type="log", row=2, col=1)
+    if transform1 == "log":
+        fig.update_xaxes(type="log", row=1, col=1)
+
+    fig.update(layout_showlegend=False)
     if interactive:
-        display(table)
-        plt.show()
+        fig.show()
 
-    return table, fig
+    return fig

@@ -3,12 +3,14 @@ import os
 import warnings
 
 import ipywidgets as widgets
+import pandas as pd
+from IPython.display import display
 
-from .bivariate_summaries import *
 from .config import WIDGET_PARAMS
 from .data_utils import coerce_column_type
 from .data_utils import detect_column_type
 from .data_utils import freedman_diaconis_bins
+from intedact import bivariate_summaries
 
 
 def bivariate_eda_interact(
@@ -16,7 +18,6 @@ def bivariate_eda_interact(
     notes_file: str = None,
 ):
     pd.set_option("display.precision", 2)
-    sns.set(style="whitegrid")
     warnings.simplefilter("ignore")
 
     col1_widget = widgets.Dropdown(**WIDGET_PARAMS["column1"])
@@ -74,15 +75,13 @@ def column_bivariate_eda_interact(
 
     if summary_type == "numeric-numeric":
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
-        fig_height_widget.value = 8
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
-        fig_width_widget.value = fig_height_widget.value
         bins_widget = widgets.IntSlider(**WIDGET_PARAMS["bins"])
         bins_widget.value = max(
             freedman_diaconis_bins(data[column1]), freedman_diaconis_bins(data[column2])
         )
         widget = widgets.interactive(
-            numeric_numeric_bivariate_summary,
+            bivariate_summaries.numeric_numeric_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column1=widgets.fixed(column1),
@@ -91,10 +90,9 @@ def column_bivariate_eda_interact(
             fig_width=fig_width_widget,
             fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
             color_palette=color_palette_widget,
-            plot_type=widgets.Dropdown(**WIDGET_PARAMS["numeric2d_plot_type"]),
+            opacity=widgets.FloatSlider(**WIDGET_PARAMS["alpha"]),
             trend_line=widgets.Dropdown(**WIDGET_PARAMS["trend_line"]),
-            bins=bins_widget,
-            alpha=widgets.FloatSlider(**WIDGET_PARAMS["alpha"]),
+            hist_bins=bins_widget,
             lower_quantile1=widgets.BoundedFloatText(
                 **WIDGET_PARAMS["lower_quantile1"]
             ),
@@ -109,10 +107,8 @@ def column_bivariate_eda_interact(
             ),
             transform1=widgets.Dropdown(**WIDGET_PARAMS["transform1"]),
             transform2=widgets.Dropdown(**WIDGET_PARAMS["transform2"]),
-            clip=widgets.BoundedFloatText(**WIDGET_PARAMS["clip"]),
-            reference_line=widgets.Checkbox(**WIDGET_PARAMS["reference_line"]),
-            plot_density=widgets.Checkbox(**WIDGET_PARAMS["plot_kde"]),
-            match_axes=widgets.Checkbox(**WIDGET_PARAMS["match_axes"]),
+            cut_nbins=widgets.IntSlider(**WIDGET_PARAMS["quantile_bins"]),
+            cut_bin_type=widgets.Dropdown(**WIDGET_PARAMS["bin_type"]),
             interactive=widgets.fixed(True),
         )
     elif summary_type == "categorical-categorical":
@@ -121,7 +117,7 @@ def column_bivariate_eda_interact(
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
         fig_width_widget.value = fig_height_widget.value
         widget = widgets.interactive(
-            categorical_categorical_summary,
+            bivariate_summaries.categorical_categorical_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column1=widgets.fixed(column1),
@@ -141,7 +137,7 @@ def column_bivariate_eda_interact(
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
         fig_width_widget.value = fig_height_widget.value * 2
         widget = widgets.interactive(
-            numeric_categorical_summary,
+            bivariate_summaries.numeric_categorical_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column1=widgets.fixed(column1),
@@ -160,7 +156,7 @@ def column_bivariate_eda_interact(
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
         fig_width_widget.value = fig_height_widget.value * 2
         widget = widgets.interactive(
-            categorical_numeric_summary,
+            bivariate_summaries.categorical_numeric_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column1=widgets.fixed(column1),
@@ -175,30 +171,18 @@ def column_bivariate_eda_interact(
             transform=widgets.Dropdown(**WIDGET_PARAMS["transform"]),
         )
     else:
-        print("No EDA support for this variable type")
+        print(f"No EDA support for bivariate summary type: {summary_type}")
         return
 
-    print("=====================")
-    print("General Plot Controls")
-    print("=====================")
-    general_controls = widgets.HBox(
-        widget.children[:4], layout=widgets.Layout(flex_flow="row wrap")
+    print("=============")
+    print("Plot Controls")
+    print("==============")
+    plot_controls = widgets.HBox(
+        widget.children[:-1], layout=widgets.Layout(flex_flow="row wrap")
     )
-    display(general_controls)
-
-    print("=========================")
-    print("Summary Specific Controls")
-    print("=========================")
+    display(plot_controls)
     widget.update()
 
-    controls = widgets.HBox(
-        widget.children[4:-1], layout=widgets.Layout(flex_flow="row wrap")
-    )
-    display(controls)
-
-    print("==============")
-    print("Summary Output")
-    print("==============")
     output = widget.children[-1]
     display(output)
 
