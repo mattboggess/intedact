@@ -317,7 +317,6 @@ def text_summary(
 
     # Compute summary table
     vocab_size = len(set([x for y in data["tokens"] for x in y]))
-    print(vocab_size)
 
     fig = make_subplots(
         rows=3,
@@ -487,14 +486,12 @@ def collection_univariate_summary(
     return table, fig
 
 
-def url_univariate_summary(
+def url_summary(
     data: pd.DataFrame,
     column: str,
-    fig_height: int = 6,
-    fig_width: int = 12,
-    fontsize: int = 15,
-    color_palette: str = None,
-    top_entries: str = 20,
+    fig_height: int = 1000,
+    fig_width: int = 1200,
+    top_entries: int = 10,
     interactive: bool = False,
 ):
     """
@@ -515,19 +512,17 @@ def url_univariate_summary(
         Tuple containing matplotlib Figure drawn and summary stats DataFrame
     """
     data = data.copy()
-    if color_palette != "":
-        sns.set_palette(color_palette)
-    else:
-        sns.set_palette("tab10")
 
     # Compute Derived Information
     data["is_https"] = data[column].str.startswith("https")
     data["parse"] = data[column].apply(
         lambda x: tldextract.extract(x) if not pd.isna(x) else None
     )
-    data["Domain"] = data["parse"].apply(lambda x: x.domain if not pd.isna(x) else None)
+    data["Domain"] = data["parse"].apply(
+        lambda x: x.domain if not pd.isna(x) else "Domain Unknown"
+    )
     data["Domain Suffix"] = data["parse"].apply(
-        lambda x: x.suffix if not pd.isna(x) else None
+        lambda x: x.suffix if not pd.isna(x) else "Domain Suffix Unknown"
     )
     data["File Type"] = data[column].str.extract("\.([a-z]{3})$")
     data["File Type"] = data.apply(
@@ -536,71 +531,72 @@ def url_univariate_summary(
     ).fillna("No File Detected")
 
     # Compute Summary Table
-    table = compute_univariate_summary_table(data, column, "categorical")
-    table["percent_https"] = data["is_https"].mean() * 100
-    table["count_unique_domains"] = data["Domain"].nunique()
-    table["count_unique_domain_suffixes"] = data["Domain Suffix"].nunique()
-    table["count_unique_file_types"] = data[data["File Type"] != "No File Detected"][
-        "File Type"
-    ].nunique()
+    # table["percent_https"] = data["is_https"].mean() * 100
+    # table["count_unique_domains"] = data["Domain"].nunique()
+    # table["count_unique_domain_suffixes"] = data["Domain Suffix"].nunique()
+    # table["count_unique_file_types"] = data[data["File Type"] != "No File Detected"][
+    #    "File Type"
+    # ].nunique()
 
-    fig = plt.figure(figsize=(fig_width, fig_height * 2))
-    spec = gridspec.GridSpec(ncols=2, nrows=3, figure=fig)
+    fig = make_subplots(
+        rows=3,
+        cols=2,
+        specs=[
+            [{"colspan": 2, "rowspan": 1}, None],
+            [{"colspan": 2, "rowspan": 1}, None],
+            [{"colspan": 1, "rowspan": 1}, {"colspan": 1, "rowspan": 1}],
+        ],
+    )
+    fig.update_layout(width=fig_width, height=fig_height)
 
     # Plot most common urls
-    ax = fig.add_subplot(spec[0, :])
-    ax = countplot(
+    fig = countplot(
         data,
         column,
-        ax=ax,
+        fig=fig,
+        fig_col=1,
+        fig_row=1,
         flip_axis=True,
         max_levels=top_entries,
-        label_fontsize=10,
-        fontsize=fontsize,
-    )
-    ax.set_yticklabels(
-        [x._text[:50] + "..." for x in ax.get_yticklabels() if x != "Other"]
     )
 
     # Plot most common domains
-    ax = fig.add_subplot(spec[1, :])
-    ax = countplot(
+    fig = countplot(
         data,
         "Domain",
-        ax=ax,
+        fig=fig,
+        fig_col=1,
+        fig_row=2,
         flip_axis=True,
         max_levels=top_entries,
-        label_fontsize=10,
-        fontsize=fontsize,
     )
 
     # Plot most common domain suffixes
-    ax = fig.add_subplot(spec[2, 0])
-    ax = countplot(
+    fig = countplot(
         data,
         "Domain Suffix",
-        ax=ax,
+        fig=fig,
+        fig_col=1,
+        fig_row=3,
         flip_axis=True,
         max_levels=top_entries,
-        label_fontsize=10,
-        fontsize=fontsize,
     )
 
     # Plot most common file types
-    ax = fig.add_subplot(spec[2, 1])
-    ax = countplot(
+    fig = countplot(
         data,
         "File Type",
-        ax=ax,
-        flip_axis=True,
+        fig=fig,
+        fig_col=2,
+        fig_row=3,
+        flip_axis=False,
         max_levels=top_entries,
-        label_fontsize=10,
-        fontsize=fontsize,
     )
 
-    plt.tight_layout()
-    if interactive:
-        display(table)
-        plt.show()
+    fig.update_layout(title_text=f"{column}", title_x=0.5)
+    fig.update(layout_showlegend=False)
 
-    return table, fig
+    if interactive:
+        fig.show()
+
+    return fig
