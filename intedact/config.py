@@ -127,6 +127,18 @@ WIDGET_PARAMS = {
         value="auto",
         style={"description_width": "30%"},
     ),
+    "dist_type": dict(
+        description=(
+            "Distribution Type: Type of distribution to plot \n"
+            "  - ** 'norm_hist+kde' **: Histogram and KDE normalized as probability density \n"
+            "  - ** 'norm_hist_only' **: Histogram normalized as probability density \n"
+            "  - ** 'kde_only' **: KDE normalized as probability density \n"
+            "  - ** 'unnorm_hist_only' **: Unnormalized histogram with counts\n"
+        ),
+        options=["norm_hist+kde", "norm_hist_only", "kde_only", "unnorm_hist_only"],
+        value="norm_hist+kde",
+        style={"description_width": "40%"},
+    ),
     "max_levels": dict(
         description="Max Levels: Maximum number of levels to display before condensing remaining into 'Other'",
         min=1,
