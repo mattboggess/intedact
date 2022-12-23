@@ -35,7 +35,7 @@ def univariate_eda_interact(
     def match_type(*args):
         summary_type = detect_column_type(data[col_widget.value])
         type_widget.value = summary_type
-        auto_widget.value = summary_type not in ["text"]
+        auto_widget.value = True  # summary_type not in ["text"]
 
     col_widget = widget.children[0]
     type_widget = widget.children[1]
@@ -127,17 +127,14 @@ def column_univariate_eda_interact(
         )
     elif summary_type == "text":
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
-        fig_width_widget.value = 16
         widget = widgets.interactive(
-            text_univariate_summary,
+            text_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
             fig_height=widgets.IntSlider(**WIDGET_PARAMS["fig_height"]),
             fig_width=fig_width_widget,
-            fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
             top_ngrams=widgets.IntSlider(**WIDGET_PARAMS["top_ngrams"]),
-            compute_ngrams=widgets.Checkbox(**WIDGET_PARAMS["compute_ngrams"]),
             lower_case=widgets.Checkbox(**WIDGET_PARAMS["lower_case"]),
             remove_punct=widgets.Checkbox(**WIDGET_PARAMS["remove_punct"]),
             remove_stop=widgets.Checkbox(**WIDGET_PARAMS["remove_stop"]),
