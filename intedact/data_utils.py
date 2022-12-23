@@ -20,6 +20,27 @@ from pandas.api.types import is_numeric_dtype
 from .config import TIME_UNITS
 
 
+def bin_data(data, column, nbins, bin_type: str = "quantiles") -> pd.DataFrame:
+    if bin_type == "quantiles":
+        data["interval"] = pd.qcut(data[column], nbins, duplicates="drop").astype(str)
+        x_desc = "quantile bins"
+    elif bin_type == "equal_width":
+        data["interval"] = pd.cut(data[column], nbins).astype(str)
+        x_desc = "equal width bins"
+    else:
+        raise ValueError(f"Unknown bin_type {bin_type}")
+    intervals = data.interval.unique()
+    if len(intervals) < nbins and x_desc == "quantile bins":
+        print(f"Dropped {nbins - len(intervals)} bins due to duplicate quantiles.")
+    interval_order = sorted(
+        data.interval.unique(), key=lambda x: float(x.split(",")[0][1:])
+    )
+    data["interval"] = pd.Categorical(
+        data["interval"], categories=interval_order, ordered=True
+    )
+    return data, interval_order
+
+
 def format_bytes(bytes):
     if bytes // 1e9 > 1:
         return f"{bytes / 1e9:.1f}. GB"

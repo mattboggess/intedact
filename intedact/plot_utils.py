@@ -267,5 +267,6 @@ def add_trendline(
         xseq = np.linspace(rangee[0], rangee[1], n)
 
     df = predictdf(data, xseq, **params)
-    df["x"] = date_min + pd.to_timedelta(data["x"], unit="S")
+    if data[x].dtype.kind == "M":
+        df["x"] = date_min + pd.to_timedelta(data["x"], unit="S")
     return df
