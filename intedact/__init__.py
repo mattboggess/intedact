@@ -6,7 +6,7 @@ from .univariate_summaries import (
     datetime_summary,
     text_summary,
     collection_univariate_summary,
-    url_univariate_summary,
+    url_summary,
 )
 from .bivariate_summaries import numeric_numeric_bivariate_summary
 from .univariate_plots import (

@@ -389,7 +389,7 @@ WIDGET_PARAMS = {
         min=1,
         max=100,
         step=1,
-        value=20,
+        value=10,
     ),
     "alpha": dict(
         description="alpha: Amount of transparency to use ranging from 0 (fully transparent) to 1 (opaque)",

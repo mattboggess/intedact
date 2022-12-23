@@ -158,11 +158,9 @@ def column_univariate_eda_interact(
         )
     elif summary_type == "url":
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
-        fig_height_widget.value = 8
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
-        fig_width_widget.value = 16
         widget = widgets.interactive(
-            url_univariate_summary,
+            url_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
