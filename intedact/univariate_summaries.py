@@ -22,12 +22,12 @@ from .config import TIME_UNITS
 from .data_utils import compute_time_deltas
 from .data_utils import convert_to_freq_string
 from .data_utils import trim_values
+from .helper_plots import boxplot
 from .helper_plots import countplot
+from .helper_plots import plot_ngrams
 from .helper_plots import timeseries_countplot
 from .plot_utils import *
-from .univariate_plots import boxplot
 from .univariate_plots import histogram
-from .univariate_plots import plot_ngrams
 from .univariate_plots import time_series_countplot
 
 FLIP_LEVEL_MINIMUM = 5
@@ -149,8 +149,8 @@ def numeric_summary(
 def datetime_summary(
     data: pd.DataFrame,
     column: str,
-    fig_height: int = 4,
-    fig_width: int = 8,
+    fig_height: int = 1000,
+    fig_width: int = 1200,
     ts_freq: str = "auto",
     ts_type: str = "line",
     trend_line: str = "auto",
@@ -264,38 +264,27 @@ def datetime_summary(
     return fig
 
 
-def text_univariate_summary(
+def text_summary(
     data: pd.DataFrame,
     column: str,
-    fig_height: int = 6,
-    fig_width: int = 18,
-    fontsize: int = 15,
-    color_palette: Optional[str] = None,
+    fig_height: int = 1000,
+    fig_width: int = 1200,
     top_ngrams: int = 10,
-    compute_ngrams: bool = True,
     remove_punct: bool = True,
     remove_stop: bool = True,
     lower_case: bool = True,
     interactive: bool = False,
-) -> Tuple[pd.DataFrame, plt.Figure]:
+) -> go.Figure:
     """
-    Creates a univariate EDA summary for a provided text variable column in a pandas DataFrame. Currently only
+    Creates a univariate EDA summary for a text variable column in a pandas DataFrame. Currently only
     supports English.
-
-    For the provided column produces:
-      - histograms of token and character counts across entries
-      - boxplot of document frequencies
-      - countplots with top unigrams, bigrams, and trigrams
 
     Args:
         data: Dataset to perform EDA on
         column: A string matching a column in the data
-        fig_height: Height of the plot in inches
-        fig_width: Width of the plot in inches
-        fontsize: Font size of axis and tick labels
-        color_palette: Seaborn color palette to use
+        fig_height: Height of the plot in pixels
+        fig_width: Width of the plot in pixels
         top_ngrams: Maximum number of ngrams to plot for the top most frequent unigrams to trigrams
-        compute_ngrams: Whether to compute and display most common ngrams
         remove_punct: Whether to remove punctuation during tokenization
         remove_stop: Whether to remove stop words during tokenization
         lower_case: Whether to lower case text for tokenization
@@ -306,11 +295,6 @@ def text_univariate_summary(
     """
     from nltk import word_tokenize
     from nltk.corpus import stopwords
-
-    if color_palette != "":
-        sns.set_palette(color_palette)
-    else:
-        sns.set_palette("tab10")
 
     data = data.copy()
     data = data.dropna(subset=[column])
@@ -332,77 +316,57 @@ def text_univariate_summary(
     data["# Tokens / Document"] = data["tokens"].apply(lambda x: len(x))
 
     # Compute summary table
-    table = compute_univariate_summary_table(data, column, "categorical")
-    table["vocab_size"] = len(set([x for y in data["tokens"] for x in y]))
-    tokens_table = compute_univariate_summary_table(
-        data, "# Tokens / Document", "numeric"
+    vocab_size = len(set([x for y in data["tokens"] for x in y]))
+    print(vocab_size)
+
+    fig = make_subplots(
+        rows=3,
+        cols=2,
+        specs=[
+            [{"colspan": 1, "rowspan": 1}, {"colspan": 1, "rowspan": 1}],
+            [{"colspan": 1, "rowspan": 1}, {"colspan": 1, "rowspan": 1}],
+            [{"colspan": 1, "rowspan": 1}, {"colspan": 1, "rowspan": 1}],
+        ],
     )
-    char_table = compute_univariate_summary_table(
-        data, "# Characters / Document", "numeric"
+    fig.update_layout(width=fig_width, height=fig_height)
+
+    fig = plot_ngrams(
+        data["tokens"],
+        fig=fig,
+        fig_col=1,
+        fig_row=1,
+        ngram_type="tokens",
+        lim_ngrams=top_ngrams,
     )
-    table = pd.concat([table, tokens_table, char_table], axis=0)
+
+    fig = plot_ngrams(
+        data["tokens"],
+        fig=fig,
+        fig_col=1,
+        fig_row=2,
+        ngram_type="bigrams",
+        lim_ngrams=top_ngrams,
+    )
+
+    fig = plot_ngrams(
+        data["tokens"],
+        fig=fig,
+        fig_col=1,
+        fig_row=3,
+        ngram_type="trigrams",
+        lim_ngrams=top_ngrams,
+    )
+
+    fig = boxplot(data, "# Tokens / Document", fig, fig_row=1, fig_col=2)
+    fig = boxplot(data, "# Characters / Document", fig, fig_row=2, fig_col=2)
+    tmp = pd.DataFrame({"# Repeats / Document": list(data[column].value_counts())})
+    fig = boxplot(tmp, "# Repeats / Document", fig, fig_row=3, fig_col=2)
+    fig.update(layout_showlegend=False)
+    fig.update_layout(title_text=f"{column} (vocab size: {vocab_size})", title_x=0.5)
+
     if interactive:
-        display(table)
-
-    if compute_ngrams:
-        fig = plt.figure(figsize=(fig_width, fig_height * 3))
-        spec = gridspec.GridSpec(ncols=2, nrows=3, figure=fig)
-        num_docs = data.shape[0]
-
-        ax = fig.add_subplot(spec[0, 0])
-        ax = plot_ngrams(
-            data["tokens"],
-            num_docs,
-            ngram_type="tokens",
-            lim_ngrams=top_ngrams,
-            ax=ax,
-            fontsize=fontsize,
-        )
-
-        ax = fig.add_subplot(spec[1, 0])
-        ax = plot_ngrams(
-            data["tokens"],
-            num_docs,
-            ngram_type="bigrams",
-            lim_ngrams=top_ngrams,
-            ax=ax,
-            fontsize=fontsize,
-        )
-
-        ax = fig.add_subplot(spec[2, 0])
-        ax = plot_ngrams(
-            data["tokens"],
-            num_docs,
-            ngram_type="trigrams",
-            lim_ngrams=top_ngrams,
-            ax=ax,
-            fontsize=fontsize,
-        )
-
-    else:
-        fig = plt.figure(figsize=(fig_width, fig_height))
-        spec = gridspec.GridSpec(ncols=3, nrows=1, figure=fig)
-
-    # histogram of tokens characters per document
-    ax = fig.add_subplot(spec[0, 1] if compute_ngrams else spec[0, 0])
-    ax = histogram(data, "# Tokens / Document", ax=ax)
-    set_fontsize(ax, fontsize)
-
-    # histogram of tokens characters per document
-    ax = fig.add_subplot(spec[1, 1] if compute_ngrams else spec[0, 1])
-    ax = histogram(data, "# Characters / Document", ax=ax)
-    set_fontsize(ax, fontsize)
-
-    # histogram of tokens characters per document
-    ax = fig.add_subplot(spec[2, 1] if compute_ngrams else spec[0, 2])
-    tmp = pd.DataFrame({"# Obs / Document": list(data[column].value_counts())})
-    ax = boxplot(tmp, "# Obs / Document", ax=ax)
-    set_fontsize(ax, fontsize)
-
-    plt.tight_layout()
-    if interactive:
-        plt.show()
-    return table, fig
+        fig.show()
+    return fig
 
 
 def collection_univariate_summary(

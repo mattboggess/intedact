@@ -4,7 +4,7 @@ from .univariate_summaries import (
     categorical_summary,
     numeric_summary,
     datetime_summary,
-    text_univariate_summary,
+    text_summary,
     collection_univariate_summary,
     url_univariate_summary,
 )

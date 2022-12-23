@@ -7,7 +7,48 @@ import plotly.graph_objects as go
 
 from .data_utils import agg_time_series
 from .data_utils import order_levels
+from .data_utils import trim_values
 from .plot_utils import add_trendline
+
+
+def plot_ngrams(
+    tokens: List[str],
+    fig: go.Figure,
+    fig_row: int = 1,
+    fig_col: int = 1,
+    ngram_type: str = "tokens",
+    lim_ngrams: int = 10,
+) -> go.Figure:
+
+    if ngram_type == "tokens":
+        values = [x for y in tokens for x in set(y)]
+    elif ngram_type == "bigrams":
+        values = [" ".join(x) for y in tokens for x in set(zip(y, y[1:]))]
+    elif ngram_type == "trigrams":
+        values = [" ".join(x) for y in tokens for x in set(zip(y, y[1:], y[2:]))]
+    else:
+        raise ValueError(f"Unsupported ngram_type {ngram_type}")
+
+    tmp = pd.DataFrame({"value": values})
+
+    fig = countplot(
+        data=tmp,
+        column="value",
+        fig=fig,
+        fig_row=fig_row,
+        fig_col=fig_col,
+        max_levels=lim_ngrams,
+        flip_axis=True,
+        include_missing=False,
+        add_other=False,
+        order="descending",
+    )
+    fig.update_xaxes(title_text="# Documents", row=fig_row, col=fig_col)
+    fig.update_yaxes(
+        title_text=f"Most Common {ngram_type.title()}", row=fig_row, col=fig_col
+    )
+
+    return fig
 
 
 def countplot(
@@ -53,6 +94,7 @@ def countplot(
     count_data["Percent"] = (100 * count_data["Count"] / count_data.Count.sum()).apply(
         lambda x: f"{x:.2f}%"
     )
+    count_data = count_data[count_data[column].isin(order)]
     if flip_axis:
         fig.add_trace(
             go.Bar(
@@ -152,4 +194,30 @@ def timeseries_countplot(
         )
     fig.update_yaxes(title_text=label, row=fig_row, col=fig_col)
     fig.update_xaxes(title_text=column, row=fig_row, col=fig_col)
+    return fig
+
+
+def boxplot(
+    data: pd.DataFrame,
+    column: str,
+    fig: go.Figure,
+    fig_row: int = 1,
+    fig_col: int = 1,
+    lower_quantile: float = 0,
+    upper_quantile: float = 1,
+) -> go.Figure:
+
+    # Remove upper and lower quantiles
+    data = trim_values(data, column, lower_quantile, upper_quantile)
+
+    fig.add_trace(
+        go.Box(
+            x=data[column],
+        ),
+        row=fig_row,
+        col=fig_col,
+    )
+    fig.update_xaxes(title_text=column, row=fig_row, col=fig_col)
+    fig.update_yaxes(showticklabels=False, row=fig_row, col=fig_col)
+
     return fig
