@@ -5,10 +5,10 @@ from typing import Union
 import pandas as pd
 import plotly.graph_objects as go
 
-from .data_utils import agg_time_series
-from .data_utils import order_levels
-from .data_utils import trim_values
-from .plot_utils import add_trendline
+from intedact.data_utils import agg_time_series
+from intedact.data_utils import order_levels
+from intedact.data_utils import trim_values
+from intedact.plot_utils import add_trendline
 
 
 def plot_ngrams(
@@ -94,7 +94,7 @@ def countplot(
     count_data["Percent"] = (100 * count_data["Count"] / count_data.Count.sum()).apply(
         lambda x: f"{x:.2f}%"
     )
-    count_data = count_data[count_data[column].isin(order)]
+    count_data = count_data[count_data[column].isin([str(x) for x in order])]
     if flip_axis:
         fig.add_trace(
             go.Bar(

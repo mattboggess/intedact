@@ -5,17 +5,9 @@ from .univariate_summaries import (
     numeric_summary,
     datetime_summary,
     text_summary,
-    collection_univariate_summary,
+    collection_summary,
     url_summary,
 )
-from .bivariate_summaries import numeric_numeric_bivariate_summary
-from .univariate_plots import (
-    histogram,
-    boxplot,
-    countplot,
-    time_series_countplot,
-)
-from .bivariate_plots import numeric_2dplot, categorical_heatmap
 
 
 __version__ = "0.0.1"

@@ -3,13 +3,14 @@ import os
 import warnings
 
 import ipywidgets as widgets
+import pandas as pd
+from IPython.display import display
 
+from intedact import univariate_summaries
 from intedact.config import FLIP_LEVEL_COUNT
 from intedact.config import WIDGET_PARAMS
 from intedact.data_utils import coerce_column_type
 from intedact.data_utils import detect_column_type
-from intedact.data_utils import freedman_diaconis_bins
-from intedact.univariate_summaries import *
 
 
 def univariate_eda_interact(
@@ -63,7 +64,7 @@ def column_univariate_eda_interact(
         flip_axis_widget = widgets.Checkbox(**WIDGET_PARAMS["flip_axis"])
         flip_axis_widget.value = data[column].nunique() > FLIP_LEVEL_COUNT
         widget = widgets.interactive(
-            categorical_summary,
+            univariate_summaries.categorical_summary,
             {"manual": not auto_update},
             data=widgets.widgets.fixed(data),
             column=widgets.widgets.fixed(column),
@@ -86,7 +87,7 @@ def column_univariate_eda_interact(
             **WIDGET_PARAMS["upper_quantile"]
         )
         widget = widgets.interactive(
-            numeric_summary,
+            univariate_summaries.numeric_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
@@ -109,7 +110,7 @@ def column_univariate_eda_interact(
             **WIDGET_PARAMS["upper_quantile"]
         )
         widget = widgets.interactive(
-            datetime_summary,
+            univariate_summaries.datetime_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
@@ -128,7 +129,7 @@ def column_univariate_eda_interact(
     elif summary_type == "text":
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
         widget = widgets.interactive(
-            text_summary,
+            univariate_summaries.text_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
@@ -142,13 +143,11 @@ def column_univariate_eda_interact(
         )
     elif summary_type == "collection":
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
-        fig_width_widget.value = 16
         widget = widgets.interactive(
-            collection_univariate_summary,
+            univariate_summaries.collection_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
-            fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
             fig_height=widgets.IntSlider(**WIDGET_PARAMS["fig_height"]),
             fig_width=fig_width_widget,
             top_entries=widgets.IntSlider(**WIDGET_PARAMS["top_entries"]),
@@ -160,7 +159,7 @@ def column_univariate_eda_interact(
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
         widget = widgets.interactive(
-            url_summary,
+            univariate_summaries.url_summary,
             {"manual": not auto_update},
             data=widgets.fixed(data),
             column=widgets.fixed(column),
