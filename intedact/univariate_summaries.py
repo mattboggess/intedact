@@ -1,34 +1,17 @@
 import calendar
-from collections import Counter
-from itertools import combinations
-from typing import List
-from typing import Tuple
 from typing import Union
 
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import seaborn as sns
 import tldextract
-from IPython.display import display
-from matplotlib import gridspec
 from plotly.subplots import make_subplots
 
-from .bivariate_plots import time_series_plot
-from .config import TIME_UNITS
-from .data_utils import compute_time_deltas
-from .data_utils import convert_to_freq_string
-from .data_utils import trim_values
-from .helper_plots import boxplot
-from .helper_plots import countplot
-from .helper_plots import plot_ngrams
-from .helper_plots import timeseries_countplot
-from .plot_utils import *
-from .univariate_plots import histogram
-from .univariate_plots import time_series_countplot
+from intedact.data_utils import trim_values
+from intedact.helper_plots import boxplot
+from intedact.helper_plots import countplot
+from intedact.helper_plots import plot_ngrams
+from intedact.helper_plots import timeseries_countplot
+from intedact.plot_utils import *
 
 FLIP_LEVEL_MINIMUM = 5
 
@@ -368,20 +351,18 @@ def text_summary(
     return fig
 
 
-def collection_univariate_summary(
+def collection_summary(
     data: pd.DataFrame,
     column: str,
-    fig_height: int = 6,
-    fig_width: int = 12,
-    fontsize: int = 15,
-    color_palette: str = None,
+    fig_height: int = 1000,
+    fig_width: int = 1000,
     top_entries: int = 10,
     sort_collections: bool = False,
     remove_duplicates: bool = False,
     interactive: bool = False,
-) -> Tuple[pd.DataFrame, plt.Figure]:
+) -> go.Figure:
     """
-    Creates a univariate EDA summary for a provided collections column in a pandas DataFrame.
+    Creates a univariate EDA summary for a collections column in a pandas DataFrame.
 
     The provided column should be an object type containing lists, tuples, or sets.
 
@@ -390,8 +371,6 @@ def collection_univariate_summary(
         column: A string matching a column in the data
         fig_height: Height of the plot in inches
         fig_width: Width of the plot in inches
-        fontsize: Font size of axis and tick labels
-        color_palette: Seaborn color palette to use
         top_entries: Max number of entries to show for countplots
         sort_collections: Whether to sort collections and ignore original order
         remove_duplicates: Whether to remove duplicate entries from collections
@@ -401,89 +380,67 @@ def collection_univariate_summary(
         Tuple containing matplotlib Figure drawn and summary stats DataFrame
     """
     data = data.copy()
-    if color_palette != "":
-        sns.set_palette(color_palette)
-    else:
-        sns.set_palette("tab10")
-
-    # Compute derived transforms
-    data[column] = data[column].apply(lambda x: tuple(x))
-    data["# Entries / Collection"] = data[column].apply(lambda x: len(x))
-    tmp = data.explode(column)
-
-    # Compute Summary Table
-    table = compute_univariate_summary_table(data, column, "categorical")
-    table["count_unique_entries"] = tmp[~tmp[column].isnull()][column].nunique()
-    num_table = compute_univariate_summary_table(
-        data, "# Entries / Collection", "numeric"
-    )
-    table = pd.concat([table, num_table])
-
-    fig = plt.figure(figsize=(fig_width, fig_height * 2))
-    spec = gridspec.GridSpec(ncols=2, nrows=2, figure=fig)
 
     # Remove duplicates and sort collections
     if remove_duplicates:
         data[column] = data[column].apply(lambda x: tuple(set(x)))
     if sort_collections:
-        data[column] = data[column].apply(lambda x: tuple(sorted(x)))
+        data[column] = data[column].apply(lambda x: sorted(x))
 
-    # Plot most common collections
-    ax = fig.add_subplot(spec[0, :])
-    ax = countplot(
-        data,
-        column,
-        ax=ax,
-        flip_axis=True,
-        max_levels=top_entries,
-        add_other=False,
-        label_fontsize=10,
-        fontsize=fontsize,
+    fig = make_subplots(
+        rows=3,
+        cols=1,
     )
+    fig.update_layout(width=fig_width, height=fig_height)
 
-    # Plot most common individual entries
-    ax = fig.add_subplot(spec[1, 0])
-    ax = countplot(
-        tmp,
-        column,
-        ax=ax,
-        flip_axis=True,
-        max_levels=top_entries,
-        add_other=False,
-        label_fontsize=10,
-        percent_denominator=data.shape[0],
-        fontsize=fontsize,
-    )
-    ax.set_ylabel("Most Common Entries")
-    set_fontsize(ax, fontsize)
-
-    # Plot most common individual entries
-    ax = fig.add_subplot(spec[1, 1])
+    data["# Entries / Collection"] = data[column].apply(lambda x: len(x))
     if data["# Entries / Collection"].nunique() <= 20:
-        ax = countplot(
+        fig = countplot(
             data,
             "# Entries / Collection",
-            ax=ax,
-            flip_axis=True,
+            fig=fig,
+            fig_row=3,
+            fig_col=1,
+            flip_axis=False,
+            order="sorted",
             max_levels=20,
             add_other=False,
-            label_fontsize=10,
-            fontsize=fontsize,
         )
     else:
-        ax = histogram(
-            data,
-            "# Entries / Collection",
-            ax=ax,
-        )
-    set_fontsize(ax, fontsize)
+        fig = boxplot(data, "# Entries / Collection", fig=fig, fig_row=3, fig_col=1)
 
-    plt.tight_layout()
+    data[column] = data[column].apply(lambda x: ", ".join(x))
+    fig = countplot(
+        data,
+        column,
+        fig=fig,
+        fig_row=1,
+        fig_col=1,
+        flip_axis=True,
+        max_levels=top_entries,
+        add_other=False,
+    )
+    fig.update_yaxes(title_text="Most Common Collections", row=1, col=1)
+
+    tmp = data.explode(column)
+    fig = countplot(
+        tmp,
+        column,
+        fig=fig,
+        fig_col=1,
+        fig_row=2,
+        flip_axis=True,
+        max_levels=top_entries,
+        add_other=False,
+    )
+    fig.update_yaxes(title_text="Most Common Individual Entries", row=2, col=1)
+
+    fig.update(layout_showlegend=False)
+    fig.update_layout(title_text=f"{column}", title_x=0.5)
     if interactive:
-        display(table)
-        plt.show()
+        fig.show()
 
-    return table, fig
+    return fig
 
 
 def url_summary(
@@ -495,7 +452,7 @@ def url_summary(
     interactive: bool = False,
 ):
     """
-    Creates a univariate EDA summary for a provided url column in a pandas DataFrame. The provided column should be
+    Creates a univariate EDA summary for a url column in a pandas DataFrame. The provided column should be
     a string/object column containing urls.
 
     Args:
