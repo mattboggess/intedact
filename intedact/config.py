@@ -175,13 +175,13 @@ WIDGET_PARAMS = {
         value=0,
         style={"description_width": "30%"},
     ),
-    "quantile_bins": dict(
-        description="# Bins: Number of bins to use for discretizing the numerical variable",
+    "num_intervals": dict(
+        description="# Intervals: Number of intervals to discretize the numeric variable into",
         min=1,
         max=1000,
         step=1,
         value=4,
-        style={"description_width": "20%"},
+        style={"description_width": "30%"},
     ),
     "kde": dict(description="Overlay Density on Histogram", value=False),
     "plot_kde": dict(description="Overlay 2D Density", value=False),
@@ -279,7 +279,7 @@ WIDGET_PARAMS = {
     ),
     "upper_quantile2": dict(
         description=(
-            "Upper Quantile1: Remove values above the provided quantile for column2. Use to remove outliers in data."
+            "Upper Quantile2: Remove values above the provided quantile for column2. Use to remove outliers in data."
         ),
         value=1,
         min=0,
@@ -350,7 +350,7 @@ WIDGET_PARAMS = {
         ),
         value="auto",
         options=["auto", "none", "loess", "lm"],
-        style={"description_width": "27%"},
+        style={"description_width": "28%"},
     ),
     "span": dict(
         description=(
@@ -403,9 +403,9 @@ WIDGET_PARAMS = {
         step=1,
         value=10,
     ),
-    "alpha": dict(
-        description="alpha: Amount of transparency to use ranging from 0 (fully transparent) to 1 (opaque)",
-        style={"description_width": "18%"},
+    "opacity": dict(
+        description="Opacity: Amount of transparency to use ranging from 0 (fully transparent) to 1 (opaque)",
+        style={"description_width": "20%"},
         min=0,
         max=1,
         step=0.05,
@@ -430,12 +430,12 @@ WIDGET_PARAMS = {
         value="stack",
         style={"description_width": "30%"},
     ),
-    "bin_type": dict(
+    "interval_type": dict(
         description=(
-            "Bin Type: Type of binning to use. Either quantiles or equal width."
+            "Interval Type: Type of interval to segment numeric variable into. Either quantile or equal width."
         ),
-        options=["quantiles", "equal_width"],
-        value="quantiles",
-        style={"description_width": "30%"},
+        options=["quantile", "equal_width"],
+        value="quantile",
+        style={"description_width": "33%"},
     ),
 }

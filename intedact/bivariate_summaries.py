@@ -5,9 +5,7 @@ import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from .data_utils import bin_data
-from .data_utils import order_levels
-from .data_utils import trim_values
+from .data_utils import bin_data, order_levels, trim_values
 from .plot_utils import *
 
 
@@ -414,8 +412,8 @@ def numeric_numeric_summary(
     data: pd.DataFrame,
     column1: str,
     column2: str,
-    fig_height: int = 6,
-    fig_width: int = 6,
+    fig_height: int = 1200,
+    fig_width: int = 1200,
     trend_line: str = "auto",
     opacity: float = 1.0,
     hist_bins: Optional[int] = None,
@@ -423,39 +421,58 @@ def numeric_numeric_summary(
     upper_quantile1: float = 1,
     lower_quantile2: float = 0,
     upper_quantile2: float = 1,
-    cut_nbins: Optional[int] = None,
-    cut_bin_type: str = "quantiles",
+    num_intervals: int = 4,
+    interval_type: str = "quantile",
     transform1: str = "identity",
     transform2: str = "identity",
-    interactive: bool = False,
+    display_figure: bool = False,
 ) -> go.Figure:
     """
-    Creates a bivariate EDA summary for two numeric data column in a pandas DataFrame.
-
-    Summary consists of a scatterplot with correlation coefficients.
+    Creates a bivariate EDA summary for two numeric data columns in a pandas DataFrame.
 
     Args:
         data: pandas DataFrame to perform EDA on
-        column1: name of column to plot on the x axis
-        column2: name of column to plot on the y axis
+        column1: name of numeric column to plot as independent variable
+        column2: name of numeric column to plot as dependent variable
         fig_height: Height of the plot in pixels
         fig_width: Width of the plot in pixels
+        opacity: Level of opacity to apply to points in scatterplot (0 = fully transparent, 1 = fully opaque)
         trend_line: Trend line to plot over data. Default is to plot no trend line. Other options are passed
             to `geom_smooth <https://plotnine.readthedocs.io/en/stable/generated/plotnine.geoms.geom_smooth.html>`_.
+        hist_bins: Number of bins to use for the histogram. Default will use plotly defaults
         lower_quantile1: Lower quantile to filter data above for column1
         upper_quantile1: Upper quantile to filter data below for column1
         lower_quantile2: Lower quantile to filter data above for column2
         upper_quantile2: Upper quantile to filter data below for column2
-        transform1: Transformation to apply to the data for plotting:
+        num_intervals: Number of intervals to bin column1 into for the boxplots
+        interval_type: Type of intervals to bin column1 into for the boxplots. 'quantile' or 'equal width'
+        transform1: Transformation to apply to the column1 for plotting:
 
-         - **'identity'**: no transformation
-         - **'log'**: apply a logarithmic transformation to the data
+            - 'identity': no transformation
+            - 'log': apply a logarithmic transformation (zero and negative values will be filtered out)
+            - 'sqrt': apply a square root transformation
         transform2: Transformation to apply to the column2 data for plotting. Same options as for column1.
-        interactive: Whether to modify to be used with interactive for ipywidgets
+        display_figure: Whether to display the figure in addition to returning it
     """
+    if hist_bins == 0:
+        hist_bins = None
     data = data.copy()
+
     data = trim_values(data, column1, lower_quantile1, upper_quantile1)
     data = trim_values(data, column2, lower_quantile2, upper_quantile2)
+    interval_order = bin_data(data, column1, num_intervals, interval_type)
+
+    if transform1 == "sqrt":
+        label1 = f"sqrt({column1})"
+        data[label1] = np.sqrt(data[column1])
+    else:
+        label1 = column1
+
+    if transform2 == "sqrt":
+        label2 = f"sqrt({column2})"
+        data[label2] = np.sqrt(data[column2])
+    else:
+        label2 = column2
 
     fig = make_subplots(
         rows=2,
@@ -469,33 +486,16 @@ def numeric_numeric_summary(
 
     fig.add_trace(
         go.Scatter(
-            x=data[column1],
-            y=data[column2],
+            x=data[label1],
+            y=data[label2],
             mode="markers",
             marker=dict(opacity=opacity),
         ),
         row=1,
         col=1,
     )
-    fig.update_xaxes(title_text=f"{column1}", row=1, col=1)
-    fig.update_yaxes(title_text=f"{column2}", row=1, col=1)
-
-    fig.add_trace(
-        go.Histogram2d(
-            x=data[column1],
-            y=data[column2],
-            nbinsx=hist_bins,
-            nbinsy=hist_bins,
-            coloraxis="coloraxis",
-        ),
-        row=1,
-        col=2,
-    )
-    fig.update_xaxes(title_text=f"{column1}", row=1, col=2)
-    fig.update_yaxes(title_text=f"{column2}", row=1, col=2)
-
     if trend_line is not None:
-        trend_data = add_trendline(data, x=column1, y=column2, method=trend_line)
+        trend_data = add_trendline(data, x=label1, y=label2, method=trend_line)
         fig.add_trace(
             go.Scatter(
                 x=trend_data["x"],
@@ -506,39 +506,52 @@ def numeric_numeric_summary(
             row=1,
             col=1,
         )
-        fig.add_trace(
-            go.Scatter(
-                x=trend_data["x"],
-                y=trend_data["y"],
-                mode="lines",
-                line=dict(color="red", width=2),
-            ),
-            row=1,
-            col=2,
-        )
+    fig.update_xaxes(title_text=label1, row=1, col=1)
+    fig.update_yaxes(title_text=label2, row=1, col=1)
+    if transform1 == "log":
+        fig.update_xaxes(type="log", row=1, col=1)
+    if transform2 == "log":
+        fig.update_yaxes(type="log", row=1, col=1)
 
-    data, interval_order = bin_data(data, column1, cut_nbins, cut_bin_type)
     for i, o in enumerate(interval_order):
         fig.add_trace(
             go.Box(
-                y=data[data["interval"] == o][column2],
+                y=data[data["interval"] == o][label2],
                 name=o,
                 legendgroup=i,
             ),
             row=2,
             col=1,
         )
-    fig.update_xaxes(title_text=f"{column1} ({cut_bin_type} bins)", row=2, col=1)
-    fig.update_yaxes(title_text=f"{column2}", row=2, col=1)
-
+    fig.update_xaxes(title_text=f"{label1} ({interval_type} bins)", row=2, col=1)
+    fig.update_yaxes(title_text=f"{label2}", row=2, col=1)
     if transform2 == "log":
-        fig.update_yaxes(type="log", row=1, col=1)
         fig.update_yaxes(type="log", row=2, col=1)
+
+    # Plotly doesn't support log histograms natively so we have to apply log to the data rather than use log axis
     if transform1 == "log":
-        fig.update_xaxes(type="log", row=1, col=1)
+        label1 = f"log({column1})"
+        data[label1] = np.log(data[column1])
+    if transform2 == "log":
+        label2 = f"log({column2})"
+        data[label2] = np.log(data[column2])
+
+    fig.add_trace(
+        go.Histogram2d(
+            x=data[label1],
+            y=data[label2],
+            nbinsx=hist_bins,
+            nbinsy=hist_bins,
+            colorbar=dict(lenmode="fraction", len=0.5, yanchor="top", y=1),
+        ),
+        row=1,
+        col=2,
+    )
+    fig.update_xaxes(title_text=label1, row=1, col=2)
+    fig.update_yaxes(title_text=label2, row=1, col=2)
 
     fig.update(layout_showlegend=False)
-    if interactive:
+    if display_figure:
         fig.show()
 
     return fig
