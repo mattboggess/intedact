@@ -425,10 +425,12 @@ WIDGET_PARAMS = {
     "sort_collections": dict(description="Sort Collections", value=True),
     "remove_duplicates": dict(description="Remove Duplicate Entries", value=True),
     "barmode": dict(
-        description=("Bar Mode: Manner in which to display levels of y variable"),
-        options=["stack", "group"],
+        description=(
+            "Bar Mode: Manner in which to display levels of color variable in plotly Bar chart"
+        ),
+        options=["stack", "group", "overlay", "relative"],
         value="stack",
-        style={"description_width": "30%"},
+        style={"description_width": "28%"},
     ),
     "interval_type": dict(
         description=(
