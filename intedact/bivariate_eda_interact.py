@@ -66,7 +66,6 @@ def column_bivariate_eda_interact(
     data[column1] = coerce_column_type(data[column1], summary_type)
     data[column2] = coerce_column_type(data[column2], summary_type)
 
-    color_palette_widget = widgets.Text(**WIDGET_PARAMS["color_palette"])
     if column1 == column2:
         print("X and Y columns must be different")
         return
@@ -84,7 +83,6 @@ def column_bivariate_eda_interact(
             fig_height=fig_height_widget,
             fig_width=fig_width_widget,
             fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
-            color_palette=color_palette_widget,
             opacity=widgets.FloatSlider(**WIDGET_PARAMS["opacity"]),
             trend_line=widgets.Dropdown(**WIDGET_PARAMS["trend_line"]),
             hist_bins=widgets.IntSlider(**WIDGET_PARAMS["bins"]),
@@ -124,9 +122,8 @@ def column_bivariate_eda_interact(
         )
     elif summary_type == "numeric-categorical":
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
-        fig_height_widget.value = 500
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
-        fig_width_widget.value = fig_height_widget.value * 2
+        fig_height_widget.value = int(fig_width_widget.value * 0.5)
         widget = widgets.interactive(
             bivariate_summaries.numeric_categorical_summary,
             {"manual": not auto_update},
@@ -136,11 +133,11 @@ def column_bivariate_eda_interact(
             fig_height=fig_height_widget,
             fig_width=fig_width_widget,
             order=widgets.Dropdown(**WIDGET_PARAMS["order"]),
-            bins=widgets.IntSlider(**WIDGET_PARAMS["quantile_bins"]),
-            bin_type=widgets.Dropdown(**WIDGET_PARAMS["bin_type"]),
+            num_intervals=widgets.IntSlider(**WIDGET_PARAMS["num_intervals"]),
+            interval_type=widgets.Dropdown(**WIDGET_PARAMS["interval_type"]),
             max_levels=widgets.IntSlider(**WIDGET_PARAMS["max_levels"]),
             include_missing=widgets.Checkbox(**WIDGET_PARAMS["include_missing"]),
-            interactive=widgets.fixed(True),
+            display_figure=widgets.fixed(True),
         )
     elif summary_type == "categorical-numeric":
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])

@@ -1,5 +1,3 @@
-import ipywidgets as widgets
-
 FLIP_LEVEL_COUNT = 5
 
 TIME_UNITS = [
@@ -13,14 +11,6 @@ TIME_UNITS = [
     "weeks",
     "months",
     "years",
-]
-
-# Column type groupings
-DISCRETE_TYPES = [
-    "discrete_numeric",
-    "unordered_categorical",
-    "ordered_categorical",
-    "unordered_categorical (inferred from object)",
 ]
 
 # Widget control values
