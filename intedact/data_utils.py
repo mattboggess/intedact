@@ -1,44 +1,54 @@
 import re
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import List, Optional, Tuple
 
 import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from dateutil.rrule import DAILY
-from dateutil.rrule import HOURLY
-from dateutil.rrule import MINUTELY
-from dateutil.rrule import MONTHLY
-from dateutil.rrule import SECONDLY
-from dateutil.rrule import WEEKLY
-from dateutil.rrule import YEARLY
-from pandas.api.types import is_datetime64_any_dtype
-from pandas.api.types import is_numeric_dtype
+from dateutil.rrule import DAILY, HOURLY, MINUTELY, MONTHLY, SECONDLY, WEEKLY, YEARLY
+from pandas.api.types import is_datetime64_any_dtype, is_numeric_dtype
 
 from .config import TIME_UNITS
 
 
-def bin_data(data, column, nbins, bin_type: str = "quantiles") -> pd.DataFrame:
-    if bin_type == "quantiles":
-        data["interval"] = pd.qcut(data[column], nbins, duplicates="drop").astype(str)
-        x_desc = "quantile bins"
-    elif bin_type == "equal_width":
-        data["interval"] = pd.cut(data[column], nbins).astype(str)
-        x_desc = "equal width bins"
+def bin_data(
+    data: pd.DataFrame,
+    column: str,
+    num_intervals: int = 4,
+    interval_type: str = "quantile",
+) -> List[str]:
+    """
+    Bin a numeric column into a discrete set of intervals.
+
+    Args:
+        data: Dataframe with data
+        column: Numeric column in data to bin into intervals
+        num_intervals: Number of intervals to bin the data into
+        interval_type: Type of intervals to make. Either quantile or equal width intervals.
+
+    Returns:
+        List of intervals in increasing order
+    """
+    if interval_type == "quantile":
+        data["interval"] = pd.qcut(
+            data[column], num_intervals, duplicates="drop"
+        ).astype(str)
+    elif interval_type == "equal_width":
+        data["interval"] = pd.cut(data[column], num_intervals).astype(str)
     else:
-        raise ValueError(f"Unknown bin_type {bin_type}")
+        raise ValueError(f"Unknown interval_type {interval_type}")
     intervals = data.interval.unique()
-    if len(intervals) < nbins and x_desc == "quantile bins":
-        print(f"Dropped {nbins - len(intervals)} bins due to duplicate quantiles.")
+    if len(intervals) < num_intervals and interval_type == "quantile":
+        print(
+            f"Dropped {num_intervals- len(intervals)} intervals due to duplicate quantiles."
+        )
     interval_order = sorted(
         data.interval.unique(), key=lambda x: float(x.split(",")[0][1:])
     )
     data["interval"] = pd.Categorical(
         data["interval"], categories=interval_order, ordered=True
     )
-    return data, interval_order
+    return interval_order
 
 
 def format_bytes(bytes):
