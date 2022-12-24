@@ -9,7 +9,7 @@ from IPython.display import display
 from intedact import bivariate_summaries
 
 from .config import WIDGET_PARAMS
-from .data_utils import coerce_column_type, detect_column_type
+from .utils import coerce_column_type, detect_column_type
 
 
 def bivariate_eda_interact(

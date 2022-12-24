@@ -1,12 +1,13 @@
-from typing import Union
+from typing import List, Optional, Union
 
+import numpy as np
+import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from .data_utils import bin_data, order_levels, trim_values
-from .plot_utils import *
+from intedact.utils import bin_data, compute_trendline, order_levels, trim_values
 
 
 def categorical_categorical_summary(
@@ -457,7 +458,7 @@ def numeric_numeric_summary(
         col=1,
     )
     if trend_line is not None:
-        trend_data = add_trendline(data, x=label1, y=label2, method=trend_line)
+        trend_data = compute_trendline(data, x=label1, y=label2, method=trend_line)
         fig.add_trace(
             go.Scatter(
                 x=trend_data["x"],

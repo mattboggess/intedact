@@ -7,10 +7,8 @@ import pandas as pd
 from IPython.display import display
 
 from intedact import univariate_summaries
-from intedact.config import FLIP_LEVEL_COUNT
-from intedact.config import WIDGET_PARAMS
-from intedact.data_utils import coerce_column_type
-from intedact.data_utils import detect_column_type
+from intedact.config import FLIP_LEVEL_COUNT, WIDGET_PARAMS
+from intedact.utils import coerce_column_type, detect_column_type
 
 
 def univariate_eda_interact(
@@ -74,7 +72,7 @@ def column_univariate_eda_interact(
             max_levels=widgets.IntSlider(**WIDGET_PARAMS["max_levels"]),
             include_missing=widgets.Checkbox(**WIDGET_PARAMS["include_missing"]),
             flip_axis=flip_axis_widget,
-            interactive=widgets.fixed(True),
+            display_figure=widgets.fixed(True),
         )
     elif summary_type == "numeric":
         bins_widget = widgets.IntSlider(**WIDGET_PARAMS["bins"])
@@ -97,7 +95,7 @@ def column_univariate_eda_interact(
             lower_quantile=lower_quantile_widget,
             upper_quantile=upper_quantile_widget,
             transform=widgets.Dropdown(**WIDGET_PARAMS["transform"]),
-            interactive=widgets.fixed(True),
+            display_figure=widgets.fixed(True),
         )
     elif summary_type == "datetime":
         print(
@@ -124,7 +122,7 @@ def column_univariate_eda_interact(
             date_labels=widgets.Text(**WIDGET_PARAMS["date_labels"]),
             lower_quantile=lower_quantile_widget,
             upper_quantile=upper_quantile_widget,
-            interactive=widgets.fixed(True),
+            display_figure=widgets.fixed(True),
         )
     elif summary_type == "text":
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
@@ -139,7 +137,7 @@ def column_univariate_eda_interact(
             lower_case=widgets.Checkbox(**WIDGET_PARAMS["lower_case"]),
             remove_punct=widgets.Checkbox(**WIDGET_PARAMS["remove_punct"]),
             remove_stop=widgets.Checkbox(**WIDGET_PARAMS["remove_stop"]),
-            interactive=widgets.fixed(True),
+            display_figure=widgets.fixed(True),
         )
     elif summary_type == "collection":
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
@@ -153,7 +151,7 @@ def column_univariate_eda_interact(
             top_entries=widgets.IntSlider(**WIDGET_PARAMS["top_entries"]),
             remove_duplicates=widgets.Checkbox(**WIDGET_PARAMS["remove_duplicates"]),
             sort_collections=widgets.Checkbox(**WIDGET_PARAMS["sort_collections"]),
-            interactive=widgets.fixed(True),
+            display_figure=widgets.fixed(True),
         )
     elif summary_type == "url":
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
@@ -167,7 +165,7 @@ def column_univariate_eda_interact(
             fig_height=fig_height_widget,
             fig_width=fig_width_widget,
             top_entries=widgets.IntSlider(**WIDGET_PARAMS["top_entries"]),
-            interactive=widgets.fixed(True),
+            display_figure=widgets.fixed(True),
         )
     else:
         print("No EDA support for this variable type")
