@@ -457,7 +457,6 @@ def url_summary(
     """
     data = data.copy()
 
-    # Compute Derived Information
     data["is_https"] = data[column].str.startswith("https")
     data["parse"] = data[column].apply(
         lambda x: tldextract.extract(x) if not pd.isna(x) else None
@@ -493,6 +492,13 @@ def url_summary(
         fig_row=1,
         flip_axis=True,
         max_levels=top_entries,
+    )
+    fig.layout["yaxis"]["ticktext"] = [
+        x[:50] + "..." for x in fig.layout["yaxis"]["categoryarray"]
+    ]
+    fig.layout["yaxis"]["tickmode"] = "array"
+    fig.layout["yaxis"]["tickvals"] = list(
+        range(len(fig.layout["yaxis"]["categoryarray"]))
     )
 
     fig = countplot(
