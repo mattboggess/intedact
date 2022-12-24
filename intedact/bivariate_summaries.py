@@ -46,7 +46,7 @@ def categorical_categorical_summary(
         include_missing: Whether to include missing values as an additional level in the data to be plotted
         display_figure: Whether to display the figure in addition to returning it
     """
-    # Reorder column levels
+    data = data.copy()
     order1 = order_levels(
         data,
         column1,
@@ -138,7 +138,6 @@ def categorical_categorical_summary(
         )
     fig.update_layout(barmode=barmode)
 
-    # Make the line chart
     for i, o in enumerate(order2):
         fig.add_trace(
             go.Scatter(
@@ -173,23 +172,25 @@ def numeric_categorical_summary(
     data: pd.DataFrame,
     column1: str,
     column2: str,
-    fig_height: int = 500,
-    fig_width: int = 1000,
+    fig_height: int = 600,
+    fig_width: int = 1200,
     order: Union[str, List] = "auto",
-    bins: int = 4,
-    bin_type: str = "quantiles",
+    num_intervals: int = 4,
+    interval_type: str = "quantile",
     max_levels: int = 30,
     include_missing: bool = False,
-    interactive: bool = False,
+    display_figure: bool = False,
 ) -> go.Figure:
     """
     Generates an EDA summary of the relationship of a numeric variable on a categorical variable.
 
     Args:
         data: pandas DataFrame with data to be plotted
-        column1: First categorical column in the data
-        column2: Second categorical column in the data
-        order2: Order in which to sort the levels of the first variable:
+        column1: Numeric column in the data to be plotted as independent variable
+        column2: Categorical column in the data to be plotted as dependent variable
+        fig_height: Height of the figure in pixels
+        fig_width: Width of the figure in pixels
+        order: Order in which to sort the levels of the categorical variable:
 
          - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
          - **'descending'**: sorts in descending frequency.
@@ -197,22 +198,15 @@ def numeric_categorical_summary(
          - **'sorted'**: sorts according to sorted order of the levels themselves.
          - **'random'**: produces a random order. Useful if there are too many levels for one plot.
          Or you can pass a list of level names in directly for your own custom order.
+        num_intervals: Number of intervals to bin column1 into
+        interval_type: Type of intervals to bin column1 into.  'quantile' or 'equal width'
         max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
          max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
         include_missing: Whether to include missing values as an additional level in the data to be plotted
-
-    Returns:
-
-    Examples:
-        .. plot::
-
-            import seaborn as sns
-            import intedact
-            data = sns.load_dataset('tips')
-            intedact.countplot(data, 'day')
+        display_figure: Whether to display the figure in addition to returning it
     """
-    # Reorder categorical column levels
-    data[column2] = order_levels(
+    data = data.copy()
+    order = order_levels(
         data,
         column2,
         None,
@@ -221,26 +215,9 @@ def numeric_categorical_summary(
         include_missing=include_missing,
         add_other=True,
     )
-    order = list(data[column2].cat.categories)
     colorway = px.colors.qualitative.Plotly + px.colors.qualitative.Dark24
 
-    if bin_type == "quantiles":
-        data["interval"] = pd.qcut(data[column1], bins, duplicates="drop").astype(str)
-        x_desc = "quantile bins"
-    elif bin_type == "equal_width":
-        data["interval"] = pd.cut(data[column1], bins).astype(str)
-        x_desc = "equal width bins"
-    else:
-        raise ValueError(f"Unknown bin_type {bin_type}")
-    intervals = data.interval.unique()
-    if len(intervals) < bins and x_desc == "quantile bins":
-        print(f"Dropped {bins - len(intervals)} bins due to duplicate quantiles.")
-    interval_order = sorted(
-        data.interval.unique(), key=lambda x: float(x.split(",")[0][1:])
-    )
-    data["interval"] = pd.Categorical(
-        data["interval"], categories=interval_order, ordered=True
-    )
+    bin_data(data, column1, num_intervals, interval_type)
 
     fig = make_subplots(
         rows=1,
@@ -257,7 +234,6 @@ def numeric_categorical_summary(
     )
     tmp["fraction"] = tmp.groupby("interval").Count.apply(lambda x: x / x.sum())
 
-    # Make the line chart
     for i, o in enumerate(order):
         fig.add_trace(
             go.Scatter(
@@ -278,10 +254,10 @@ def numeric_categorical_summary(
             col=1,
         )
     fig.update_layout(legend=dict(title=column2))
-    fig.update_xaxes(title_text=f"{column1} ({x_desc})", row=1, col=1)
+    fig.update_xaxes(title_text=f"{column1} ({interval_type} bins)", row=1, col=1)
     fig.update_yaxes(title_text="Fraction", row=1, col=1)
 
-    if interactive:
+    if display_figure:
         fig.show()
     return fig
 
