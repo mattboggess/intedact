@@ -72,9 +72,9 @@ def column_bivariate_eda_interact(
         return
 
     if summary_type == "numeric-numeric":
-        fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
         fig_width_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_width"])
-        bins_widget = widgets.IntSlider(**WIDGET_PARAMS["bins"])
+        fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
+        fig_height_widget.value = fig_width_widget.value
         widget = widgets.interactive(
             bivariate_summaries.numeric_numeric_summary,
             {"manual": not auto_update},
@@ -85,9 +85,9 @@ def column_bivariate_eda_interact(
             fig_width=fig_width_widget,
             fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
             color_palette=color_palette_widget,
-            opacity=widgets.FloatSlider(**WIDGET_PARAMS["alpha"]),
+            opacity=widgets.FloatSlider(**WIDGET_PARAMS["opacity"]),
             trend_line=widgets.Dropdown(**WIDGET_PARAMS["trend_line"]),
-            hist_bins=bins_widget,
+            hist_bins=widgets.IntSlider(**WIDGET_PARAMS["bins"]),
             lower_quantile1=widgets.BoundedFloatText(
                 **WIDGET_PARAMS["lower_quantile1"]
             ),
@@ -102,9 +102,9 @@ def column_bivariate_eda_interact(
             ),
             transform1=widgets.Dropdown(**WIDGET_PARAMS["transform1"]),
             transform2=widgets.Dropdown(**WIDGET_PARAMS["transform2"]),
-            cut_nbins=widgets.IntSlider(**WIDGET_PARAMS["quantile_bins"]),
-            cut_bin_type=widgets.Dropdown(**WIDGET_PARAMS["bin_type"]),
-            interactive=widgets.fixed(True),
+            num_intervals=widgets.IntSlider(**WIDGET_PARAMS["num_intervals"]),
+            interval_type=widgets.Dropdown(**WIDGET_PARAMS["interval_type"]),
+            display_figure=widgets.fixed(True),
         )
     elif summary_type == "categorical-categorical":
         fig_height_widget = widgets.IntSlider(**WIDGET_PARAMS["fig_height"])
