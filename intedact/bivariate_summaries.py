@@ -14,26 +14,23 @@ def categorical_categorical_summary(
     column1: str,
     column2: str,
     fig_height: int = 1000,
-    fig_width: int = 1000,
+    fig_width: int = 1200,
     order1: Union[str, List] = "auto",
     order2: Union[str, List] = "auto",
     barmode: str = "stack",
     max_levels: int = 30,
     include_missing: bool = False,
-    interactive: bool = False,
+    display_figure: bool = False,
 ) -> go.Figure:
     """
-    Generates an EDA summary of two categorical variables. This includes:
-      - Categorical heatmap with counts and percentages of each pair of levels
-      - Bar chart with relative percentage of column2 levels for each column1 level
-      - Line plot with relative percentage of column2 levels for each column1 level
+    Generates an EDA summary of two categorical variables
 
     Args:
         data: pandas DataFrame with data to be plotted
-        column1: First categorical column in the data
-        column2: Second categorical column in the data
-        fig_width: figure width
-        fig_height: figure height
+        column1: First categorical column in the data to plot as independent variable
+        column2: Second categorical column in the data to plot as dependent variable
+        fig_width: Figure width in pixels
+        fig_height: Figure height in pixels
         order1: Order in which to sort the levels of the first variable:
 
          - **'auto'**: sorts ordinal variables by provided ordering, nominal variables by descending frequency, and numeric variables in sorted order.
@@ -47,20 +44,10 @@ def categorical_categorical_summary(
         max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
          max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
         include_missing: Whether to include missing values as an additional level in the data to be plotted
-        add_other: Whether to include
-
-    Returns:
-
-    Examples:
-        .. plot::
-
-            import seaborn as sns
-            import intedact
-            data = sns.load_dataset('tips')
-            intedact.countplot(data, 'day')
+        display_figure: Whether to display the figure in addition to returning it
     """
     # Reorder column levels
-    data[column1] = order_levels(
+    order1 = order_levels(
         data,
         column1,
         None,
@@ -69,8 +56,7 @@ def categorical_categorical_summary(
         include_missing=include_missing,
         add_other=True,
     )
-    order1 = list(data[column1].cat.categories)
-    data[column2] = order_levels(
+    order2 = order_levels(
         data,
         column2,
         None,
@@ -79,7 +65,6 @@ def categorical_categorical_summary(
         include_missing=include_missing,
         add_other=True,
     )
-    order2 = list(data[column2].cat.categories)
 
     colorway = px.colors.qualitative.Plotly + px.colors.qualitative.Dark24
     fig = make_subplots(
@@ -120,6 +105,8 @@ def categorical_categorical_summary(
         row=1,
         col=1,
     )
+    fig.update_yaxes(title_text=column2, row=1, col=1)
+    fig.update_xaxes(row=1, col=1)
 
     tmp = (
         data.groupby([column1, column2])
@@ -174,11 +161,10 @@ def categorical_categorical_summary(
     fig.update_coloraxes(showscale=False)
     fig.update_layout(legend=dict(y=0.25, yanchor="middle", title=column2))
     fig.update_xaxes(title_text=column1, row=4, col=1)
-    fig.update_yaxes(title_text=column2, row=1, col=1)
     fig.update_yaxes(title_text="Fraction", row=3, col=1)
     fig.update_yaxes(title_text="Fraction", row=4, col=1)
 
-    if interactive:
+    if display_figure:
         fig.show()
     return fig
 

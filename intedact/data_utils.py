@@ -167,6 +167,8 @@ def order_levels(
         else:
             print(f"No missing values for column: {column1}")
 
+    data[column1] = pd.Categorical(data[column1], categories=order, ordered=True)
+
     return order
 
 
