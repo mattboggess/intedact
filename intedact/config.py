@@ -1,19 +1,5 @@
 FLIP_LEVEL_COUNT = 5
 
-TIME_UNITS = [
-    "nanoseconds",
-    "microseconds",
-    "milliseconds",
-    "seconds",
-    "months",
-    "hours",
-    "days",
-    "weeks",
-    "months",
-    "years",
-]
-
-# Widget control values
 WIDGET_PARAMS = {
     "manual_update": {
         "description": "Update plots manually",
@@ -63,7 +49,10 @@ WIDGET_PARAMS = {
             " It is recommended you preprocess the columns to have the desired type prior to"
             " running this function for greatest accuracy of automatic type inference.\n\n"
             " The following types are available:\n"
-            "  - 'numeric-numeric': For pairs of high cardinality numeric variables \n"
+            "  - 'numeric-numeric': For pairs of numeric variables \n"
+            "  - 'numeric-categorical': numeric as independent, categorical as dependent \n"
+            "  - 'categorical-numeric': categorical as independent, numeric as dependent \n"
+            "  - 'categorical-categorical': For pairs of categorical variables \n"
         ),
         style={"description_width": "36%"},
         options=[
@@ -89,19 +78,6 @@ WIDGET_PARAMS = {
         step=1,
         value=1000,
         style={"description_width": "34%"},
-    ),
-    "fontsize": dict(
-        description="Font Size: fontsize for axis and tick labels",
-        min=1,
-        max=40,
-        step=0.5,
-        value=12,
-        style={"description_width": "25%"},
-    ),
-    "color_palette": dict(
-        description="Color Palette:",
-        placeholder="Passed to sns.set_palette()",
-        value=None,
     ),
     "order": dict(
         description=(
@@ -138,25 +114,7 @@ WIDGET_PARAMS = {
         style={"description_width": "28%"},
     ),
     "flip_axis": dict(description="Flip Plot Orientation", value=True),
-    "label_counts": dict(description="Add Counts and Percentages", value=True),
-    "percent_axis": dict(description="Add a Percentage Axis", value=True),
     "include_missing": dict(description="Add Missing Values Level", value=False),
-    "label_rotation": dict(
-        description="Label Rotation: Degree to rotate axis labels (Ignored if axis is flipped)",
-        min=0,
-        max=90,
-        step=1,
-        value=0,
-        style={"description_width": "35%"},
-    ),
-    "label_fontsize": dict(
-        description="Label Font Size: Font size for the count and percentage annotations",
-        min=1,
-        max=30,
-        step=0.5,
-        value=12,
-        style={"description_width": "38%"},
-    ),
     "bins": dict(
         description="# Hist Bins: Number of bins to use for the histogram (0 will use default bin count used by plotly)",
         min=0,
@@ -173,8 +131,6 @@ WIDGET_PARAMS = {
         value=4,
         style={"description_width": "30%"},
     ),
-    "kde": dict(description="Overlay Density on Histogram", value=False),
-    "plot_kde": dict(description="Overlay 2D Density", value=False),
     "transform": dict(
         description=(
             "Transform: Transformation to apply to numeric column for plotting \n"
@@ -205,17 +161,6 @@ WIDGET_PARAMS = {
         value="identity",
         options=["identity", "log"],
         style={"description_width": "30%"},
-    ),
-    "clip": dict(
-        description=(
-            "Positive Clip: Clip values below this value to this value (filter > 0 if 0)."
-            " Used for log transform."
-        ),
-        value=0,
-        min=0,
-        max=10,
-        step=1e-6,
-        style={"description_width": "31%"},
     ),
     "lower_quantile": dict(
         description=(
@@ -277,46 +222,6 @@ WIDGET_PARAMS = {
         step=0.0001,
         style={"description_width": "40%"},
     ),
-    "lower_trim1": dict(
-        description=(
-            "Lower Trim1: Remove values from lower end of distribution for column1. Use to remove outliers in data."
-        ),
-        value=0,
-        min=0,
-        max=10000,
-        step=1,
-        style={"description_width": "30%"},
-    ),
-    "upper_trim1": dict(
-        description=(
-            "Upper Trim1: Remove values from upper end of distribution for column1. Use to remove outliers in data."
-        ),
-        value=0,
-        min=0,
-        max=10000,
-        step=1,
-        style={"description_width": "30%"},
-    ),
-    "lower_trim2": dict(
-        description=(
-            "Lower Trim2: Remove values from lower end of distribution for column2. Use to remove outliers in data."
-        ),
-        value=0,
-        min=0,
-        max=10000,
-        step=1,
-        style={"description_width": "30%"},
-    ),
-    "upper_trim2": dict(
-        description=(
-            "Upper Trim2: Remove values from upper end of distribution for column2. Use to remove outliers in data."
-        ),
-        value=0,
-        min=0,
-        max=10000,
-        step=1,
-        style={"description_width": "30%"},
-    ),
     "ts_freq": dict(
         description=(
             "Aggregation Frequency: Frequency at which to aggregate counts. Can either be a quantity followed by"
@@ -324,14 +229,6 @@ WIDGET_PARAMS = {
         ),
         value="auto",
         style={"description_width": "52%"},
-    ),
-    "delta_units": dict(
-        description=(
-            "Time Delta Units: Units in which to report the time differences between successive observations."
-        ),
-        value="auto",
-        options=["auto"] + TIME_UNITS,
-        style={"description_width": "40%"},
     ),
     "trend_line": dict(
         description=(
@@ -341,30 +238,6 @@ WIDGET_PARAMS = {
         value="auto",
         options=["auto", "none", "loess", "lm"],
         style={"description_width": "28%"},
-    ),
-    "span": dict(
-        description=(
-            "Loess Span: Span parameter to control loess trend line smoothing."
-        ),
-        min=0,
-        max=1,
-        value=0.75,
-        style={"description_width": "32%"},
-    ),
-    "date_breaks": dict(
-        description=(
-            "Date Breaks: Frequency at which to add ticks to time series x axis. Format is"
-            " a quantity followed time unit (i.e. 6 months)."
-        ),
-        value="auto",
-        style={"description_width": "32%"},
-    ),
-    "date_labels": dict(
-        description=(
-            "Date Labels: Format for the date x axis labels. Format string passed to strftime"
-        ),
-        value="auto",
-        style={"description_width": "30%"},
     ),
     "ts_type": dict(
         description="Time Series Type: 'lines', 'markers', or 'lines+markers' to plot a line, points, or line + points",
@@ -380,7 +253,6 @@ WIDGET_PARAMS = {
         step=1,
         value=10,
     ),
-    "reference_line": dict(description="Plot a y = x reference line", value=False),
     "remove_punct": dict(description="Remove punctuation tokens", value=True),
     "remove_stop": dict(description="Remove stop word tokens", value=True),
     "lower_case": dict(description="Lower case tokens", value=True),
@@ -400,17 +272,6 @@ WIDGET_PARAMS = {
         max=1,
         step=0.05,
         value=1,
-    ),
-    "numeric2d_plot_type": dict(
-        description="Plot Type: Type of plot from seaborn's jointplot to use",
-        style={"description_width": "27%"},
-        value="scatter",
-        options=["scatter", "hex", "hist", "kde"],
-    ),
-    "match_axes": dict(
-        description="Match x and y axis limits",
-        width="25%",
-        value=False,
     ),
     "sort_collections": dict(description="Sort Collections", value=True),
     "remove_duplicates": dict(description="Remove Duplicate Entries", value=True),

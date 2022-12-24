@@ -1,14 +1,9 @@
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import List, Optional, Union
 
 import pandas as pd
 import plotly.graph_objects as go
 
-from intedact.data_utils import agg_time_series
-from intedact.data_utils import order_levels
-from intedact.data_utils import trim_values
-from intedact.plot_utils import add_trendline
+from intedact.utils import agg_time_series, compute_trendline, order_levels, trim_values
 
 
 def plot_ngrams(
@@ -186,7 +181,7 @@ def timeseries_countplot(
         col=fig_col,
     )
     if trend_line is not None:
-        trend_data = add_trendline(agg_data, x=column, y="Count", method=trend_line)
+        trend_data = compute_trendline(agg_data, x=column, y="Count", method=trend_line)
         fig.add_trace(
             go.Scatter(x=trend_data["x"], y=trend_data["y"], mode="lines"),
             row=fig_row,

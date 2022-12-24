@@ -1,14 +1,23 @@
 import re
 from typing import List, Optional, Tuple
 
-import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
-import scipy.stats as stats
-from dateutil.rrule import DAILY, HOURLY, MINUTELY, MONTHLY, SECONDLY, WEEKLY, YEARLY
 from pandas.api.types import is_datetime64_any_dtype, is_numeric_dtype
+from plotnine.stats.smoothers import predictdf
 
-from .config import TIME_UNITS
+TIME_UNITS = [
+    "nanoseconds",
+    "microseconds",
+    "milliseconds",
+    "seconds",
+    "months",
+    "hours",
+    "days",
+    "weeks",
+    "months",
+    "years",
+]
 
 
 def bin_data(
@@ -51,43 +60,6 @@ def bin_data(
     return interval_order
 
 
-def format_bytes(bytes):
-    if bytes // 1e9 > 1:
-        return f"{bytes / 1e9:.1f}. GB"
-    elif bytes // 1e6 > 1:
-        return f"{bytes / 1e6:.1f} MB"
-    elif bytes // 1e3 > 1:
-        return f"{bytes / 1e3:.1f} KB"
-    else:
-        return f"{bytes} Bytes"
-
-
-def preprocess_transform(
-    data: pd.DataFrame,
-    column: str,
-    transform: str = "identity",
-    clip: float = 0,
-) -> pd.DataFrame:
-    """
-    Preprocesses a pandas dataframe column for applying a data transformation
-
-    Args:
-        data: Data to be transformed
-        column: The dataframe column that is being transformed
-        transform: Transformation to apply to the data for plotting:
-
-         - **'identity'**: no transformation
-         - **'log'**: apply a logarithmic transformation to the data
-        clip: Value to clip zero values to for log transformation. If 0 (default), zero values are simply removed.
-    Returns:
-        pandas DataFrame with preprocessed column data
-    """
-    if transform == "log":
-        data.loc[data[column] < clip, column] = clip
-        data = data[data[column] > 0]
-    return data
-
-
 def order_levels(
     data: pd.DataFrame,
     column1: str,
@@ -116,11 +88,11 @@ def order_levels(
         max_levels: Maximum number of levels to attempt to plot on a single plot. If exceeded, only the
          max_level - 1 levels will be plotted and the remainder will be grouped into an 'Other' category.
         include_missing: Whether to include missing values as an additional level in the data to be plotted
+        add_other: Whether to include 'Other' in the plot or not when condensing levels
 
     Returns:
-        Pandas series of column1 that has been converted into a Categorical type with the new level ordering
+        List of new levels in order. column1 is converted into a Categorical type with the new level ordering in place.
     """
-
     if type(order) == str:
         # determine order to plot levels
         if column2:
@@ -172,28 +144,6 @@ def order_levels(
     return order
 
 
-def freedman_diaconis_bins(a, log=False):
-    """
-    Calculate number of hist bins using Freedman-Diaconis rule.
-    https://github.com/has2k1/plotnine/blob/bcb93d6cc4ff266565c32a095e40b0127d3d3b7c/plotnine/stats/binning.py
-    Ceiling at 100 for default efficiency purposes.
-    """
-    # From http://stats.stackexchange.com/questions/798/
-    a = np.asarray(a)
-    if log:
-        a = np.log(a)
-
-    h = 2 * iqr(a) / (len(a) ** (1 / 3))
-
-    # fall back to sqrt(a) bins if iqr is 0
-    if h == 0:
-        bins = np.ceil(np.sqrt(a.size))
-    else:
-        bins = np.ceil((np.nanmax(a) - np.nanmin(a)) / h)
-
-    return min(np.int(bins), 100)
-
-
 def convert_to_freq_string(date_str: str) -> str:
     """
     Converts a conversational description of a period (e.g. 2 weeks) to a pandas frequency string (2W).
@@ -225,35 +175,6 @@ def convert_to_freq_string(date_str: str) -> str:
     return f"{quantity}{period}"
 
 
-def convert_date_breaks(breaks_str: str) -> mdates.DateLocator:
-    """
-    Converts a conversational description of a period (e.g. 2 weeks) to a matplotlib date tick Locator.
-
-    Args:
-        breaks_str: A period description of the form "{interval} {period}"
-
-    Returns:
-        A corresponding mdates.Locator
-    """
-    # Column type groupings
-    DATE_CONVERSION = {
-        "year": YEARLY,
-        "month": MONTHLY,
-        "week": WEEKLY,
-        "day": DAILY,
-        "hour": HOURLY,
-        "minute": MINUTELY,
-        "second": SECONDLY,
-    }
-    interval, period = breaks_str.split()
-    period = period.lower()
-    if period.endswith("s"):
-        period = period[:-1]
-    period = DATE_CONVERSION[period]
-
-    return mdates.RRuleLocator(mdates.rrulewrapper(period, interval=int(interval)))
-
-
 def trim_values(
     data: pd.DataFrame,
     column: str,
@@ -279,8 +200,7 @@ def trim_values(
     return data
 
 
-def coerce_column_type(col_data, col_type):
-
+def coerce_column_type(col_data: pd.Series, col_type: str) -> pd.Series:
     if not is_datetime64_any_dtype(col_data) and col_type == "datetime":
         return pd.to_datetime(col_data)
     elif col_data.dtype.name == "category" and col_type == "text":
@@ -289,59 +209,9 @@ def coerce_column_type(col_data, col_type):
         return col_data
 
 
-def iqr(a):
-    """
-    Calculate the IQR for an array of numbers.
-    https://github.com/has2k1/plotnine/blob/bcb93d6cc4ff266565c32a095e40b0127d3d3b7c/plotnine/stats/binning.py
-    """
-    a = np.asarray(a)
-    q1 = stats.scoreatpercentile(a, 25)
-    q3 = stats.scoreatpercentile(a, 75)
-    return q3 - q1
-
-
-def compute_time_deltas(
-    col_data: pd.Series, delta_units: str, unit_th: float = 0.5
-) -> Tuple[pd.Series, str]:
-    """
-    Compute time deltas between successive observations for a datetime series.
-
-    Args:
-        col_data: Datetime series to compute time differences for
-        delta_units: Units to compute time deltas in. 'auto' attempts to guess the best units.
-        unit_th: Threshold for median of units when guessing best units
-
-    Returns:
-        Computed time deltas series and units
-    """
-
-    dts = col_data.sort_values(ascending=True)
-    deltas = dts - dts.shift(1)
-
-    def td_str(units):
-        if units == "months":
-            return "30 days"
-        elif units == "weeks":
-            return "7 days"
-        elif units == "years":
-            return "365 days"
-        else:
-            return f"1 {units}"
-
-    if delta_units == "auto":
-        for unit in TIME_UNITS[::-1]:
-            delta_units = unit
-            unit_str = td_str(delta_units)
-            med = (deltas / pd.Timedelta(unit_str)).median()
-            if med >= unit_th:
-                break
-    else:
-        unit_str = td_str(delta_units)
-    deltas = deltas / pd.Timedelta(unit_str)
-    return deltas, delta_units
-
-
-def agg_time_series(data, column, agg_freq):
+def agg_time_series(
+    data: pd.DataFrame, column: str, agg_freq: str
+) -> Tuple[pd.DataFrame, str]:
     """
     Aggregate a time series at the provided aggregation frequency.
 
@@ -392,7 +262,17 @@ def agg_time_series(data, column, agg_freq):
     return agg_df, ylabel
 
 
-def detect_column_type(col_data, discrete_limit=50):
+def detect_column_type(col_data: pd.Series, discrete_limit: int = 50) -> str:
+    """
+    Tries to infer the intedact variable type for the provided data.
+
+    Args:
+        col_data: Data to infer type for
+        discrete_limit: Number of distinct values below which a column with a numerical data type will be treated as categorical
+
+    Returns:
+        Type of intedact variable that will be used to generate summaries
+    """
     col_data = col_data.dropna()
 
     if is_datetime64_any_dtype(col_data):
@@ -435,3 +315,95 @@ def detect_column_type(col_data, discrete_limit=50):
             return "categorical"
     else:
         raise ValueError(f"Unsupported data type {col_data.dtype.name}")
+
+
+def compute_trendline(
+    data: pd.DataFrame,
+    x: str,
+    y: str,
+    method: str,
+    span: float = 0.75,
+    level: float = 0.95,
+) -> pd.DataFrame:
+    """
+    Computes data to use to plot a trend line. This is a modified version of plotnine's stat_smooth since plotly
+    doesn't have support for custom subplot trend lines.
+
+    Args:
+        data: pandas Dataframe to add trend line for
+        x: x axis variable column name
+        y: y axis variable column name
+        method: smoothing method, see plotnine's [stat_smooth](https://plotnine.readthedocs.io/en/stable/generated/plotnine.stats.stat_smooth.html#plotnine.stats.stat_smooth) for options
+        span: span parameter for loess
+        level: confidence level to use for drawing confidence interval
+
+    Returns:
+        Dataframe where x and y columns hold trend line data which can be plotted
+    """
+
+    params = {
+        "geom": "smooth",
+        "position": "identity",
+        "na_rm": False,
+        "method": method,
+        "se": True,
+        "n": 80,
+        "formula": None,
+        "fullrange": False,
+        "level": level,
+        "span": span,
+        "method_args": {},
+    }
+
+    if params["method"] == "auto":
+        max_group = data[x].value_counts().max()
+        if max_group < 1000:
+            try:
+                from skmisc.loess import loess  # noqa: F401
+
+                params["method"] = "loess"
+            except ImportError:
+                params["method"] = "lowess"
+        else:
+            params["method"] = "glm"
+
+    if params["method"] == "mavg":
+        if "window" not in params["method_args"]:
+            window = len(data) // 10
+            params["method_args"]["window"] = window
+
+    if params["formula"]:
+        allowed = {"lm", "ols", "wls", "glm", "rlm", "gls"}
+        if params["method"] not in allowed:
+            raise ValueError(
+                "You can only use a formula with `method` is "
+                "one of {}".format(allowed)
+            )
+
+    # convert datetime to numeric values
+    date_min = data[x].min()
+    if data[x].dtype.kind == "M":
+        data["x"] = (data[x] - date_min).dt.total_seconds()
+    else:
+        data["x"] = data[x]
+    data["y"] = data[y]
+
+    data = data.sort_values("x")
+    n = data.shape[0]
+    x_unique = data["x"].unique()
+
+    # Not enough data to fit
+    if len(x_unique) < 2:
+        print("Need 2 or more points to smooth")
+        return pd.DataFrame()
+
+    if data["x"].dtype.kind == "i":
+        xseq = np.sort(x_unique)
+    else:
+        rangee = [data["x"].min(), data["x"].max()]
+        xseq = np.linspace(rangee[0], rangee[1], n)
+
+    df = predictdf(data, xseq, **params)
+    if data[x].dtype.kind == "M":
+        df["x"] = date_min + pd.to_timedelta(data["x"], unit="S")
+    return df

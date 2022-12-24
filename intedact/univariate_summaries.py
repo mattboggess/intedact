@@ -1,17 +1,15 @@
 import calendar
-from typing import Union
+from typing import List, Optional, Union
 
+import numpy as np
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import tldextract
 from plotly.subplots import make_subplots
 
-from intedact.data_utils import trim_values
-from intedact.helper_plots import boxplot
-from intedact.helper_plots import countplot
-from intedact.helper_plots import plot_ngrams
-from intedact.helper_plots import timeseries_countplot
-from intedact.plot_utils import *
+from intedact.helper_plots import boxplot, countplot, plot_ngrams, timeseries_countplot
+from intedact.utils import trim_values
 
 FLIP_LEVEL_MINIMUM = 5
 
@@ -25,7 +23,7 @@ def categorical_summary(
     max_levels: int = 20,
     flip_axis: Optional[bool] = None,
     include_missing: bool = False,
-    interactive: bool = False,
+    display_figure: bool = False,
 ) -> go.Figure:
     """
     Creates a univariate EDA summary for a provided categorical data column in a pandas DataFrame.
@@ -49,7 +47,7 @@ def categorical_summary(
         flip_axis: Whether to flip the plot so labels are on y axis. Useful for long level names or lots of levels.
          Default tries to infer based on number of levels and label_rotation value.
         include_missing: Whether to include missing values as an additional level in the data
-        interactive: Whether to display plot for interactive use in a jupyter notebook
+        display_figure: Whether to display the figure in addition to returning it
     """
     data = data.copy()
     if flip_axis is None:
@@ -72,7 +70,7 @@ def categorical_summary(
         include_missing=include_missing,
     )
 
-    if interactive:
+    if display_figure:
         fig.show()
 
     return fig
@@ -87,7 +85,7 @@ def numeric_summary(
     transform: str = "identity",
     lower_quantile: float = 0,
     upper_quantile: float = 1,
-    interactive: bool = False,
+    display_figure: bool = False,
 ) -> go.Figure:
     """
     Creates a univariate EDA summary for a high cardinality numeric data column in a pandas DataFrame.
@@ -105,7 +103,7 @@ def numeric_summary(
             - 'sqrt': apply a square root transformation
         lower_quantile: Lower quantile to filter data above
         upper_quantile: Upper quantile to filter data below
-        interactive: Whether to modify to be used with interactive for ipywidgets
+        display_figure: Whether to display the figure in addition to returning it
     """
     if bins == 0:
         bins = None
@@ -123,7 +121,7 @@ def numeric_summary(
     fig = px.histogram(data, x=label, marginal="box", nbins=bins)
     fig.update_layout(height=fig_height, width=fig_width)
 
-    if interactive:
+    if display_figure:
         fig.show()
 
     return fig
@@ -139,7 +137,7 @@ def datetime_summary(
     trend_line: str = "auto",
     lower_quantile: float = 0,
     upper_quantile: float = 1,
-    interactive: bool = False,
+    display_figure: bool = False,
 ) -> go.Figure:
     """
     Creates a univariate EDA summary for a datetime data column in a pandas DataFrame.
@@ -160,7 +158,7 @@ def datetime_summary(
           a time period ranging from seconds to years. (e.g. '1 year', '3 minutes')
         lower_quantile: Lower quantile to filter data above
         upper_quantile: Upper quantile to filter data below
-        interactive: Whether to display figures and tables in jupyter notebook for interactive use
+        display_figure: Whether to display the figure in addition to returning it
     """
     data = data.copy()
     data = trim_values(data, column, lower_quantile, upper_quantile)
@@ -241,7 +239,7 @@ def datetime_summary(
 
     fig.update(layout_showlegend=False)
 
-    if interactive:
+    if display_figure:
         fig.show()
 
     return fig
@@ -256,7 +254,7 @@ def text_summary(
     remove_punct: bool = True,
     remove_stop: bool = True,
     lower_case: bool = True,
-    interactive: bool = False,
+    display_figure: bool = False,
 ) -> go.Figure:
     """
     Creates a univariate EDA summary for a text variable column in a pandas DataFrame. Currently only
@@ -271,10 +269,7 @@ def text_summary(
         remove_punct: Whether to remove punctuation during tokenization
         remove_stop: Whether to remove stop words during tokenization
         lower_case: Whether to lower case text for tokenization
-        interactive: Whether to display figures and tables in jupyter notebook for interactive use
-
-    Returns:
-        Tuple containing matplotlib Figure drawn and summary stats DataFrame
+        display_figure: Whether to display the figure in addition to returning it
     """
     from nltk import word_tokenize
     from nltk.corpus import stopwords
@@ -346,7 +341,7 @@ def text_summary(
     fig.update(layout_showlegend=False)
     fig.update_layout(title_text=f"{column} (vocab size: {vocab_size})", title_x=0.5)
 
-    if interactive:
+    if display_figure:
         fig.show()
     return fig
 
@@ -359,7 +354,7 @@ def collection_summary(
     top_entries: int = 10,
     sort_collections: bool = False,
     remove_duplicates: bool = False,
-    interactive: bool = False,
+    display_figure: bool = False,
 ) -> go.Figure:
     """
     Creates a univariate EDA summary for a collections column in a pandas DataFrame.
@@ -374,10 +369,7 @@ def collection_summary(
         top_entries: Max number of entries to show for countplots
         sort_collections: Whether to sort collections and ignore original order
         remove_duplicates: Whether to remove duplicate entries from collections
-        interactive: Whether to display figures and tables in jupyter notebook for interactive use
-
-    Returns:
-        Tuple containing matplotlib Figure drawn and summary stats DataFrame
+        display_figure: Whether to display the figure in addition to returning it
     """
     data = data.copy()
 
@@ -437,7 +429,7 @@ def collection_summary(
 
     fig.update(layout_showlegend=False)
     fig.update_layout(title_text=f"{column}", title_x=0.5)
-    if interactive:
+    if display_figure:
         fig.show()
 
     return fig
@@ -449,8 +441,8 @@ def url_summary(
     fig_height: int = 1000,
     fig_width: int = 1200,
     top_entries: int = 10,
-    interactive: bool = False,
-):
+    display_figure: bool = False,
+) -> go.Figure:
     """
     Creates a univariate EDA summary for a url column in a pandas DataFrame. The provided column should be
     a string/object column containing urls.
@@ -460,13 +452,8 @@ def url_summary(
         column: A string matching a column in the data
         fig_height: Height of the plot in inches
         fig_width: Width of the plot in inches
-        fontsize: Font size of axis and tick labels
-        color_palette: Seaborn color palette to use
         top_entries: Max number of entries to show for countplots
-        interactive: Whether to display figures and tables in jupyter notebook for interactive use
-
-    Returns:
-        Tuple containing matplotlib Figure drawn and summary stats DataFrame
+        display_figure: Whether to display the figure in addition to returning it
     """
     data = data.copy()
 
@@ -487,14 +474,6 @@ def url_summary(
         axis=1,
     ).fillna("No File Detected")
 
-    # Compute Summary Table
-    # table["percent_https"] = data["is_https"].mean() * 100
-    # table["count_unique_domains"] = data["Domain"].nunique()
-    # table["count_unique_domain_suffixes"] = data["Domain Suffix"].nunique()
-    # table["count_unique_file_types"] = data[data["File Type"] != "No File Detected"][
-    #    "File Type"
-    # ].nunique()
-
     fig = make_subplots(
         rows=3,
         cols=2,
@@ -506,7 +485,6 @@ def url_summary(
     )
     fig.update_layout(width=fig_width, height=fig_height)
 
-    # Plot most common urls
     fig = countplot(
         data,
         column,
@@ -517,7 +495,6 @@ def url_summary(
         max_levels=top_entries,
     )
 
-    # Plot most common domains
     fig = countplot(
         data,
         "Domain",
@@ -528,7 +505,6 @@ def url_summary(
         max_levels=top_entries,
     )
 
-    # Plot most common domain suffixes
     fig = countplot(
         data,
         "Domain Suffix",
@@ -539,7 +515,6 @@ def url_summary(
         max_levels=top_entries,
     )
 
-    # Plot most common file types
     fig = countplot(
         data,
         "File Type",
@@ -553,7 +528,7 @@ def url_summary(
     fig.update_layout(title_text=f"{column}", title_x=0.5)
     fig.update(layout_showlegend=False)
 
-    if interactive:
+    if display_figure:
         fig.show()
 
     return fig
