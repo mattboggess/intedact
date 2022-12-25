@@ -10,13 +10,14 @@ The URL summary computes the following:
 - Countplot for the domains of the urls
 - Countplot for the domain suffixes of the urls
 - Countplot for the file types of the urls
-- A table with summary statistics for the url metadata
 """
 import warnings
 
 warnings.filterwarnings("ignore")
 
 import pandas as pd
+import plotly
+
 import intedact
 
 # %%
@@ -27,6 +28,5 @@ data = pd.read_csv(
     sep="\t",
 )
 
-table, fig = intedact.url_univariate_summary(data, "source", fontsize=10)
-fig.show()
-table
+fig = intedact.url_summary(data, "source", fig_width=700)
+plotly.io.show(fig)

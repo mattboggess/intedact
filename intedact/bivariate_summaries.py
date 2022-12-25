@@ -275,7 +275,7 @@ def categorical_numeric_summary(
     lower_quantile: float = 0,
     upper_quantile: float = 1,
     hist_bins: Optional[int] = None,
-    dist_type: str = "norm_hist+kde",
+    dist_type: str = "kde_only",
     transform: str = "identity",
     display_figure: bool = False,
 ) -> go.Figure:

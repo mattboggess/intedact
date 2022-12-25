@@ -29,9 +29,8 @@ The collection summary computes the following:
   - Counts for all the unique collections
   - Counts for all the unique entries
   - Counts for the number of entries in each collection
-- A table with summary statistics for the overall collections and the number of entries per collection
 
-.. GENERATED FROM PYTHON SOURCE LINES 15-22
+.. GENERATED FROM PYTHON SOURCE LINES 14-22
 
 .. code-block:: default
 
@@ -41,6 +40,7 @@ The collection summary computes the following:
 
     import pandas as pd
     import intedact
+    import plotly
 
 
 
@@ -56,7 +56,7 @@ a list and not a string. One can also choose whether to sort the values (ignore 
 remove duplicates (only consider unique entries)
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 27-38
+.. GENERATED FROM PYTHON SOURCE LINES 27-35
 
 .. code-block:: default
 
@@ -66,101 +66,22 @@ remove duplicates (only consider unique entries)
     )
     data["article_violated"] = data["article_violated"].apply(lambda x: x.split("|"))
 
-    table, fig = intedact.collection_univariate_summary(
-        data, "article_violated", fontsize=10
-    )
-    fig.show()
-    table
-
-
-
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_collection_summary_001.png
-   :alt: plot univariate collection summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_collection_summary_001.png
-   :class: sphx-glr-single-img
+    fig = intedact.collection_summary(data, "article_violated", fig_width=700)
+    plotly.io.show(fig)
 
 
 
 .. raw:: html
+    :file: images/sphx_glr_plot_univariate_collection_summary_001.html
 
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
 
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
 
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-          <th>count_unique_entries</th>
-          <th>min</th>
-          <th>25%</th>
-          <th>median</th>
-          <th>mean</th>
-          <th>75%</th>
-          <th>max</th>
-          <th>std</th>
-          <th>iqr</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>article_violated</th>
-          <td>250</td>
-          <td>88</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>67.0</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-        </tr>
-        <tr>
-          <th># Entries / Collection</th>
-          <td>250</td>
-          <td>5</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>NaN</td>
-          <td>1.0</td>
-          <td>1.0</td>
-          <td>1.0</td>
-          <td>1.576</td>
-          <td>2.0</td>
-          <td>5.0</td>
-          <td>0.889601</td>
-          <td>1.0</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
+
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.488 seconds)
+   **Total running time of the script:** ( 0 minutes  0.234 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_collection_summary.py:

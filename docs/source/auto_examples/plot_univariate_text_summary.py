@@ -10,15 +10,16 @@ The text summary computes the following:
 - Histogram of # of characters / document
 - Boxplot of # of unique observations of each document
 - Countplots for the most common unigrams, bigrams, and trigams
-- A table with summary statistics for the text metadata
 """
 import warnings
 
 warnings.filterwarnings("ignore")
 
-import pandas as pd
-import intedact
 import nltk
+import pandas as pd
+import plotly
+
+import intedact
 
 nltk.download("punkt")
 nltk.download("stopwords")
@@ -31,22 +32,20 @@ data = pd.read_csv(
     sep="\t",
 )
 
-table, fig = intedact.text_univariate_summary(data, "summary", fontsize=10)
-fig.show()
-table
+fig = intedact.text_summary(data, "summary", fig_width=700)
+plotly.io.show(fig)
 
 # %%
 # By default, the summary does a lot of text cleaning: removing punctuation and stop words, lower casing. We can
 # turn all of these off.
 #
 
-table, fig = intedact.text_univariate_summary(
+fig = intedact.text_summary(
     data,
     "summary",
-    fontsize=10,
     remove_stop=False,
     remove_punct=False,
     lower_case=False,
+    fig_width=700,
 )
-fig.show()
-table
+plotly.io.show(fig)

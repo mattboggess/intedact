@@ -25,11 +25,10 @@ Example of univariate eda summary for a numeric variable.
 
 The numeric summary computes the following:
 
-- A histogram with optional kde overlay
+- A histogram
 - A boxplot
-- A table with summary statistics
 
-.. GENERATED FROM PYTHON SOURCE LINES 13-21
+.. GENERATED FROM PYTHON SOURCE LINES 12-20
 
 .. code-block:: default
 
@@ -39,7 +38,7 @@ The numeric summary computes the following:
 
     import pandas as pd
     import intedact
-    import seaborn as sns
+    import plotly
 
 
 
@@ -48,98 +47,16 @@ The numeric summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 22-24
+.. GENERATED FROM PYTHON SOURCE LINES 21-27
 
-Here we take a look at the distribution of carats for the popular diamonds dataset.
-
-
-.. GENERATED FROM PYTHON SOURCE LINES 24-29
-
-.. code-block:: default
-
-    data = sns.load_dataset("diamonds")
-    table, fig = intedact.numeric_univariate_summary(data, "carat", fontsize=10)
-    fig.show()
-    table
-
-
-
-
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_numeric_summary_001.png
-   :alt: plot univariate numeric summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_numeric_summary_001.png
-   :class: sphx-glr-single-img
-
-
-
-.. raw:: html
-
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-          <th>min</th>
-          <th>25%</th>
-          <th>median</th>
-          <th>mean</th>
-          <th>75%</th>
-          <th>max</th>
-          <th>std</th>
-          <th>iqr</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>carat</th>
-          <td>53940</td>
-          <td>273</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>0.2</td>
-          <td>0.4</td>
-          <td>0.7</td>
-          <td>0.79794</td>
-          <td>1.04</td>
-          <td>5.01</td>
-          <td>0.474011</td>
-          <td>0.64</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
-
-.. GENERATED FROM PYTHON SOURCE LINES 30-36
-
-Next we take a look at some GDPR violation prices to showcase the other parameters:
+Here we take a look at some GDPR violation prices to showcase the other parameters:
 
 - log transformation
 - outlier filtering
 - kde overlay
 - custom bin count
 
-.. GENERATED FROM PYTHON SOURCE LINES 36-46
+.. GENERATED FROM PYTHON SOURCE LINES 27-36
 
 .. code-block:: default
 
@@ -148,83 +65,24 @@ Next we take a look at some GDPR violation prices to showcase the other paramete
         "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv",
         sep="\t",
     )
-    table, fig = intedact.numeric_univariate_summary(
-        data, "price", bins=20, kde=True, transform="log", upper_quantile=0.95, fontsize=10
+    fig = intedact.numeric_summary(
+        data, "price", bins=20, transform="log", upper_quantile=0.95, fig_width=700
     )
-    fig.show()
-    table
-
-
-
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_numeric_summary_002.png
-   :alt: plot univariate numeric summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_numeric_summary_002.png
-   :class: sphx-glr-single-img
+    plotly.io.show(fig)
 
 
 
 .. raw:: html
+    :file: images/sphx_glr_plot_univariate_numeric_summary_001.html
 
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
 
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
 
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-          <th>min</th>
-          <th>25%</th>
-          <th>median</th>
-          <th>mean</th>
-          <th>75%</th>
-          <th>max</th>
-          <th>std</th>
-          <th>iqr</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>price</th>
-          <td>237</td>
-          <td>107</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>0.0</td>
-          <td>2000.0</td>
-          <td>10000.0</td>
-          <td>41222.654008</td>
-          <td>50000.0</td>
-          <td>500000.0</td>
-          <td>76279.357996</td>
-          <td>48000.0</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
+
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.649 seconds)
+   **Total running time of the script:** ( 0 minutes  0.216 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_numeric_summary.py:

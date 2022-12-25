@@ -48,7 +48,10 @@ def bivariate_eda_interact(
     col2_widget.observe(match_type, "value")
     col1_type = detect_column_type(data[data.columns[0]], discrete_limit=10)
     col2_type = detect_column_type(data[data.columns[1]], discrete_limit=10)
-    type_widget.value = f"{col1_type}-{col2_type}"
+    if f"{col1_type}-{col2_type}" in WIDGET_PARAMS["bivariate_summary_type"]["options"]:
+        type_widget.value = f"{col1_type}-{col2_type}"
+    else:
+        type_widget.value = "unsupported"
 
     display(widget)
 
@@ -82,7 +85,6 @@ def column_bivariate_eda_interact(
             column2=widgets.fixed(column2),
             fig_height=fig_height_widget,
             fig_width=fig_width_widget,
-            fontsize=widgets.FloatSlider(**WIDGET_PARAMS["fontsize"]),
             opacity=widgets.FloatSlider(**WIDGET_PARAMS["opacity"]),
             trend_line=widgets.Dropdown(**WIDGET_PARAMS["trend_line"]),
             hist_bins=widgets.IntSlider(**WIDGET_PARAMS["bins"]),
@@ -164,7 +166,9 @@ def column_bivariate_eda_interact(
             display_figure=widgets.fixed(True),
         )
     else:
-        print(f"No EDA support for bivariate summary type: {summary_type}")
+        col1_type = detect_column_type(data[column1], discrete_limit=10)
+        col2_type = detect_column_type(data[column2], discrete_limit=10)
+        print(f"No EDA support for bivariate summary type: {col1_type}-{col2_type}")
         return
 
     print("==============")
