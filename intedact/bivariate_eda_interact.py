@@ -7,9 +7,8 @@ import pandas as pd
 from IPython.display import display
 
 from intedact import bivariate_summaries
-
-from .config import WIDGET_PARAMS
-from .utils import coerce_column_type, detect_column_type
+from intedact.config import WIDGET_PARAMS
+from intedact.utils import coerce_column_type, detect_column_type
 
 
 def bivariate_eda_interact(
@@ -41,6 +40,7 @@ def bivariate_eda_interact(
         type_widget.value = f"{col1_type}-{col2_type}"
 
     col1_widget = widget.children[0]
+    col1_widget.value = data.columns[0]
     col2_widget = widget.children[1]
     col2_widget.value = data.columns[1]
     type_widget = widget.children[2]

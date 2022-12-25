@@ -19,6 +19,7 @@ def univariate_eda_interact(
 
     col_widget = widgets.Dropdown(**WIDGET_PARAMS["column"])
     col_widget.options = data.columns
+    col_widget.value = data.columns[0]
 
     widget = widgets.widgets.interactive(
         column_univariate_eda_interact,
