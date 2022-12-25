@@ -26,18 +26,15 @@ Example of univariate eda summary for a datetime variable. Here we look at posti
 The datetime summary computes the following:
 
 - A time seriesplot aggregated according to the `ts_freq` parameter
-- A boxplot and histogram of the time differences between successive observations. `delta_units` controls the units of this.
 - Barplots showing counts by day of week, month, hour of day, day of month
-- A table with summary statistics for the time differences and time series itself
 
-.. GENERATED FROM PYTHON SOURCE LINES 14-30
+.. GENERATED FROM PYTHON SOURCE LINES 12-26
 
 .. code-block:: default
 
     import warnings
-
     import pandas as pd
-
+    import plotly
     import intedact
 
     warnings.filterwarnings("ignore")
@@ -46,299 +43,77 @@ The datetime summary computes the following:
         "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/tidytuesday_tweets/data.csv"
     )
     data["created_at"] = pd.to_datetime(data.created_at)
-    table, fig = intedact.datetime_univariate_summary(data, "created_at", fontsize=10)
-    fig.show()
-    table
+    fig = intedact.datetime_summary(data, "created_at", fig_width=700)
+    plotly.io.show(fig)
 
-
-
-
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_datetime_summary_001.png
-   :alt: plot univariate datetime summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_datetime_summary_001.png
-   :class: sphx-glr-single-img
 
 
 
 .. raw:: html
+    :file: images/sphx_glr_plot_univariate_datetime_summary_001.html
 
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
 
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
 
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-          <th>min</th>
-          <th>25%</th>
-          <th>median</th>
-          <th>75%</th>
-          <th>max</th>
-          <th>iqr</th>
-          <th>mean</th>
-          <th>std</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>created_at</th>
-          <td>17284</td>
-          <td>17193</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>2018-04-02 21:35:08</td>
-          <td>2019-10-01 20:54:31.750000128</td>
-          <td>2020-07-15 01:49:35.500000</td>
-          <td>2021-03-16 21:17:22.249999872</td>
-          <td>2022-01-09 13:46:29</td>
-          <td>532 days 00:22:50.499999744</td>
-          <td>NaN</td>
-          <td>NaN</td>
-        </tr>
-        <tr>
-          <th>Time Deltas (hours)</th>
-          <td>17283</td>
-          <td>9315</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>0.0</td>
-          <td>0.249583</td>
-          <td>0.789722</td>
-          <td>2.122778</td>
-          <td>116.407222</td>
-          <td>1.873194</td>
-          <td>1.913105</td>
-          <td>3.579309</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
 
-.. GENERATED FROM PYTHON SOURCE LINES 31-34
+
+.. GENERATED FROM PYTHON SOURCE LINES 27-30
 
 By default, the summary tries to infer reasonable units for the time differences and time series. We can change
 these by using time unit strings for the `ts_freq` and `delta_units` parameters.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 34-41
+.. GENERATED FROM PYTHON SOURCE LINES 30-36
 
 .. code-block:: default
 
 
-    table, fig = intedact.datetime_univariate_summary(
-        data, "created_at", ts_freq="1 day", delta_units="1 minute", fontsize=10
+    fig = intedact.datetime_summary(
+        data, "created_at", ts_freq="1 day", fig_width=700
     )
-    fig.show()
-    table
+    plotly.io.show(fig)
 
-
-
-
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_datetime_summary_002.png
-   :alt: plot univariate datetime summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_datetime_summary_002.png
-   :class: sphx-glr-single-img
 
 
 
 .. raw:: html
+    :file: images/sphx_glr_plot_univariate_datetime_summary_002.html
 
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
 
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
 
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-          <th>min</th>
-          <th>25%</th>
-          <th>median</th>
-          <th>75%</th>
-          <th>max</th>
-          <th>iqr</th>
-          <th>mean</th>
-          <th>std</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>created_at</th>
-          <td>17284</td>
-          <td>17193</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>2018-04-02 21:35:08</td>
-          <td>2019-10-01 20:54:31.750000128</td>
-          <td>2020-07-15 01:49:35.500000</td>
-          <td>2021-03-16 21:17:22.249999872</td>
-          <td>2022-01-09 13:46:29</td>
-          <td>532 days 00:22:50.499999744</td>
-          <td>NaN</td>
-          <td>NaN</td>
-        </tr>
-        <tr>
-          <th>Time Deltas (1 minute)</th>
-          <td>17283</td>
-          <td>9315</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>0.0</td>
-          <td>1.361364</td>
-          <td>4.307576</td>
-          <td>11.578788</td>
-          <td>634.948485</td>
-          <td>10.217424</td>
-          <td>10.435117</td>
-          <td>19.523504</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
 
-.. GENERATED FROM PYTHON SOURCE LINES 42-44
+
+.. GENERATED FROM PYTHON SOURCE LINES 37-39
 
 Example of changing plot type, removing trend line, and removing outliers.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 44-54
+.. GENERATED FROM PYTHON SOURCE LINES 39-48
 
 .. code-block:: default
 
-    table, fig = intedact.datetime_univariate_summary(
+    fig = intedact.datetime_summary(
         data,
         "created_at",
-        ts_type="point",
-        trend_line=None,
+        ts_type="markers",
+        trend_line="none",
         upper_quantile=0.99,
-        fontsize=10,
+        fig_width=700
     )
-    fig.show()
-    table
-
-
-
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_datetime_summary_003.png
-   :alt: plot univariate datetime summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_datetime_summary_003.png
-   :class: sphx-glr-single-img
+    plotly.io.show(fig)
 
 
 
 .. raw:: html
+    :file: images/sphx_glr_plot_univariate_datetime_summary_003.html
 
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
 
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
 
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-          <th>min</th>
-          <th>25%</th>
-          <th>median</th>
-          <th>75%</th>
-          <th>max</th>
-          <th>iqr</th>
-          <th>mean</th>
-          <th>std</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>created_at</th>
-          <td>17111</td>
-          <td>17039</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>2018-04-02 21:35:08</td>
-          <td>2019-09-29 10:44:49</td>
-          <td>2020-07-13 14:15:00</td>
-          <td>2021-03-09 11:05:35</td>
-          <td>2021-12-25 16:00:58</td>
-          <td>527 days 00:20:46</td>
-          <td>NaN</td>
-          <td>NaN</td>
-        </tr>
-        <tr>
-          <th>Time Deltas (hours)</th>
-          <td>17110</td>
-          <td>9263</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>0.0</td>
-          <td>0.251667</td>
-          <td>0.7925</td>
-          <td>2.123472</td>
-          <td>116.407222</td>
-          <td>1.871806</td>
-          <td>1.911539</td>
-          <td>3.575643</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
+
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  5.162 seconds)
+   **Total running time of the script:** ( 0 minutes  3.214 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_datetime_summary.py:

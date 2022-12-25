@@ -1,17 +1,15 @@
 # intedact: Interactive EDA
 
+[![PyPI Version](https://img.shields.io/pypi/v/intedact.svg)](https://pypi.org/project/intedact/)
 [![Read the Docs](https://readthedocs.org/projects/intedact/badge/?version=latest)](https://intedact.readthedocs.io/en/latest/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/mattboggess/intedact/blob/master/LICENSE)
 
-Interactive EDA for pandas DataFrames directly in your Jupyter notebook. intedact's goal is to make
-common, standardized EDA summaries available with one function call. Instead of copying and pasting the same code
-across projects, just use intedact in any initial exploration notebook and explore the dataset right in the notebook.
-intedact is interactive so you can adjust these summaries as needed for different datasets, but it strives to
-produce the best summaries by default.
+Interactive EDA for pandas DataFrames directly in your Jupyter notebook. intedact makes
+common, standardized EDA visual summaries available in an interactive manner with one function call. Using ipywidgets, you can quickly
+cycle through different variables or combinations of variables and produce useful visual summaries when exploring the dataset. Each summary will have additional
+plot parameters you can tweak to adjust the visualizations to work for your dataset.
 
 Full documentation at [intedact.readthedocs.io](https://intedact.readthedocs.io/en/latest/index.html)
-
-Try intedact here: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mattboggess/intedact/master?labpath=demo%2Funivariate_eda_demo.ipynb)
 
 # Getting Started
 
@@ -30,13 +28,12 @@ Download the following nltk resources for the ngram text summaries.
 ## Univariate EDA
 
 Univariate EDA refers to the process of visualizing and summarizing a single variable.
-intedact's univariate EDA allows you to produce summaries of single columns in a pandas dataframe
 
-For interactive univariate EDA simply import the `univariate_eda_interact` function in a jupyter notebook:
+For interactive univariate EDA simply import the `univariate_eda_interact` function in a jupyter notebook and pass in a pandas dataframe:
 
     from intedact import univariate_eda_interact
     univarate_eda_interact(
-        data, notes_file="optional_file_to_save_notes_to.json", figure_dir="optional_directory_to_save_plots_to"
+        data, notes_file="optional_file_to_save_notes_to.json"
     )
 
 <img src="https://github.com/mattboggess/intedact/raw/master/demo/univariate_eda_demo.gif"/>
@@ -58,4 +55,39 @@ See the documentation for [examples](https://intedact.readthedocs.io/en/latest/a
 
 ## Bivariate EDA
 
-Work in progress. Stay tuned!
+Bivariate EDA refers to the process of visualizing and summarizing a pair of variables.
+
+Like with univariate EDA, simply import the `bivariate_eda_interact` function in a jupyter notebook and pass in  a dataframe:
+
+    from intedact import bivariate_eda_interact
+    bivarate_eda_interact(
+        data, notes_file="optional_file_to_save_notes_to.json"
+    )
+
+<img src="https://github.com/mattboggess/intedact/raw/master/demo/bivariate_eda_demo.gif"/>
+
+At the top level, one selects a pair of columns to display (one as the independent and the second as the dependent).
+Current supported summary types:
+
+- categorical-categorical: Summarize a pair of categorical columns
+- numeric-categorical: Summarize an independent numeric variable against a dependent categorical variable
+- categorical-numeric: Summarize an independent categorical variable against a dependent numeric variable
+- numeric-numeric: Summarize a pair of numeric columns
+
+
+# Design Philosophy
+
+The motivation for intedact comes from the following observations:
+
+1. There is a standard set of visualizations that should be always applied to different individual and combinations of variables depending on their type when performing EDA. For example, it is always good
+   to visualize the distribution of a numerical variable using a histogram. intedact's goal is to save you from having to constantly copy-paste this code across columns, projects, etc.
+2. These visualizations often need some degree of adjustment to get the information you need. For example, really skewed variables with outliers might need some outlier filtering and/or a log transform
+   to actually be able to visualize the histogram properly. intedact's goal is to give you additional control over the visualization with interactive widgets that you can repeatedly adjust until
+   you get the visualization you need.
+
+Given the above, intedact tries to produce visualizations that give you the visual understanding you are seeking for 95% of cases when you pass in the defaults. For the other 5%,
+we give you additional parameters you can tweak via the widgets so you can still get the insights you need without having to leave the interface.
+
+intedact is not a single click EDA summary generation tool. Many of those exist and we recommend pairing them with intedact (pandas-profiling is a great one for example).
+Where these fall short, is they don't focus on the visualizations and give you the power to adjust them to your dataset when the defaults don't suffice. Use intedact
+when you want to dig deeper and really visually understand a variable or the relationship between variable(s).

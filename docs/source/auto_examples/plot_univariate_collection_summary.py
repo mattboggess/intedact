@@ -10,13 +10,14 @@ The collection summary computes the following:
   - Counts for all the unique collections
   - Counts for all the unique entries
   - Counts for the number of entries in each collection
-- A table with summary statistics for the overall collections and the number of entries per collection
 """
 import warnings
 
 warnings.filterwarnings("ignore")
 
 import pandas as pd
+import plotly
+
 import intedact
 
 # %%
@@ -30,8 +31,5 @@ data = pd.read_csv(
 )
 data["article_violated"] = data["article_violated"].apply(lambda x: x.split("|"))
 
-table, fig = intedact.collection_univariate_summary(
-    data, "article_violated", fontsize=10
-)
-fig.show()
-table
+fig = intedact.collection_summary(data, "article_violated", fig_width=700)
+plotly.io.show(fig)

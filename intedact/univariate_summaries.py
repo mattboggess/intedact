@@ -133,7 +133,7 @@ def datetime_summary(
     fig_height: int = 1000,
     fig_width: int = 1200,
     ts_freq: str = "auto",
-    ts_type: str = "line",
+    ts_type: str = "lines",
     trend_line: str = "auto",
     lower_quantile: float = 0,
     upper_quantile: float = 1,

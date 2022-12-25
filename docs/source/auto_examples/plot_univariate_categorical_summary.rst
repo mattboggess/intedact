@@ -28,7 +28,7 @@ The categorical summary computes the following:
 - A countplot with counts and percentages by level of the categorical
 - A table with summary statistics
 
-.. GENERATED FROM PYTHON SOURCE LINES 12-21
+.. GENERATED FROM PYTHON SOURCE LINES 12-20
 
 .. code-block:: default
 
@@ -38,7 +38,7 @@ The categorical summary computes the following:
 
     import pandas as pd
     import intedact
-    import seaborn as sns
+    import plotly
 
 
 
@@ -47,15 +47,14 @@ The categorical summary computes the following:
 
 
 
-
-.. GENERATED FROM PYTHON SOURCE LINES 22-26
+.. GENERATED FROM PYTHON SOURCE LINES 21-25
 
 For our first example, we plot the name of countries who have had GDPR violations.
 By default, the plot will try to order and orient the columns appropriately. Here we order by descending count
 and the plot was flipped horizontally due to the number of levels in the variable.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 26-34
+.. GENERATED FROM PYTHON SOURCE LINES 25-32
 
 .. code-block:: default
 
@@ -63,208 +62,55 @@ and the plot was flipped horizontally due to the number of levels in the variabl
         "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv",
         sep="\t",
     )
-    table, fig = intedact.categorical_univariate_summary(data, "name", fontsize=10)
-    fig.show()
-    table
+    fig = intedact.categorical_summary(data, "name", fig_width=700)
+    plotly.io.show(fig)
 
-
-
-
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_categorical_summary_001.png
-   :alt: plot univariate categorical summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_categorical_summary_001.png
-   :class: sphx-glr-single-img
 
 
 
 .. raw:: html
+    :file: images/sphx_glr_plot_univariate_categorical_summary_001.html
 
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
 
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
 
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>name</th>
-          <td>250</td>
-          <td>25</td>
-          <td>0</td>
-          <td>0.0</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
 
-.. GENERATED FROM PYTHON SOURCE LINES 35-38
+
+.. GENERATED FROM PYTHON SOURCE LINES 33-36
 
 We can do additional things such as condense extra columns into an "Other" column, add a bar for missing values,
 and change the sort order to sort alphabetically.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 38-44
+.. GENERATED FROM PYTHON SOURCE LINES 36-40
 
 .. code-block:: default
 
-    table, fig = intedact.categorical_univariate_summary(
-        data, "name", include_missing=True, order="sorted", max_levels=10, fontsize=10
+    fig = intedact.categorical_summary(
+        data, "name", include_missing=True, order="sorted", max_levels=5, fig_width=700,
     )
-    fig.show()
-    table
-
-
-
-
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_categorical_summary_002.png
-   :alt: plot univariate categorical summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_categorical_summary_002.png
-   :class: sphx-glr-single-img
+    plotly.io.show(fig)
 
 
 
 .. raw:: html
-
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>name</th>
-          <td>250</td>
-          <td>25</td>
-          <td>0</td>
-          <td>0.0</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
-
-.. GENERATED FROM PYTHON SOURCE LINES 45-48
-
-To handle ordinal variable sorting, one must convert the column to an ordered categorical data type. Here's an example
-of this for the diamonds dataset.
+    :file: images/sphx_glr_plot_univariate_categorical_summary_002.html
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 48-60
+.. rst-class:: sphx-glr-script-out
 
-.. code-block:: default
+ Out:
 
+ .. code-block:: none
 
-    data = sns.load_dataset("diamonds")
-    data["clarity"] = pd.Categorical(
-        data["clarity"],
-        categories=["I1", "SI1", "SI2", "VS2", "VS1", "VVS2", "VVS1", "IF"],
-        ordered=True,
-    )
-    table, fig = intedact.categorical_univariate_summary(
-        data, "clarity", flip_axis=False, fontsize=10
-    )
-    fig.show()
-    table
+    No missing values for column: name
 
 
 
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_categorical_summary_003.png
-   :alt: plot univariate categorical summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_categorical_summary_003.png
-   :class: sphx-glr-single-img
-
-
-
-.. raw:: html
-
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>clarity</th>
-          <td>53940</td>
-          <td>8</td>
-          <td>0</td>
-          <td>0.0</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.477 seconds)
+   **Total running time of the script:** ( 0 minutes  0.229 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_categorical_summary.py:

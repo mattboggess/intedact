@@ -29,9 +29,8 @@ The URL summary computes the following:
 - Countplot for the domains of the urls
 - Countplot for the domain suffixes of the urls
 - Countplot for the file types of the urls
-- A table with summary statistics for the url metadata
 
-.. GENERATED FROM PYTHON SOURCE LINES 15-22
+.. GENERATED FROM PYTHON SOURCE LINES 14-22
 
 .. code-block:: default
 
@@ -41,6 +40,7 @@ The URL summary computes the following:
 
     import pandas as pd
     import intedact
+    import plotly
 
 
 
@@ -54,7 +54,7 @@ The URL summary computes the following:
 Here we take a look at the source URL's for countries GDPR violations recordings.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 25-33
+.. GENERATED FROM PYTHON SOURCE LINES 25-32
 
 .. code-block:: default
 
@@ -63,73 +63,22 @@ Here we take a look at the source URL's for countries GDPR violations recordings
         sep="\t",
     )
 
-    table, fig = intedact.url_univariate_summary(data, "source", fontsize=10)
-    fig.show()
-    table
-
-
-
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_url_summary_001.png
-   :alt: plot univariate url summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_url_summary_001.png
-   :class: sphx-glr-single-img
+    fig = intedact.url_summary(data, "source", fig_width=700)
+    plotly.io.show(fig)
 
 
 
 .. raw:: html
+    :file: images/sphx_glr_plot_univariate_url_summary_001.html
 
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
 
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
 
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-          <th>percent_https</th>
-          <th>count_unique_domains</th>
-          <th>count_unique_domain_suffixes</th>
-          <th>count_unique_file_types</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>source</th>
-          <td>250</td>
-          <td>218</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>96.0</td>
-          <td>58</td>
-          <td>33</td>
-          <td>2</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
+
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.022 seconds)
+   **Total running time of the script:** ( 0 minutes  1.099 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_url_summary.py:

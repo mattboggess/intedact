@@ -60,6 +60,7 @@ WIDGET_PARAMS = {
             "categorical-categorical",
             "categorical-numeric",
             "numeric-categorical",
+            "unsupported",
         ],
     ),
     "auto_update": dict(description="Auto Update Summaries", value=True),

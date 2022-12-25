@@ -26,6 +26,14 @@ release = "0.0.1"
 
 # -- General configuration ---------------------------------------------------
 
+import plotly.io as pio
+
+pio.renderers.default = "sphinx_gallery"
+
+import warnings
+
+warnings.filterwarnings("ignore")
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
@@ -41,10 +49,24 @@ extensions = [
     "sphinx_gallery.gen_gallery",
 ]
 
+from plotly.io._sg_scraper import plotly_sg_scraper
+
+image_scrapers = (
+    "matplotlib",
+    plotly_sg_scraper,
+)
 sphinx_gallery_conf = {
-    "examples_dirs": "../../examples",  # path to your example scripts
-    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "examples_dirs": [
+        "../../examples/univariate_summaries",
+        "../../examples/bivariate_summaries",
+    ],  # path to your example scripts
+    "gallery_dirs": [
+        "auto_examples/univariate_summaries",
+        "auto_examples/bivariate_summaries",
+    ],  # path to where to save gallery generated output
+    "image_scrapers": image_scrapers,
 }
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

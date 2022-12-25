@@ -29,9 +29,8 @@ The text summary computes the following:
 - Histogram of # of characters / document
 - Boxplot of # of unique observations of each document
 - Countplots for the most common unigrams, bigrams, and trigams
-- A table with summary statistics for the text metadata
 
-.. GENERATED FROM PYTHON SOURCE LINES 15-26
+.. GENERATED FROM PYTHON SOURCE LINES 14-26
 
 .. code-block:: default
 
@@ -42,6 +41,7 @@ The text summary computes the following:
     import pandas as pd
     import intedact
     import nltk
+    import plotly
 
     nltk.download("punkt")
     nltk.download("stopwords")
@@ -71,7 +71,7 @@ The text summary computes the following:
 Here we take a look at the summaries for GDPR violations.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 29-38
+.. GENERATED FROM PYTHON SOURCE LINES 29-37
 
 .. code-block:: default
 
@@ -80,239 +80,53 @@ Here we take a look at the summaries for GDPR violations.
         sep="\t",
     )
 
-    table, fig = intedact.text_univariate_summary(data, "summary", fontsize=10)
-    fig.show()
-    table
+    fig = intedact.text_summary(data, "summary", fig_width=700)
+    plotly.io.show(fig)
 
-
-
-
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_text_summary_001.png
-   :alt: plot univariate text summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_text_summary_001.png
-   :class: sphx-glr-single-img
 
 
 
 .. raw:: html
+    :file: images/sphx_glr_plot_univariate_text_summary_001.html
 
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
 
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
 
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-          <th>vocab_size</th>
-          <th>min</th>
-          <th>25%</th>
-          <th>median</th>
-          <th>mean</th>
-          <th>75%</th>
-          <th>max</th>
-          <th>std</th>
-          <th>iqr</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>summary</th>
-          <td>250</td>
-          <td>238</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>1616.0</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-        </tr>
-        <tr>
-          <th># Tokens / Document</th>
-          <td>250</td>
-          <td>58</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>NaN</td>
-          <td>1.0</td>
-          <td>12.0</td>
-          <td>20.0</td>
-          <td>24.392</td>
-          <td>31.75</td>
-          <td>145.0</td>
-          <td>17.661201</td>
-          <td>19.75</td>
-        </tr>
-        <tr>
-          <th># Characters / Document</th>
-          <td>250</td>
-          <td>186</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>NaN</td>
-          <td>13.0</td>
-          <td>140.0</td>
-          <td>226.0</td>
-          <td>273.928</td>
-          <td>359.75</td>
-          <td>1550.0</td>
-          <td>198.478578</td>
-          <td>219.75</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
 
-.. GENERATED FROM PYTHON SOURCE LINES 39-42
+
+.. GENERATED FROM PYTHON SOURCE LINES 38-41
 
 By default, the summary does a lot of text cleaning: removing punctuation and stop words, lower casing. We can
 turn all of these off.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 42-53
+.. GENERATED FROM PYTHON SOURCE LINES 41-51
 
 .. code-block:: default
 
 
-    table, fig = intedact.text_univariate_summary(
+    fig = intedact.text_summary(
         data,
         "summary",
-        fontsize=10,
         remove_stop=False,
         remove_punct=False,
         lower_case=False,
+        fig_width=700
     )
-    fig.show()
-    table
-
-
-
-.. image-sg:: /auto_examples/images/sphx_glr_plot_univariate_text_summary_002.png
-   :alt: plot univariate text summary
-   :srcset: /auto_examples/images/sphx_glr_plot_univariate_text_summary_002.png
-   :class: sphx-glr-single-img
+    plotly.io.show(fig)
 
 
 
 .. raw:: html
+    :file: images/sphx_glr_plot_univariate_text_summary_002.html
 
-    <div class="output_subarea output_html rendered_html output_result">
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
 
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
 
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>count_observed</th>
-          <th>count_unique</th>
-          <th>count_missing</th>
-          <th>percent_missing</th>
-          <th>vocab_size</th>
-          <th>min</th>
-          <th>25%</th>
-          <th>median</th>
-          <th>mean</th>
-          <th>75%</th>
-          <th>max</th>
-          <th>std</th>
-          <th>iqr</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>summary</th>
-          <td>250</td>
-          <td>238</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>1965.0</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-          <td>NaN</td>
-        </tr>
-        <tr>
-          <th># Tokens / Document</th>
-          <td>250</td>
-          <td>95</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>NaN</td>
-          <td>2.0</td>
-          <td>25.0</td>
-          <td>40.5</td>
-          <td>48.956</td>
-          <td>64.00</td>
-          <td>279.0</td>
-          <td>36.399750</td>
-          <td>39.00</td>
-        </tr>
-        <tr>
-          <th># Characters / Document</th>
-          <td>250</td>
-          <td>186</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>NaN</td>
-          <td>13.0</td>
-          <td>140.0</td>
-          <td>226.0</td>
-          <td>273.928</td>
-          <td>359.75</td>
-          <td>1550.0</td>
-          <td>198.478578</td>
-          <td>219.75</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-    </div>
-    <br />
-    <br />
+
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.678 seconds)
+   **Total running time of the script:** ( 0 minutes  0.724 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plot_univariate_text_summary.py:
