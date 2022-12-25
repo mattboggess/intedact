@@ -35,7 +35,7 @@ For interactive univariate EDA simply import the `univariate_eda_interact` funct
         data, notes_file="optional_file_to_save_notes_to.json"
     )
 
-<img src="https://github.com/mattboggess/intedact/raw/main/demo/univariate_eda_demo.gif"/>
+<img src="https://github.com/mattboggess/intedact/raw/main/demo/univariate_eda.gif"/>
 
 At the top level, one selects the column and the summary type for that column to display. To explore the full dataset,
 just toggle through each of the column names. Current supported summary types:
@@ -63,7 +63,7 @@ Like with univariate EDA, simply import the `bivariate_eda_interact` function in
         data, notes_file="optional_file_to_save_notes_to.json"
     )
 
-<img src="https://github.com/mattboggess/intedact/raw/main/demo/bivariate_eda_demo.gif"/>
+<img src="https://github.com/mattboggess/intedact/raw/main/demo/bivariate_eda.gif"/>
 
 At the top level, one selects a pair of columns to display (one as the independent and the second as the dependent).
 Current supported summary types:
