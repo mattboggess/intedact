@@ -27,14 +27,14 @@ The summary computes the following:
 
 - Lineplot with fractions for each level of the categorical variable against quantiles of the numeric variable
 
-.. GENERATED FROM PYTHON SOURCE LINES 11-15
+.. GENERATED FROM PYTHON SOURCE LINES 11-16
 
 .. code-block:: default
 
     import pandas as pd
-    import intedact
     import plotly
 
+    import intedact
 
 
 
@@ -42,24 +42,24 @@ The summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 16-18
+
+.. GENERATED FROM PYTHON SOURCE LINES 17-19
 
 Here we look at how diamond cut quality changes with carats.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 18-27
+.. GENERATED FROM PYTHON SOURCE LINES 19-27
 
 .. code-block:: default
 
 
     data = pd.read_csv(
-        'https://raw.githubusercontent.com/mwaskom/seaborn-data/master/diamonds.csv'
+        "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/diamonds.csv"
     )
     fig = intedact.numeric_categorical_summary(
         data, "carat", "cut", num_intervals=5, fig_width=700
     )
     plotly.io.show(fig)
-
 
 
 
@@ -73,7 +73,7 @@ Here we look at how diamond cut quality changes with carats.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.986 seconds)
+   **Total running time of the script:** ( 0 minutes  0.692 seconds)
 
 
 .. _sphx_glr_download_auto_examples_bivariate_summaries_plot_bivariate_numeric_categorical_summary.py:

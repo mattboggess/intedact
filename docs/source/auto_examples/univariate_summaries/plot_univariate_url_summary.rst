@@ -30,14 +30,14 @@ The URL summary computes the following:
 - Countplot for the domain suffixes of the urls
 - Countplot for the file types of the urls
 
-.. GENERATED FROM PYTHON SOURCE LINES 14-18
+.. GENERATED FROM PYTHON SOURCE LINES 14-19
 
 .. code-block:: default
 
     import pandas as pd
-    import intedact
     import plotly
 
+    import intedact
 
 
 
@@ -45,12 +45,13 @@ The URL summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 19-21
+
+.. GENERATED FROM PYTHON SOURCE LINES 20-22
 
 Here we take a look at the source URL's for countries GDPR violations recordings.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 21-28
+.. GENERATED FROM PYTHON SOURCE LINES 22-29
 
 .. code-block:: default
 
@@ -74,7 +75,7 @@ Here we take a look at the source URL's for countries GDPR violations recordings
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  3.235 seconds)
+   **Total running time of the script:** ( 0 minutes  3.239 seconds)
 
 
 .. _sphx_glr_download_auto_examples_univariate_summaries_plot_univariate_url_summary.py:

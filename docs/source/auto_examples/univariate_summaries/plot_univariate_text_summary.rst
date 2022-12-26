@@ -30,14 +30,15 @@ The text summary computes the following:
 - Boxplot of # of unique observations of each document
 - Countplots for the most common unigrams, bigrams, and trigams
 
-.. GENERATED FROM PYTHON SOURCE LINES 14-22
+.. GENERATED FROM PYTHON SOURCE LINES 14-23
 
 .. code-block:: default
 
-    import pandas as pd
-    import intedact
     import nltk
+    import pandas as pd
     import plotly
+
+    import intedact
 
     nltk.download("punkt")
     nltk.download("stopwords")
@@ -62,12 +63,12 @@ The text summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 23-25
+.. GENERATED FROM PYTHON SOURCE LINES 24-26
 
 Here we take a look at the summaries for GDPR violations.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 25-33
+.. GENERATED FROM PYTHON SOURCE LINES 26-34
 
 .. code-block:: default
 
@@ -89,13 +90,13 @@ Here we take a look at the summaries for GDPR violations.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 34-37
+.. GENERATED FROM PYTHON SOURCE LINES 35-38
 
 By default, the summary does a lot of text cleaning: removing punctuation and stop words, lower casing. We can
 turn all of these off.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 37-47
+.. GENERATED FROM PYTHON SOURCE LINES 38-48
 
 .. code-block:: default
 
@@ -106,7 +107,7 @@ turn all of these off.
         remove_stop=False,
         remove_punct=False,
         lower_case=False,
-        fig_width=700
+        fig_width=700,
     )
     plotly.io.show(fig)
 
@@ -122,7 +123,7 @@ turn all of these off.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.772 seconds)
+   **Total running time of the script:** ( 0 minutes  0.851 seconds)
 
 
 .. _sphx_glr_download_auto_examples_univariate_summaries_plot_univariate_text_summary.py:

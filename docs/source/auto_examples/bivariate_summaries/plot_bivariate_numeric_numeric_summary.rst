@@ -29,14 +29,14 @@ The summary computes the following:
 - A 2d histogram
 - Boxplots of the dependent variable against quantiles of the independent variable
 
-.. GENERATED FROM PYTHON SOURCE LINES 13-17
+.. GENERATED FROM PYTHON SOURCE LINES 13-18
 
 .. code-block:: default
 
     import pandas as pd
-    import intedact
     import plotly
 
+    import intedact
 
 
 
@@ -44,22 +44,21 @@ The summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 18-20
+
+.. GENERATED FROM PYTHON SOURCE LINES 19-21
 
 Here we take a look at relationship between carat and price in the diamonds dataset
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 20-29
+.. GENERATED FROM PYTHON SOURCE LINES 21-28
 
 .. code-block:: default
 
 
     data = pd.read_csv(
-        'https://raw.githubusercontent.com/mwaskom/seaborn-data/master/diamonds.csv'
+        "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/diamonds.csv"
     ).sample(n=10000)
-    fig = intedact.numeric_numeric_summary(
-        data, "carat", "price", fig_width=700
-    )
+    fig = intedact.numeric_numeric_summary(data, "carat", "price", fig_width=700)
     plotly.io.show(fig)
 
 
@@ -72,19 +71,26 @@ Here we take a look at relationship between carat and price in the diamonds data
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 30-33
+.. GENERATED FROM PYTHON SOURCE LINES 29-32
 
 By default, it is hard to see much since the distributions are very skewed with outliers. We can tweak
 the plot to actually visualize the distributions in more detail.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 33-38
+.. GENERATED FROM PYTHON SOURCE LINES 32-44
 
 .. code-block:: default
 
 
     fig = intedact.numeric_numeric_summary(
-        data, "carat", "price", upper_quantile1=.98, hist_bins=100, num_intervals=10, opacity=0.4, fig_width=700
+        data,
+        "carat",
+        "price",
+        upper_quantile1=0.98,
+        hist_bins=100,
+        num_intervals=10,
+        opacity=0.4,
+        fig_width=700,
     )
     plotly.io.show(fig)
 
@@ -100,7 +106,7 @@ the plot to actually visualize the distributions in more detail.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  8.704 seconds)
+   **Total running time of the script:** ( 0 minutes  8.355 seconds)
 
 
 .. _sphx_glr_download_auto_examples_bivariate_summaries_plot_bivariate_numeric_numeric_summary.py:
