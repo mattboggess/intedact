@@ -2,4 +2,5 @@ sphinx_autorun==1.1.1
 sphinx-gallery==0.10.1
 sphinx_rtd_theme
 sphinx_exec_directive
+kaleido
 .
