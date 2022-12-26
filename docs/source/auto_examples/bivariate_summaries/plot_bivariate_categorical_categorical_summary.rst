@@ -29,14 +29,14 @@ The summary computes the following:
 - Barplot showing distribution of column2's levels within each level of column1
 - Lineplot showing distribution of column2's levels across each level of column1
 
-.. GENERATED FROM PYTHON SOURCE LINES 13-17
+.. GENERATED FROM PYTHON SOURCE LINES 13-18
 
 .. code-block:: default
 
     import pandas as pd
-    import intedact
     import plotly
 
+    import intedact
 
 
 
@@ -44,26 +44,34 @@ The summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 18-20
+
+.. GENERATED FROM PYTHON SOURCE LINES 19-21
 
 Here we look at how diamond cut quality and clarity quality are related.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 20-31
+.. GENERATED FROM PYTHON SOURCE LINES 21-39
 
 .. code-block:: default
 
 
     data = pd.read_csv(
-        'https://raw.githubusercontent.com/mwaskom/seaborn-data/master/diamonds.csv'
+        "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/diamonds.csv"
     )
-    data["cut"] = pd.Categorical(data["cut"], categories=["Fair", "Good", "Very Good", "Premium", "Ideal"], ordered=True)
-    data["clarity"] = pd.Categorical(data["clarity"], categories=["I1", "SI2", "SI1", "VS2", "VS1", "VVS2", "VVS1", "IF"],  ordered=True)
+    data["cut"] = pd.Categorical(
+        data["cut"],
+        categories=["Fair", "Good", "Very Good", "Premium", "Ideal"],
+        ordered=True,
+    )
+    data["clarity"] = pd.Categorical(
+        data["clarity"],
+        categories=["I1", "SI2", "SI1", "VS2", "VS1", "VVS2", "VVS1", "IF"],
+        ordered=True,
+    )
     fig = intedact.categorical_categorical_summary(
-        data, "clarity", "cut",  barmode="group", fig_width=700
+        data, "clarity", "cut", barmode="group", fig_width=700
     )
     plotly.io.show(fig)
-
 
 
 
@@ -77,7 +85,7 @@ Here we look at how diamond cut quality and clarity quality are related.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.538 seconds)
+   **Total running time of the script:** ( 0 minutes  0.585 seconds)
 
 
 .. _sphx_glr_download_auto_examples_bivariate_summaries_plot_bivariate_categorical_categorical_summary.py:

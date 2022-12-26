@@ -30,14 +30,14 @@ The collection summary computes the following:
   - Counts for all the unique entries
   - Counts for the number of entries in each collection
 
-.. GENERATED FROM PYTHON SOURCE LINES 14-18
+.. GENERATED FROM PYTHON SOURCE LINES 14-19
 
 .. code-block:: default
 
     import pandas as pd
-    import intedact
     import plotly
 
+    import intedact
 
 
 
@@ -45,14 +45,15 @@ The collection summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 19-23
+
+.. GENERATED FROM PYTHON SOURCE LINES 20-24
 
 Here we take a look at which articles of GDPR countries violated. We first have to process the column so it is
 a list and not a string. One can also choose whether to sort the values (ignore order of how they're listed) and
 remove duplicates (only consider unique entries)
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 23-31
+.. GENERATED FROM PYTHON SOURCE LINES 24-32
 
 .. code-block:: default
 
@@ -77,7 +78,7 @@ remove duplicates (only consider unique entries)
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.192 seconds)
+   **Total running time of the script:** ( 0 minutes  0.208 seconds)
 
 
 .. _sphx_glr_download_auto_examples_univariate_summaries_plot_univariate_collection_summary.py:

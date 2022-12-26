@@ -28,14 +28,14 @@ The numeric summary computes the following:
 - A histogram
 - A boxplot
 
-.. GENERATED FROM PYTHON SOURCE LINES 12-16
+.. GENERATED FROM PYTHON SOURCE LINES 12-17
 
 .. code-block:: default
 
     import pandas as pd
-    import intedact
     import plotly
 
+    import intedact
 
 
 
@@ -43,7 +43,8 @@ The numeric summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 17-22
+
+.. GENERATED FROM PYTHON SOURCE LINES 18-23
 
 Here we take a look at some GDPR violation prices and showcase some parameters:
 
@@ -51,7 +52,7 @@ Here we take a look at some GDPR violation prices and showcase some parameters:
 - outlier filtering
 - custom bin count
 
-.. GENERATED FROM PYTHON SOURCE LINES 22-31
+.. GENERATED FROM PYTHON SOURCE LINES 23-32
 
 .. code-block:: default
 
@@ -77,7 +78,7 @@ Here we take a look at some GDPR violation prices and showcase some parameters:
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.242 seconds)
+   **Total running time of the script:** ( 0 minutes  0.196 seconds)
 
 
 .. _sphx_glr_download_auto_examples_univariate_summaries_plot_univariate_numeric_summary.py:

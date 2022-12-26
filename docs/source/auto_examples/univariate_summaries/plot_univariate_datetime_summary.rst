@@ -28,12 +28,13 @@ The datetime summary computes the following:
 - A time seriesplot aggregated according to the `ts_freq` parameter
 - Barplots showing counts by day of week, month, hour of day, day of month
 
-.. GENERATED FROM PYTHON SOURCE LINES 12-23
+.. GENERATED FROM PYTHON SOURCE LINES 12-24
 
 .. code-block:: default
 
     import pandas as pd
     import plotly
+
     import intedact
 
     data = pd.read_csv(
@@ -53,20 +54,18 @@ The datetime summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 24-27
+.. GENERATED FROM PYTHON SOURCE LINES 25-28
 
 By default, the summary tries to infer reasonable units for the time series. We can change
 these by using time unit strings for the `ts_freq` parameter.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 27-33
+.. GENERATED FROM PYTHON SOURCE LINES 28-32
 
 .. code-block:: default
 
 
-    fig = intedact.datetime_summary(
-        data, "created_at", ts_freq="1 day", fig_width=700
-    )
+    fig = intedact.datetime_summary(data, "created_at", ts_freq="1 day", fig_width=700)
     plotly.io.show(fig)
 
 
@@ -79,12 +78,12 @@ these by using time unit strings for the `ts_freq` parameter.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 34-36
+.. GENERATED FROM PYTHON SOURCE LINES 33-35
 
 Example of changing plot type, removing trend line, and removing outliers.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 36-45
+.. GENERATED FROM PYTHON SOURCE LINES 35-44
 
 .. code-block:: default
 
@@ -94,7 +93,7 @@ Example of changing plot type, removing trend line, and removing outliers.
         ts_type="markers",
         trend_line="none",
         upper_quantile=0.99,
-        fig_width=700
+        fig_width=700,
     )
     plotly.io.show(fig)
 
@@ -110,7 +109,7 @@ Example of changing plot type, removing trend line, and removing outliers.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  3.695 seconds)
+   **Total running time of the script:** ( 0 minutes  4.192 seconds)
 
 
 .. _sphx_glr_download_auto_examples_univariate_summaries_plot_univariate_datetime_summary.py:

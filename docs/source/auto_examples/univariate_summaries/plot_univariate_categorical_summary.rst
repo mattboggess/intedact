@@ -28,14 +28,14 @@ The categorical summary computes the following:
 - A countplot with counts and percentages by level of the categorical
 - A table with summary statistics
 
-.. GENERATED FROM PYTHON SOURCE LINES 12-16
+.. GENERATED FROM PYTHON SOURCE LINES 12-17
 
 .. code-block:: default
 
     import pandas as pd
-    import intedact
     import plotly
 
+    import intedact
 
 
 
@@ -43,14 +43,15 @@ The categorical summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 17-21
+
+.. GENERATED FROM PYTHON SOURCE LINES 18-22
 
 For our first example, we plot the name of countries who have had GDPR violations.
 By default, the plot will try to order and orient the columns appropriately. Here we order by descending count
 and the plot was flipped horizontally due to the number of levels in the variable.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 21-28
+.. GENERATED FROM PYTHON SOURCE LINES 22-29
 
 .. code-block:: default
 
@@ -71,18 +72,23 @@ and the plot was flipped horizontally due to the number of levels in the variabl
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 29-32
+.. GENERATED FROM PYTHON SOURCE LINES 30-33
 
 We can do additional things such as condense extra columns into an "Other" column, add a bar for missing values,
 and change the sort order to sort alphabetically.
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 32-36
+.. GENERATED FROM PYTHON SOURCE LINES 33-42
 
 .. code-block:: default
 
     fig = intedact.categorical_summary(
-        data, "name", include_missing=True, order="sorted", max_levels=5, fig_width=700,
+        data,
+        "name",
+        include_missing=True,
+        order="sorted",
+        max_levels=5,
+        fig_width=700,
     )
     plotly.io.show(fig)
 
@@ -106,7 +112,7 @@ and change the sort order to sort alphabetically.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.235 seconds)
+   **Total running time of the script:** ( 0 minutes  0.222 seconds)
 
 
 .. _sphx_glr_download_auto_examples_univariate_summaries_plot_univariate_categorical_summary.py:

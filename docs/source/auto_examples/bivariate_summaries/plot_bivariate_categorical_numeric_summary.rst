@@ -28,14 +28,14 @@ The summary computes the following:
 - Overlapping histogram/kde plots of distributions by level
 - Side by side boxplots per level
 
-.. GENERATED FROM PYTHON SOURCE LINES 12-16
+.. GENERATED FROM PYTHON SOURCE LINES 12-17
 
 .. code-block:: default
 
     import pandas as pd
-    import intedact
     import plotly
 
+    import intedact
 
 
 
@@ -43,25 +43,27 @@ The summary computes the following:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 17-19
+
+.. GENERATED FROM PYTHON SOURCE LINES 18-20
 
 Here we look at how diamond price changes with cut quality
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 19-29
+.. GENERATED FROM PYTHON SOURCE LINES 20-31
 
 .. code-block:: default
 
 
     data = pd.read_csv(
-        'https://raw.githubusercontent.com/mwaskom/seaborn-data/master/diamonds.csv'
+        "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/diamonds.csv"
     )
-    data["cut"] = pd.Categorical(data["cut"], categories=["Fair", "Good", "Very Good", "Premium", "Ideal"], ordered=True)
-    fig = intedact.categorical_numeric_summary(
-        data, "cut", "price", fig_width=700
+    data["cut"] = pd.Categorical(
+        data["cut"],
+        categories=["Fair", "Good", "Very Good", "Premium", "Ideal"],
+        ordered=True,
     )
+    fig = intedact.categorical_numeric_summary(data, "cut", "price", fig_width=700)
     plotly.io.show(fig)
-
 
 
 
@@ -75,7 +77,7 @@ Here we look at how diamond price changes with cut quality
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.745 seconds)
+   **Total running time of the script:** ( 0 minutes  1.243 seconds)
 
 
 .. _sphx_glr_download_auto_examples_bivariate_summaries_plot_bivariate_categorical_numeric_summary.py:
